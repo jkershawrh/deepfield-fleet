@@ -1,0 +1,18 @@
+Maintenance Observation — 2024-01-15 19:00
+
+Unit: Bearing Assembly B3, Production Line 01
+
+Observer: J. Martinez, Shift Supervisor
+
+During routine floor walk at approximately 18:45, I noticed an unusual
+grinding noise coming from the bearing assembly on unit 7. The noise is
+intermittent but distinct from normal operation sounds. The bearing housing
+also feels warmer than usual to the touch.
+
+I checked the lubrication schedule and it was completed on time this morning.
+No recent changes to production load or speed settings.
+
+Recommend scheduling bearing inspection at next maintenance window. If noise
+increases, consider stopping the line for immediate inspection.
+
+Priority: Medium-High

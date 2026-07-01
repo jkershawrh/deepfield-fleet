@@ -1,0 +1,116 @@
+scenario_id: factory-line-bearing-failure
+name: Factory Line Bearing Failure
+description: >
+  Simulated bearing failure on factory production line.
+  Historical baseline shows normal vibration, temperature, defect rate,
+  and maintenance log language. Runtime signals include vibration drift,
+  thermal increase, surface defect image, and a maintenance note.
+
+site: factory-line-01
+scope:
+  scope_type: site
+  scope_id: factory-line-01
+
+timeline:
+  - timestamp: "2024-01-15T08:00:00Z"
+    phase: baseline
+    description: Normal operations begin — baseline data collection window
+  - timestamp: "2024-01-15T14:00:00Z"
+    phase: drift_onset
+    description: Subtle vibration drift begins
+  - timestamp: "2024-01-15T16:00:00Z"
+    phase: thermal_increase
+    description: Temperature begins rising above baseline
+  - timestamp: "2024-01-15T18:00:00Z"
+    phase: defect_detected
+    description: Surface defect image captured by inspection camera
+  - timestamp: "2024-01-15T19:00:00Z"
+    phase: maintenance_note
+    description: Operator logs unusual noise observation
+  - timestamp: "2024-01-15T20:00:00Z"
+    phase: incident_classified
+    description: System classifies convergent signals as bearing failure
+
+artifacts:
+  - file: metrics/vibration.csv
+    modality: metric
+    artifact_type: vibration_rms
+    description: Vibration RMS values — normal baseline then gradual drift
+
+  - file: metrics/temperature.csv
+    modality: metric
+    artifact_type: temperature_celsius
+    description: Bearing temperature — stable baseline then thermal increase
+
+  - file: logs/maintenance.log
+    modality: log
+    artifact_type: maintenance_log
+    description: Timestamped maintenance log entries
+
+  - file: documents/maintenance-note.txt
+    modality: document
+    artifact_type: operator_note
+    description: Operator observation about unusual noise
+
+  - file: images/README.md
+    modality: image
+    artifact_type: surface_inspection
+    description: Surface defect image (placeholder — mock labels below)
+    mock_labels:
+      surface_defect_score: 0.72
+      defect_type: bearing_wear
+      confidence: 0.68
+
+  - file: audio/README.md
+    modality: audio
+    artifact_type: vibration_audio
+    description: Vibration audio clip (placeholder — mock labels below)
+    mock_labels:
+      vibration_anomaly_score: 0.81
+      anomaly_type: bearing_resonance
+      duration_seconds: 5.0
+      rms_level: 0.45
+
+expected_classifications:
+  nano:
+    - agent: baseline_distance
+      class_name: watch
+      taxonomy: operational_state
+      target_modality: metric
+    - agent: metric_drift
+      class_name: degraded
+      taxonomy: operational_state
+      target_modality: metric
+    - agent: log_pattern
+      class_name: actionable
+      taxonomy: signal_quality
+      target_modality: log
+
+  micro:
+    - agent: image_classifier
+      class_name: bearing_wear
+      taxonomy: incident_family
+      target_modality: image
+    - agent: audio_classifier
+      class_name: bearing_resonance
+      taxonomy: incident_family
+      target_modality: audio
+
+  macro:
+    - agent: incident_timeline
+      class_name: incident
+      taxonomy: operational_state
+    - agent: root_cause_hypothesis
+      class_name: quality
+      taxonomy: incident_family
+
+expected_action:
+  action_type: notify
+  target: maintenance_team
+  description: Notify maintenance and raise inspection level
+
+expected_verification:
+  verification_type: metric_return_to_baseline
+  expected_outcome:
+    vibration_rms_below: 0.35
+    temperature_below: 42.0
