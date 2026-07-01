@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from app.agent_loop.loop import AgentLoop
 from app.baseline.compiler import BaselineCompiler
 from app.classification.engine import ClassificationEngine
 from app.classification.taxonomy import is_valid_classification
@@ -207,3 +208,69 @@ class TestScenarioNormalEvidence:
         records = engine.classify(evidence, baseline)
         macro = [r for r in records if r.agent_tier == "macro"]
         assert len(macro) == 0
+
+
+# ---------------------------------------------------------------------------
+# M4 Scenario: Full agent loop — Decide → Act → Verify → Learn
+# ---------------------------------------------------------------------------
+
+class TestScenarioFullAgentLoop:
+    """
+    Scenario: Full agent loop on bearing failure
+      Given evidence from the factory-line-bearing-failure scenario
+      And an active baseline profile
+      When the agent loop runs
+      Then classifications are produced across all three tiers
+      And a safe action is proposed (not destructive)
+      And a verification record is created
+      And a learning proposal is generated
+      And the action requires human approval
+    """
+
+    def _run_loop(self):
+        evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
+        compiler = BaselineCompiler()
+        baseline = compiler.compile(
+            evidence=evidence,
+            scope={"scope_type": "site", "scope_id": "factory-line-01"},
+        )
+        baseline.status = "active"
+        loop = AgentLoop()
+        return loop.run(evidence, baseline)
+
+    def test_then_classifications_cover_all_tiers(self):
+        result = self._run_loop()
+        tiers = {c.agent_tier for c in result["classifications"]}
+        assert tiers == {"nano", "micro", "macro"}
+
+    def test_then_action_is_proposed_and_safe(self):
+        result = self._run_loop()
+        assert len(result["actions"]) > 0
+        safe = {"notify", "observe", "ticket", "human_approval", "no_action"}
+        for a in result["actions"]:
+            assert a.action_type in safe
+            assert a.status == "proposed"
+
+    def test_then_action_requires_human_approval(self):
+        result = self._run_loop()
+        notify_actions = [a for a in result["actions"] if a.action_type == "notify"]
+        if notify_actions:
+            assert notify_actions[0].requires_human_approval is True
+
+    def test_then_verification_created(self):
+        result = self._run_loop()
+        assert len(result["verifications"]) > 0
+        assert result["verifications"][0].status == "pending"
+
+    def test_then_learning_proposal_generated(self):
+        result = self._run_loop()
+        assert len(result["learning_proposals"]) > 0
+        assert result["learning_proposals"][0].status == "proposed"
+
+    def test_end_to_end_story(self):
+        """The complete DeepField story in one test."""
+        result = self._run_loop()
+        assert len(result["classifications"]) > 10
+        assert len(result["actions"]) >= 1
+        assert len(result["verifications"]) >= 1
+        assert len(result["learning_proposals"]) >= 1

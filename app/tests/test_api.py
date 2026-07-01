@@ -76,3 +76,55 @@ class TestBaselineAPI:
     async def test_list_profiles(self, client):
         resp = await client.get("/api/v1/baseline/profiles")
         assert resp.status_code == 200
+
+
+class TestAgentLoopAPI:
+    @pytest.mark.asyncio
+    async def test_propose_action(self, client):
+        resp = await client.post("/api/v1/agent-loop/actions", json={
+            "action_type": "notify",
+            "payload": {"target": "maintenance"},
+            "created_by_agent": "test",
+        })
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "proposed"
+
+    @pytest.mark.asyncio
+    async def test_list_actions(self, client):
+        resp = await client.get("/api/v1/agent-loop/actions")
+        assert resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_approve_and_execute(self, client):
+        resp = await client.post("/api/v1/agent-loop/actions", json={
+            "action_type": "notify", "payload": {}, "created_by_agent": "test",
+        })
+        action_id = resp.json()["action_id"]
+        resp = await client.post(f"/api/v1/agent-loop/actions/{action_id}/approve")
+        assert resp.json()["status"] == "approved"
+        resp = await client.post(f"/api/v1/agent-loop/actions/{action_id}/execute")
+        assert resp.json()["status"] == "executed"
+
+    @pytest.mark.asyncio
+    async def test_list_verifications(self, client):
+        resp = await client.get("/api/v1/agent-loop/verifications")
+        assert resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_list_learning_proposals(self, client):
+        resp = await client.get("/api/v1/agent-loop/learning-proposals")
+        assert resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_create_and_accept_proposal(self, client):
+        resp = await client.post("/api/v1/agent-loop/learning-proposals", json={
+            "source_type": "incident",
+            "source_id": str(uuid4()),
+            "proposal_type": "threshold_update",
+            "rationale": "test proposal",
+            "confidence": 0.7,
+        })
+        assert resp.status_code == 200
+        pid = resp.json()["proposal_id"]
+        resp = await client.post(f"/api/v1/agent-loop/learning-proposals/{pid}/accept")
+        assert resp.json()["status"] == "accepted"

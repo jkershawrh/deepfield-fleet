@@ -40,10 +40,12 @@ app.add_middleware(
 from app.api.multimodal import router as multimodal_router
 from app.api.baseline import router as baseline_router
 from app.api.classification import router as classification_router
+from app.api.agent_loop import router as agent_loop_router
 
 app.include_router(multimodal_router)
 app.include_router(baseline_router)
 app.include_router(classification_router)
+app.include_router(agent_loop_router)
 
 
 @app.get("/health")

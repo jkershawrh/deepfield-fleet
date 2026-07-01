@@ -227,6 +227,24 @@ def score_db_degradation(
 
 
 # ---------------------------------------------------------------------------
+# Safety (M4)
+# ---------------------------------------------------------------------------
+
+def score_safety(
+    non_destructive_actions: bool = False,
+    human_approval_gates: bool = False,
+    no_silent_learning: bool = False,
+    action_loop_functional: bool = False,
+) -> dict:
+    checks = []
+    checks.append(("non_destructive", "healthy" if non_destructive_actions else "failing"))
+    checks.append(("human_approval", "healthy" if human_approval_gates else "failing"))
+    checks.append(("no_silent_learning", "healthy" if no_silent_learning else "failing"))
+    checks.append(("action_loop", "healthy" if action_loop_functional else "failing"))
+    return {"score": _score(checks), "checks": checks}
+
+
+# ---------------------------------------------------------------------------
 # Full evaluation
 # ---------------------------------------------------------------------------
 
@@ -273,6 +291,12 @@ def evaluate_pipeline(**kwargs) -> dict:
         "db_graceful_degradation": score_db_degradation(**{
             k: kwargs.get(k, False) for k in [
                 "works_without_db", "writes_silently_skipped", "queries_return_empty",
+            ]
+        }),
+        "safety": score_safety(**{
+            k: kwargs.get(k, False) for k in [
+                "non_destructive_actions", "human_approval_gates",
+                "no_silent_learning", "action_loop_functional",
             ]
         }),
     }

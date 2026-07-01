@@ -19,6 +19,7 @@ from app.analysis.evaluator import (
     score_db_degradation,
     score_evidence_normalization,
     score_fixture_scenarios,
+    score_safety,
 )
 
 FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "multimodal" / "factory-line-bearing-failure"
@@ -182,7 +183,7 @@ class TestM1FullEvaluation:
         assert result["overall"] == "failing"
 
     def test_red_green_matrix_m1(self):
-        """The M1 red/green matrix: 3 green, 5 red."""
+        """The M1 red/green matrix: 3 green, 6 red."""
         result = evaluate_pipeline(
             models_importable=True,
             all_literals_enforced=True,
@@ -198,7 +199,7 @@ class TestM1FullEvaluation:
         green = [k for k, v in result["rubrics"].items() if v["score"] == "healthy"]
         red = [k for k, v in result["rubrics"].items() if v["score"] == "failing"]
         assert set(green) == {"contract_compliance", "fixture_scenarios", "db_graceful_degradation"}
-        assert len(red) == 5
+        assert len(red) == 6
 
 
 # ---------------------------------------------------------------------------
@@ -206,78 +207,83 @@ class TestM1FullEvaluation:
 # ---------------------------------------------------------------------------
 
 class TestM3FullEvaluation:
-    def test_all_rubrics_green_at_m3(self):
+    def test_m3_has_safety_red(self):
+        """At M3: 8 green, 1 red (safety — not yet implemented)."""
         result = evaluate_pipeline(
-            # Contract compliance
-            models_importable=True,
-            all_literals_enforced=True,
-            confidence_ranges_enforced=True,
-            serialization_roundtrips=True,
-            # Fixture scenarios
-            manifest_loadable=True,
-            all_modalities_present=True,
+            models_importable=True, all_literals_enforced=True,
+            confidence_ranges_enforced=True, serialization_roundtrips=True,
+            manifest_loadable=True, all_modalities_present=True,
             expected_classifications_defined=True,
-            # Evidence normalization
-            modality_coverage=1.0,
-            feature_extraction_complete=True,
+            modality_coverage=1.0, feature_extraction_complete=True,
             artifact_validity_rate=1.0,
-            # Baseline quality
-            history_coverage=0.8,
-            scope_coverage=1.0,
-            confidence=0.7,
+            history_coverage=0.8, scope_coverage=1.0, confidence=0.7,
             has_thresholds=True,
-            # Classification accuracy
-            taxonomy_compliance=1.0,
-            confidence_calibration=0.85,
+            taxonomy_compliance=1.0, confidence_calibration=0.85,
             evidence_linkage=1.0,
-            # Cascade efficiency
-            nano_retention_rate=0.6,
-            micro_escalation_rate=0.3,
+            nano_retention_rate=0.6, micro_escalation_rate=0.3,
             macro_escalation_rate=0.15,
-            # Agent coverage
-            nano_agent_count=7,
-            micro_agent_count=5,
-            macro_agent_count=5,
-            modalities_covered=6,
-            # DB degradation
-            works_without_db=True,
-            writes_silently_skipped=True,
-            queries_return_empty=True,
-        )
-        for name, rubric in result["rubrics"].items():
-            assert rubric["score"] == "healthy", f"Rubric {name} is {rubric['score']}, expected healthy"
-        assert result["overall"] == "healthy"
-
-    def test_red_green_matrix_m3(self):
-        """At M3 completion: all 8 rubric dimensions should be green."""
-        result = evaluate_pipeline(
-            models_importable=True,
-            all_literals_enforced=True,
-            confidence_ranges_enforced=True,
-            serialization_roundtrips=True,
-            manifest_loadable=True,
-            all_modalities_present=True,
-            expected_classifications_defined=True,
-            modality_coverage=1.0,
-            feature_extraction_complete=True,
-            artifact_validity_rate=1.0,
-            history_coverage=0.8,
-            scope_coverage=1.0,
-            confidence=0.7,
-            has_thresholds=True,
-            taxonomy_compliance=1.0,
-            confidence_calibration=0.85,
-            evidence_linkage=1.0,
-            nano_retention_rate=0.6,
-            micro_escalation_rate=0.3,
-            macro_escalation_rate=0.15,
-            nano_agent_count=7,
-            micro_agent_count=5,
-            macro_agent_count=5,
-            modalities_covered=6,
-            works_without_db=True,
-            writes_silently_skipped=True,
+            nano_agent_count=7, micro_agent_count=5,
+            macro_agent_count=5, modalities_covered=6,
+            works_without_db=True, writes_silently_skipped=True,
             queries_return_empty=True,
         )
         green = [k for k, v in result["rubrics"].items() if v["score"] == "healthy"]
+        red = [k for k, v in result["rubrics"].items() if v["score"] == "failing"]
         assert len(green) == 8
+        assert red == ["safety"]
+
+
+# ---------------------------------------------------------------------------
+# M4: ALL rubrics GREEN (including safety)
+# ---------------------------------------------------------------------------
+
+class TestM4FullEvaluation:
+    def test_all_rubrics_green_at_m4(self):
+        result = evaluate_pipeline(
+            models_importable=True, all_literals_enforced=True,
+            confidence_ranges_enforced=True, serialization_roundtrips=True,
+            manifest_loadable=True, all_modalities_present=True,
+            expected_classifications_defined=True,
+            modality_coverage=1.0, feature_extraction_complete=True,
+            artifact_validity_rate=1.0,
+            history_coverage=0.8, scope_coverage=1.0, confidence=0.7,
+            has_thresholds=True,
+            taxonomy_compliance=1.0, confidence_calibration=0.85,
+            evidence_linkage=1.0,
+            nano_retention_rate=0.6, micro_escalation_rate=0.3,
+            macro_escalation_rate=0.15,
+            nano_agent_count=7, micro_agent_count=5,
+            macro_agent_count=5, modalities_covered=6,
+            works_without_db=True, writes_silently_skipped=True,
+            queries_return_empty=True,
+            non_destructive_actions=True, human_approval_gates=True,
+            no_silent_learning=True, action_loop_functional=True,
+        )
+        for name, rubric in result["rubrics"].items():
+            assert rubric["score"] == "healthy", f"Rubric {name} is {rubric['score']}"
+        assert result["overall"] == "healthy"
+
+    def test_red_green_matrix_m4(self):
+        """At M4 completion: all 9 rubric dimensions green."""
+        result = evaluate_pipeline(
+            models_importable=True, all_literals_enforced=True,
+            confidence_ranges_enforced=True, serialization_roundtrips=True,
+            manifest_loadable=True, all_modalities_present=True,
+            expected_classifications_defined=True,
+            modality_coverage=1.0, feature_extraction_complete=True,
+            artifact_validity_rate=1.0,
+            history_coverage=0.8, scope_coverage=1.0, confidence=0.7,
+            has_thresholds=True,
+            taxonomy_compliance=1.0, confidence_calibration=0.85,
+            evidence_linkage=1.0,
+            nano_retention_rate=0.6, micro_escalation_rate=0.3,
+            macro_escalation_rate=0.15,
+            nano_agent_count=7, micro_agent_count=5,
+            macro_agent_count=5, modalities_covered=6,
+            works_without_db=True, writes_silently_skipped=True,
+            queries_return_empty=True,
+            non_destructive_actions=True, human_approval_gates=True,
+            no_silent_learning=True, action_loop_functional=True,
+        )
+        green = [k for k, v in result["rubrics"].items() if v["score"] == "healthy"]
+        assert len(green) == 9
