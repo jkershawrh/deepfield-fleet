@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Containerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-}
+    restart: unless-stopped
+
+  # Optional: uncomment to add PostgreSQL persistence
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_DB: deepfield_multimodal
+  #     POSTGRES_USER: deepfield
+  #     POSTGRES_PASSWORD: deepfield
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+
+# volumes:
+#   pgdata:

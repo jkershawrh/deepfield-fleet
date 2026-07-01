@@ -2,9 +2,12 @@
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.db import close_db, init_db
 
@@ -51,3 +54,16 @@ app.include_router(agent_loop_router)
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "deepfield-multimodal"}
+
+
+_STATIC_DIR = Path(__file__).resolve().parents[1] / "frontend" / "dist"
+
+if _STATIC_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets"), name="assets")
+
+    @app.get("/{path:path}")
+    async def spa_fallback(request: Request, path: str):
+        file_path = _STATIC_DIR / path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(_STATIC_DIR / "index.html")
