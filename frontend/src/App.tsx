@@ -332,25 +332,25 @@ export default function App() {
         </motion.div>
       </div>
     ),
-    // 6: CTA — enter the demo
+    // 6: CTA — enter the walkthrough
     () => (
       <div style={{ textAlign: 'center' }}>
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 36, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginBottom: 40 }}>
+          style={{ fontSize: 36, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginBottom: 16 }}>
           Let's see it work.
         </motion.p>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          style={{ display: 'flex', justifyContent: 'center', gap: 20 }}>
-          <button onClick={() => { setStarted(true); startAuto(); }}
-            style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '16px 40px', borderRadius: 10, fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
-            Watch the Demo
-          </button>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          style={{ fontSize: 16, color: 'var(--text-dim)', marginBottom: 40, lineHeight: 1.6 }}>
+          First, we'll walk through the pipeline step by step.
+          <br />Then, we'll run it at scale.
+        </motion.p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <button onClick={() => { setStarted(true); setMode('manual'); }}
-            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '16px 40px', borderRadius: 10, fontSize: 18, fontWeight: 600, cursor: 'pointer' }}>
-            Step Through It
+            style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '16px 48px', borderRadius: 10, fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
+            Next
           </button>
         </motion.div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
           style={{ marginTop: 32, fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
           207 MB container · no GPU required · 30 seconds to first demo
         </motion.div>
@@ -384,10 +384,10 @@ export default function App() {
           <AnimatePresence mode="wait">
             <motion.div
               key={slide}
-              initial={{ opacity: 0, x: 60 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -60 }}
-              transition={{ duration: 0.35 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
             >
               {SLIDES[slide]()}
             </motion.div>
@@ -416,42 +416,10 @@ export default function App() {
     );
   }
 
-  // --- Mode selection (direct entry from nav) ---
-  if (mode === 'choose') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', gap: 24 }}>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              onClick={startAuto}
-              style={{
-                background: 'var(--surface-1)', border: '2px solid var(--rh-red)', borderRadius: 12,
-                padding: '32px 40px', cursor: 'pointer', textAlign: 'center', maxWidth: 280,
-              }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>▶</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Watch the Demo</div>
-              <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6 }}>
-                See the full pipeline run live — signals classified, actions proposed, learning captured.
-              </div>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              onClick={() => setMode('manual')}
-              style={{
-                background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 12,
-                padding: '32px 40px', cursor: 'pointer', textAlign: 'center', maxWidth: 280,
-              }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>&#9881;</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Step Through</div>
-              <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6 }}>
-                Run each tier yourself. Click into agent decisions. Explore the data.
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // After slides, go straight to manual walkthrough
+  useEffect(() => {
+    if (started && mode === 'choose') setMode('manual');
+  }, [started, mode]);
 
   // --- Auto mode ---
   if (mode === 'auto') {
@@ -1015,9 +983,9 @@ export default function App() {
         </AnimatePresence>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 32px', borderTop: '1px solid var(--border)', background: 'var(--surface-1)' }}>
-        <button onClick={() => actIndex > 0 ? setActIndex(actIndex - 1) : setMode('choose')}
+        <button onClick={() => { if (actIndex > 0) setActIndex(actIndex - 1); else { setStarted(false); setSlide(SLIDES.length - 1); } }}
           style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', padding: '6px 16px', borderRadius: 6, fontSize: 13 }}>
-          ← {actIndex === 0 ? 'Exit' : 'Back'}
+          ← Back
         </button>
         <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{actIndex + 1} / {manualActs.length}</span>
         {meta.next ? (
@@ -1025,7 +993,12 @@ export default function App() {
             style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '6px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600 }}>
             {meta.next}
           </button>
-        ) : <div />}
+        ) : (
+          <button onClick={() => { setMode('auto'); startAuto(); }}
+            style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '6px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600 }}>
+            Run at Scale →
+          </button>
+        )}
       </div>
     </div>
   );
