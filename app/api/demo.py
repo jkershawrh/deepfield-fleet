@@ -94,10 +94,12 @@ FLOW_DESCRIPTIONS = {
         "makes the baseline smarter."
     ),
     "claim": (
-        "Every agent in this demo — all 17 across three tiers — runs on CPU. No GPU. No LLM API calls. "
-        "Nanoagents use deterministic rules. Microagents use rule-backed classifiers designed for Intel Xeon "
-        "with OpenVINO extension points. Macroagents use template-based reasoning. The entire "
-        "Signals → Decide → Act → Verify → Learn loop completes in milliseconds."
+        "Nanoagents (7) are always deterministic — pure CPU, no inference cost. "
+        "Microagents (5) and macroagents (5) run rule-backed classifiers by default, "
+        "with live LLM inference via LiteLLM when configured. The architecture scales "
+        "from zero-inference CPU mode to full LLM-backed reasoning without code changes — "
+        "just set LITELLM_API_BASE. The compression layer (nano) ensures only the most "
+        "important evidence reaches expensive inference."
     ),
 }
 
@@ -266,7 +268,11 @@ def _run_demo(speed: float):
                   "total_learning": 0, "lines_monitored": 1, "peak_compression": 0.0}
 
     def _extras(**kw):
-        return {"funnel": funnel, "agent_events": agent_events[-25:], "cumulative": cumulative, **kw}
+        from app.inference.client import get_inference_stats, is_inference_available
+        stats = get_inference_stats().to_dict() if is_inference_available() else None
+        return {"funnel": funnel, "agent_events": agent_events[-25:], "cumulative": cumulative,
+                "inference_mode": "llm" if is_inference_available() else "simulated",
+                "inference_stats": stats, **kw}
 
     # === PART 1: SINGLE-LINE DEEP WALKTHROUGH ===
 
@@ -552,6 +558,8 @@ async def start_demo(req: DemoStartRequest = DemoStartRequest()):
     global _demo_thread
     _demo_stop.clear()
     _demo_pause.set()
+    from app.inference.client import reset_inference_stats
+    reset_inference_stats()
     set_demo_state({"status": "starting", "total_steps": len(DEMO_STEPS), "steps": DEMO_STEPS})
 
     def _run():
@@ -596,7 +604,11 @@ async def get_state():
 async def get_infrastructure():
     import os
     import platform
-    import sys
+
+    from app.inference.client import get_inference_config, get_inference_stats
+
+    inference_config = get_inference_config()
+    inference_stats = get_inference_stats()
 
     nano_agents = [
         {"name": "baseline_distance", "type": "deterministic", "runtime": "CPU", "description": "Compares feature values to baseline thresholds, flags drift beyond normal ranges"},
@@ -631,10 +643,15 @@ async def get_infrastructure():
             "hostname": platform.node(),
         },
         "inference": {
-            "gpu": "none",
-            "llm_endpoints": "none",
-            "inference_framework": "Deterministic rules + rule-backed classifiers",
-            "hardware_acceleration": "CPU only — OpenVINO/ONNX extension points available for Xeon optimization",
+            "llm_connected": inference_config["available"],
+            "api_base": inference_config["api_base"] or "not configured",
+            "model_micro": inference_config["model_micro"],
+            "model_macro": inference_config["model_macro"],
+            "mode": "LLM inference via LiteLLM" if inference_config["available"] else "Rule-backed (no LLM configured)",
+            "nano_tier": "Deterministic rules — always CPU, no inference",
+            "micro_tier": f"{'LLM: ' + inference_config['model_micro'] if inference_config['available'] else 'Rule-backed classifiers'} (CPU)",
+            "macro_tier": f"{'LLM: ' + inference_config['model_macro'] if inference_config['available'] else 'Template-based reasoning'} (CPU)",
+            "stats": inference_stats.to_dict(),
         },
         "agents": {
             "total": 17,

@@ -70,6 +70,8 @@ interface DemoState {
   cumulative?: Record<string, unknown>;
   claim?: Record<string, unknown>;
   evidence_detail?: Record<string, unknown>;
+  inference_mode?: string;
+  inference_stats?: { total_calls: number; total_tokens_out: number; avg_latency_ms: number; avg_tokens_per_sec: number; errors: number } | null;
 }
 
 export default function App() {
@@ -332,6 +334,32 @@ export default function App() {
             </motion.div>
           )}
 
+          {/* Inference stats bar — shown when LLM is connected */}
+          {demoState.inference_stats && demoState.inference_stats.total_calls > 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12,
+                padding: '8px 14px', background: 'var(--surface-2)', borderRadius: 8,
+                border: '1px solid var(--border)', fontSize: 11,
+              }}>
+              <span style={{ color: 'var(--rh-green)', fontWeight: 700 }}>INFERENCE</span>
+              <span style={{ color: 'var(--text-dim)' }}>Calls: <strong style={{ color: 'var(--text-secondary)' }}>{demoState.inference_stats.total_calls}</strong></span>
+              <span style={{ color: 'var(--text-dim)' }}>Tokens: <strong style={{ color: 'var(--text-secondary)' }}>{demoState.inference_stats.total_tokens_out}</strong></span>
+              <span style={{ color: 'var(--text-dim)' }}>Latency: <strong style={{ color: 'var(--rh-orange)' }}>{demoState.inference_stats.avg_latency_ms}ms</strong></span>
+              <span style={{ color: 'var(--text-dim)' }}>Tok/s: <strong style={{ color: 'var(--rh-blue)' }}>{demoState.inference_stats.avg_tokens_per_sec}</strong></span>
+              {demoState.inference_stats.errors > 0 && (
+                <span style={{ color: 'var(--rh-red)' }}>Errors: {demoState.inference_stats.errors}</span>
+              )}
+            </motion.div>
+          )}
+
+          {/* Inference mode indicator */}
+          {demoState.inference_mode && (
+            <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginBottom: 8, fontFamily: 'Red Hat Mono, monospace', textAlign: 'center' }}>
+              Inference mode: {demoState.inference_mode === 'llm' ? 'Live LLM via LiteLLM' : 'Simulated (rule-backed) — set LITELLM_API_BASE for live inference'}
+            </div>
+          )}
+
           {/* Scale metrics (for scale/stress/recovery acts) */}
           {demoState.scale_metrics && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -386,12 +414,17 @@ export default function App() {
                   border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center',
                 }}>
                 <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'Red Hat Display, sans-serif' }}>
-                  All on CPU. No GPU. No LLM.
+                  {demoState.inference_stats?.total_calls
+                    ? `${demoState.inference_stats.total_calls} live LLM calls. ${demoState.inference_stats.total_tokens_out} tokens generated.`
+                    : '17 agents. Deterministic nano. Rule-backed micro. Template macro.'}
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 12, lineHeight: 1.8 }}>
-                  17 deterministic and rule-backed agents. Three classification tiers.
+                  Three classification tiers from deterministic rules to LLM reasoning.
                   Scaled to 50 factory lines. Survived a 15% failure storm.
-                  Signals → Decide → Act → Verify → Learn — in milliseconds.
+                  Signals → Decide → Act → Verify → Learn.
+                  {demoState.inference_stats?.avg_latency_ms
+                    ? ` Avg inference: ${demoState.inference_stats.avg_latency_ms}ms, ${demoState.inference_stats.avg_tokens_per_sec} tok/s.`
+                    : ' Nanoagents compress on CPU. LLM optional for micro/macro.'}
                 </p>
                 <p style={{ fontSize: 13, color: 'var(--rh-red)', marginTop: 12, fontWeight: 700 }}>
                   The hero returns. The cycle begins again.

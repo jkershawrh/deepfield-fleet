@@ -10,7 +10,11 @@ interface AgentInfo {
 
 interface InfraData {
   runtime: { python_version: string; platform: string; architecture: string; cpu_count: number; hostname: string };
-  inference: { gpu: string; llm_endpoints: string; inference_framework: string; hardware_acceleration: string };
+  inference: {
+    llm_connected: boolean; api_base: string; model_micro: string; model_macro: string;
+    mode: string; nano_tier: string; micro_tier: string; macro_tier: string;
+    stats: { total_calls: number; total_tokens_in: number; total_tokens_out: number; avg_latency_ms: number; avg_tokens_per_sec: number; errors: number } | null;
+  };
   agents: {
     total: number; tiers: number;
     nano: { count: number; type: string; agents: AgentInfo[] };
@@ -47,8 +51,11 @@ export function InfraPanel() {
           <span style={{ fontSize: 14 }}>&#9881;</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Infrastructure</span>
           <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-            {data.agents.total} agents · CPU only · No GPU · No LLM
+            {data.agents.total} agents · {data.inference.llm_connected ? `LLM: ${data.inference.model_micro}` : 'Rule-backed (no LLM)'}
           </span>
+          {data.inference.llm_connected && (
+            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 3, background: 'var(--rh-green-dim)', color: 'var(--rh-green)', fontWeight: 700 }}>LIVE</span>
+          )}
         </div>
         <span style={{ fontSize: 10, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
           {open ? '▼' : '▶'}
@@ -76,10 +83,22 @@ export function InfraPanel() {
 
               {/* Inference */}
               <Section title="Inference">
-                <Row label="GPU" value={data.inference.gpu} color="var(--rh-green)" />
-                <Row label="LLM Endpoints" value={data.inference.llm_endpoints} color="var(--rh-green)" />
-                <Row label="Framework" value={data.inference.inference_framework} />
-                <Row label="Hardware" value={data.inference.hardware_acceleration} />
+                <Row label="Mode" value={data.inference.mode} color={data.inference.llm_connected ? 'var(--rh-green)' : 'var(--rh-yellow)'} />
+                <Row label="API Base" value={data.inference.api_base} />
+                <Row label="Nano Tier" value={data.inference.nano_tier} />
+                <Row label="Micro Tier" value={data.inference.micro_tier} />
+                <Row label="Macro Tier" value={data.inference.macro_tier} />
+                {data.inference.stats && data.inference.stats.total_calls > 0 && (
+                  <div style={{ marginTop: 8, padding: 8, background: 'var(--surface-2)', borderRadius: 6 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginBottom: 4, fontWeight: 600 }}>LIVE INFERENCE STATS</div>
+                    <Row label="Total Calls" value={String(data.inference.stats.total_calls)} color="var(--rh-blue)" />
+                    <Row label="Tokens In" value={String(data.inference.stats.total_tokens_in)} />
+                    <Row label="Tokens Out" value={String(data.inference.stats.total_tokens_out)} />
+                    <Row label="Avg Latency" value={`${data.inference.stats.avg_latency_ms}ms`} color="var(--rh-orange)" />
+                    <Row label="Avg Tok/s" value={String(data.inference.stats.avg_tokens_per_sec)} color="var(--rh-green)" />
+                    <Row label="Errors" value={String(data.inference.stats.errors)} color={data.inference.stats.errors > 0 ? 'var(--rh-red)' : 'var(--rh-green)'} />
+                  </div>
+                )}
               </Section>
 
               {/* Agent tiers */}
