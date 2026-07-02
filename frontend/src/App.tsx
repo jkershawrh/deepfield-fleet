@@ -213,31 +213,94 @@ export default function App() {
     setLoopStatus('done');
   }, []);
 
-  // --- Hero screen ---
+  // --- Landing page ---
   if (!started) {
     return (
-      <div onClick={() => setStarted(true)}
-        style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--bg-dark)' }}>
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.2 }}>
-              DeepField<span style={{ color: 'var(--rh-red)' }}> Multimodal</span>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-dark)' }}>
+        {/* Hero */}
+        <div style={{ padding: '80px 24px 48px', maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+            <div style={{ fontSize: 13, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, marginBottom: 16 }}>
+              RED HAT + INTEL
             </div>
-            <div style={{ fontSize: 18, color: 'var(--text-dim)', marginTop: 12 }}>Enterprise Signal Intelligence</div>
-            <div style={{ fontSize: 14, color: 'var(--text-disabled)', marginTop: 24, fontFamily: 'Red Hat Mono, monospace' }}>
-              Signals → Decide → Act → Verify → Learn
+            <h1 style={{ fontSize: 44, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.15, margin: 0 }}>
+              Classify reality before
+              <br />you react to it.
+            </h1>
+            <p style={{ fontSize: 17, color: 'var(--text-dim)', marginTop: 20, lineHeight: 1.7, maxWidth: 600, marginLeft: 'auto', marginRight: 'auto' }}>
+              The first job of enterprise AI is not generation. It is classifying
+              reality well enough to know what should happen next — on the
+              infrastructure you already own.
+            </p>
+          </motion.div>
+
+          {/* Compression ratio hook */}
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4, type: 'spring', stiffness: 300 }}
+            style={{ display: 'inline-flex', alignItems: 'baseline', gap: 8, marginTop: 32, padding: '16px 32px', background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <span style={{ fontSize: 48, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>98%</span>
+            <span style={{ fontSize: 15, color: 'var(--text-dim)' }}>of signals classified on CPU<br />before anything expensive runs</span>
+          </motion.div>
+        </div>
+
+        {/* Value props */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 800, margin: '0 auto', padding: '0 24px 48px' }}>
+          {[
+            { title: 'You have the infrastructure', body: 'Intel Xeon CPUs and Red Hat OpenShift. The compute and the platform are already there.', color: 'var(--rh-blue)' },
+            { title: 'You have the signals', body: 'Metrics, logs, events, images, audio — streaming right now from your operations. Unclassified.', color: 'var(--rh-teal)' },
+            { title: 'The gap is the classification layer', body: 'Not more dashboards. A system that knows normal, detects abnormal, and proposes what to do — governed and verified.', color: 'var(--rh-green)' },
+          ].map(p => (
+            <div key={p.title} style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: p.color, marginBottom: 8 }}>{p.title}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6 }}>{p.body}</div>
             </div>
+          ))}
+        </motion.div>
+
+        {/* How it works strip */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+          style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px 48px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '14px 0', background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--border)' }}>
+            {[
+              { label: 'Signals arrive', color: 'var(--text-dim)' },
+              { label: 'Nanoagents compress (CPU, free)', color: 'var(--rh-blue)' },
+              { label: 'Microagents classify', color: 'var(--rh-green)' },
+              { label: 'Macroagents reason', color: 'var(--rh-purple)' },
+              { label: 'Act safely', color: 'var(--rh-orange)' },
+              { label: 'Learn', color: 'var(--rh-red)' },
+            ].map((s, i) => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: s.color, fontFamily: 'Red Hat Mono, monospace' }}>{s.label}</span>
+                {i < 5 && <span style={{ color: 'var(--border)', fontSize: 10 }}>→</span>}
+              </div>
+            ))}
           </div>
         </motion.div>
-        <motion.div animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ repeat: Infinity, duration: 2.5 }}
-          style={{ marginTop: 48, fontSize: 13, color: 'var(--text-dim)' }}>
-          Click anywhere to begin
+
+        {/* CTAs */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}
+          style={{ display: 'flex', justifyContent: 'center', gap: 16, padding: '0 24px 32px' }}>
+          <button onClick={() => { setStarted(true); startAuto(); }}
+            style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '12px 32px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            Watch the Demo
+          </button>
+          <button onClick={() => { setStarted(true); setMode('manual'); }}
+            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '12px 32px', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+            Step Through It
+          </button>
         </motion.div>
+
+        {/* Bottom line */}
+        <div style={{ textAlign: 'center', padding: '0 24px 48px' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
+            207 MB container · 26 dependencies · no GPU required · 30 seconds to first demo
+          </div>
+        </div>
       </div>
     );
   }
 
-  // --- Mode selection ---
+  // --- Mode selection (direct entry from nav) ---
   if (mode === 'choose') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -251,9 +314,9 @@ export default function App() {
                 padding: '32px 40px', cursor: 'pointer', textAlign: 'center', maxWidth: 280,
               }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>▶</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Run the Story</div>
+              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Watch the Demo</div>
               <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6 }}>
-                Watch the full Hero's Journey unfold automatically with live agent activity streaming.
+                See the full pipeline run live — signals classified, actions proposed, learning captured.
               </div>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
@@ -262,10 +325,10 @@ export default function App() {
                 background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 12,
                 padding: '32px 40px', cursor: 'pointer', textAlign: 'center', maxWidth: 280,
               }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🎮</div>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>&#9881;</div>
               <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Step Through</div>
               <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6 }}>
-                Navigate each act manually. Run each step yourself and explore the data.
+                Run each tier yourself. Click into agent decisions. Explore the data.
               </div>
             </motion.div>
           </div>
@@ -586,12 +649,14 @@ export default function App() {
 
             {currentAct === 'ordinary' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>A factory production line hums with the rhythm of precision machinery. Bearings spin, temperatures hold steady. Every signal says: <em>normal</em>.</p>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>A factory production line runs 24/7. Vibration sensors, thermal monitors, inspection cameras, and maintenance logs generate thousands of signals per hour. Right now, everything reads normal.</p>
+                <p style={{ color: 'var(--text-dim)', lineHeight: 1.8, fontSize: 14, marginTop: 8 }}>But "normal" only has meaning when you've learned what it looks like. DeepField compiled a baseline from historical data — the statistical shape of healthy operations.</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 24 }}>
                   <MetricCard label="Vibration RMS" value="0.22" color="var(--rh-green)" detail="Within baseline" />
                   <MetricCard label="Temperature" value="38.2°C" color="var(--rh-green)" detail="Stable" />
                   <MetricCard label="Defect Rate" value="0.1%" color="var(--rh-green)" detail="Normal" />
                 </div>
+                <FlowDescription text="These signals are already streaming from your infrastructure. The question isn't whether you have data — it's whether you're classifying it fast enough to act before damage occurs." />
               </div>
             )}
             {currentAct === 'call' && (
