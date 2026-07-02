@@ -23,6 +23,8 @@ FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "multimodal" / 
 
 _demo_thread: Optional[threading.Thread] = None
 _demo_stop = threading.Event()
+_demo_pause = threading.Event()
+_demo_pause.set()  # starts unpaused (set = not paused)
 
 # Flow descriptions per step — the technical story
 FLOW_DESCRIPTIONS = {
@@ -131,10 +133,10 @@ def _ts():
     return datetime.now(timezone.utc).isoformat()
 
 
-def _make_state(step_index: int, progress: float, **extra) -> dict:
+def _make_state(step_index: int, progress: float, paused: bool = False, **extra) -> dict:
     step = DEMO_STEPS[step_index]
     state = {
-        "status": "running",
+        "status": "paused" if paused else "running",
         "current_step": step_index,
         "step_id": step["id"],
         "step_title": step["title"],
@@ -148,11 +150,26 @@ def _make_state(step_index: int, progress: float, **extra) -> dict:
     return state
 
 
+def _pause_sleep(seconds: float):
+    """Sleep that blocks while paused and exits early if stopped."""
+    _demo_pause.wait()
+    if _demo_stop.is_set():
+        return
+    _demo_stop.wait(timeout=seconds)
+
+
 def _wait(duration: float, speed: float, step_index: int, extras: dict):
     actual = duration / speed
     start = time.monotonic()
+    paused_total = 0.0
     while not _demo_stop.is_set():
-        elapsed = time.monotonic() - start
+        if not _demo_pause.is_set():
+            pause_start = time.monotonic()
+            set_demo_state(_make_state(step_index, min(100, int(((time.monotonic() - start - paused_total) / actual) * 100)), paused=True, **extras))
+            _demo_pause.wait()
+            paused_total += time.monotonic() - pause_start
+            continue
+        elapsed = time.monotonic() - start - paused_total
         progress = (elapsed / actual) * 100
         set_demo_state(_make_state(step_index, progress, **extras))
         if elapsed >= actual:
@@ -275,7 +292,7 @@ def _run_demo(speed: float):
                        "modality": ev.modality, "artifact_type": ev.artifact_type},
             evidence_detail=ev.model_dump(mode="json"),
         )))
-        time.sleep(max(0.5, DEMO_STEPS[1]["duration"] / len(evidence_all) / speed))
+        _pause_sleep(max(0.5, DEMO_STEPS[1]["duration"] / len(evidence_all) / speed))
     if _demo_stop.is_set(): return
 
     # Step 2: Crossing the Threshold — build baseline
@@ -305,7 +322,7 @@ def _run_demo(speed: float):
             live_agent={"name": agent_name, "status": "classifying", "tier": "nano",
                        "decision_type": "deterministic", "runtime": "CPU"},
         )))
-        time.sleep(max(0.4, DEMO_STEPS[3]["duration"] / len(NANO_MODULES) / speed))
+        _pause_sleep(max(0.4, DEMO_STEPS[3]["duration"] / len(NANO_MODULES) / speed))
 
     escalated = [ev for ev in evidence if should_escalate_to_micro(
         [ClassificationRecord(**e) if isinstance(e, dict) else e for e in []],  # dummy
@@ -339,7 +356,7 @@ def _run_demo(speed: float):
             live_agent={"name": agent.name, "status": "classifying", "tier": "micro",
                        "decision_type": "rule-backed", "runtime": "CPU (Xeon-optimized)"},
         )))
-        time.sleep(max(0.5, DEMO_STEPS[4]["duration"] / len(micro_agents) / speed))
+        _pause_sleep(max(0.5, DEMO_STEPS[4]["duration"] / len(micro_agents) / speed))
     if _demo_stop.is_set(): return
 
     # Macro tier
@@ -364,7 +381,7 @@ def _run_demo(speed: float):
             live_agent={"name": agent.name, "status": "reasoning", "tier": "macro",
                        "decision_type": "template-based", "runtime": "CPU"},
         )))
-        time.sleep(max(0.5, DEMO_STEPS[5]["duration"] / len(macro_agents) / speed))
+        _pause_sleep(max(0.5, DEMO_STEPS[5]["duration"] / len(macro_agents) / speed))
     if _demo_stop.is_set(): return
 
     # Step 6: The Reward
@@ -534,6 +551,7 @@ def _run_demo(speed: float):
 async def start_demo(req: DemoStartRequest = DemoStartRequest()):
     global _demo_thread
     _demo_stop.clear()
+    _demo_pause.set()
     set_demo_state({"status": "starting", "total_steps": len(DEMO_STEPS), "steps": DEMO_STEPS})
 
     def _run():
@@ -547,8 +565,21 @@ async def start_demo(req: DemoStartRequest = DemoStartRequest()):
     return {"status": "started", "steps": len(DEMO_STEPS)}
 
 
+@router.post("/pause")
+async def pause_demo():
+    _demo_pause.clear()
+    return {"status": "paused"}
+
+
+@router.post("/resume")
+async def resume_demo():
+    _demo_pause.set()
+    return {"status": "resumed"}
+
+
 @router.post("/stop")
 async def stop_demo():
+    _demo_pause.set()
     _demo_stop.set()
     set_demo_state({"status": "stopped"})
     return {"status": "stopped"}

@@ -137,6 +137,14 @@ export default function App() {
     await fetch('/api/v1/demo/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   }, []);
 
+  const pauseAuto = useCallback(async () => {
+    await fetch('/api/v1/demo/pause', { method: 'POST' });
+  }, []);
+
+  const resumeAuto = useCallback(async () => {
+    await fetch('/api/v1/demo/resume', { method: 'POST' });
+  }, []);
+
   const stopAuto = useCallback(async () => {
     await fetch('/api/v1/demo/stop', { method: 'POST' });
     setDemoState({ status: 'stopped' });
@@ -236,6 +244,7 @@ export default function App() {
   // --- Auto mode ---
   if (mode === 'auto') {
     const isRunning = demoState.status === 'running' || demoState.status === 'starting';
+    const isPaused = demoState.status === 'paused';
     const isComplete = demoState.status === 'completed';
     const allRecords = [
       ...(demoState.nano_records || []),
@@ -399,7 +408,7 @@ export default function App() {
             ← Exit
           </button>
           <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
-            {isRunning ? `Step ${(demoState.current_step || 0) + 1} / ${demoState.total_steps || 8}` : demoState.status}
+            {isRunning || isPaused ? `Step ${(demoState.current_step || 0) + 1} / ${demoState.total_steps || 13}${isPaused ? ' — PAUSED' : ''}` : demoState.status}
           </span>
           {isComplete && (
             <button onClick={startAuto}
@@ -407,13 +416,27 @@ export default function App() {
               Run Again
             </button>
           )}
-          {isRunning && (
-            <button onClick={stopAuto}
-              style={{ background: 'none', border: '1px solid var(--rh-red)', color: 'var(--rh-red)', padding: '6px 18px', borderRadius: 6, fontSize: 13 }}>
-              Stop
-            </button>
+          {(isRunning || isPaused) && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {isRunning && (
+                <button onClick={pauseAuto}
+                  style={{ background: 'none', border: '1px solid var(--rh-yellow)', color: 'var(--rh-yellow)', padding: '6px 18px', borderRadius: 6, fontSize: 13 }}>
+                  Pause
+                </button>
+              )}
+              {isPaused && (
+                <button onClick={resumeAuto}
+                  style={{ background: 'var(--rh-green)', border: 'none', color: '#fff', padding: '6px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600 }}>
+                  Resume
+                </button>
+              )}
+              <button onClick={stopAuto}
+                style={{ background: 'none', border: '1px solid var(--rh-red)', color: 'var(--rh-red)', padding: '6px 18px', borderRadius: 6, fontSize: 13 }}>
+                Stop
+              </button>
+            </div>
           )}
-          {!isRunning && !isComplete && <div />}
+          {!isRunning && !isComplete && !isPaused && <div />}
         </div>
 
         {/* Detail modal — slides in when user clicks an agent event */}
