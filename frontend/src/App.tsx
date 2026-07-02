@@ -75,8 +75,7 @@ interface DemoState {
 }
 
 export default function App() {
-  const [started, setStarted] = useState(false);
-  const [mode, setMode] = useState<'choose' | 'manual' | 'auto'>('choose');
+  const [mode, setMode] = useState<'slides' | 'manual' | 'auto'>('slides');
   const [actIndex, setActIndex] = useState(0);
   const [demoState, setDemoState] = useState<DemoState>({ status: 'idle' });
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -127,7 +126,7 @@ export default function App() {
 
   // SSE connection for auto mode
   useEffect(() => {
-    if (mode !== 'auto') return;
+    if (mode !== 'auto') { eventSourceRef.current?.close(); eventSourceRef.current = null; return; }
     const es = new EventSource('/api/v1/stream');
     eventSourceRef.current = es;
     es.addEventListener('demo', (e) => {
@@ -142,8 +141,8 @@ export default function App() {
   }, [mode]);
 
   const startAuto = useCallback(async () => {
-    setMode('auto');
     await fetch('/api/v1/demo/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    setMode('auto');
   }, []);
 
   const pauseAuto = useCallback(async () => {
@@ -345,7 +344,7 @@ export default function App() {
           <br />Then, we'll run it at scale.
         </motion.p>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-          <button onClick={() => { setStarted(true); setMode('manual'); }}
+          <button onClick={() => setMode('manual')}
             style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '16px 48px', borderRadius: 10, fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
             Next
           </button>
@@ -358,7 +357,7 @@ export default function App() {
     ),
   ];
 
-  if (!started) {
+  if (mode === 'slides') {
     const isLastSlide = slide === SLIDES.length - 1;
     return (
       <div
@@ -416,10 +415,6 @@ export default function App() {
     );
   }
 
-  // After slides, go straight to manual walkthrough
-  useEffect(() => {
-    if (started && mode === 'choose') setMode('manual');
-  }, [started, mode]);
 
   // --- Auto mode ---
   if (mode === 'auto') {
@@ -617,7 +612,7 @@ export default function App() {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '14px 32px', borderTop: '1px solid var(--border)', background: 'var(--surface-1)',
         }}>
-          <button onClick={() => { stopAuto(); setMode('choose'); setActIndex(0); }}
+          <button onClick={() => { stopAuto(); setMode('slides'); setActIndex(0); }}
             style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', padding: '6px 16px', borderRadius: 6, fontSize: 13 }}>
             ← Exit
           </button>
@@ -983,7 +978,7 @@ export default function App() {
         </AnimatePresence>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 32px', borderTop: '1px solid var(--border)', background: 'var(--surface-1)' }}>
-        <button onClick={() => { if (actIndex > 0) setActIndex(actIndex - 1); else { setStarted(false); setSlide(SLIDES.length - 1); } }}
+        <button onClick={() => { if (actIndex > 0) setActIndex(actIndex - 1); else { setMode('slides'); setSlide(SLIDES.length - 1); } }}
           style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', padding: '6px 16px', borderRadius: 6, fontSize: 13 }}>
           ← Back
         </button>
