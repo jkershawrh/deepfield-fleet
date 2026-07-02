@@ -88,6 +88,12 @@ export default function App() {
   const [loopResult, setLoopResult] = useState<LoopResult | null>(null);
   const [ingestStatus, setIngestStatus] = useState<'idle' | 'running' | 'done'>('idle');
   const [baselineStatus, setBaselineStatus] = useState<'idle' | 'running' | 'done'>('idle');
+  const [nanoStatus, setNanoStatus] = useState<'idle' | 'running' | 'done'>('idle');
+  const [microStatus, setMicroStatus] = useState<'idle' | 'running' | 'done'>('idle');
+  const [macroStatus, setMacroStatus] = useState<'idle' | 'running' | 'done'>('idle');
+  const [nanoResult, setNanoResult] = useState<{ records: ClassificationRecord[]; elapsed_ms: number; decision_type: string; runtime: string } | null>(null);
+  const [microResult, setMicroResult] = useState<{ records: ClassificationRecord[]; elapsed_ms: number; escalated_from_nano: number; decision_type: string; runtime: string } | null>(null);
+  const [macroResult, setMacroResult] = useState<{ records: ClassificationRecord[]; elapsed_ms: number; decision_type: string; runtime: string } | null>(null);
   const [cascadeStatus, setCascadeStatus] = useState<'idle' | 'running' | 'done'>('idle');
   const [loopStatus, setLoopStatus] = useState<'idle' | 'running' | 'done'>('idle');
   const [apiCalls, setApiCalls] = useState<ApiCall<unknown>[]>([]);
@@ -167,6 +173,30 @@ export default function App() {
     addCall(call as ApiCall<unknown>);
     setBaseline(call.response.data);
     setBaselineStatus('done');
+  }, []);
+  const doNano = useCallback(async () => {
+    setNanoStatus('running');
+    const call = await api.classifyNano();
+    addCall(call as ApiCall<unknown>);
+    setNanoResult(call.response.data);
+    setClassifications(prev => [...prev, ...call.response.data.records]);
+    setNanoStatus('done');
+  }, []);
+  const doMicro = useCallback(async () => {
+    setMicroStatus('running');
+    const call = await api.classifyMicro();
+    addCall(call as ApiCall<unknown>);
+    setMicroResult(call.response.data);
+    setClassifications(prev => [...prev, ...call.response.data.records]);
+    setMicroStatus('done');
+  }, []);
+  const doMacro = useCallback(async () => {
+    setMacroStatus('running');
+    const call = await api.classifyMacro();
+    addCall(call as ApiCall<unknown>);
+    setMacroResult(call.response.data);
+    setClassifications(prev => [...prev, ...call.response.data.records]);
+    setMacroStatus('done');
   }, []);
   const doCascade = useCallback(async () => {
     setCascadeStatus('running');
@@ -499,7 +529,22 @@ export default function App() {
               </div>
             </div>
           )}
-          {detailContent && detailType !== 'agent' && (
+          {detailContent && detailType === 'learning' && (
+            <div>
+              <KeyValueTable data={{ proposal_type: detailContent.proposal_type, status: detailContent.status, confidence: `${Number(detailContent.confidence) * 100}%` }} label="Proposal" />
+              <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 6, marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>RATIONALE</div>
+                {String(detailContent.rationale)}
+              </div>
+              {'before' in detailContent && 'after' in detailContent && (
+                <ComparisonTable before={detailContent.before as Record<string, unknown>} after={detailContent.after as Record<string, unknown>} label="Before → After" />
+              )}
+            </div>
+          )}
+          {detailContent && detailType === 'action' && (
+            <KeyValueTable data={detailContent} label="Details" />
+          )}
+          {detailContent && !['agent', 'learning', 'action'].includes(detailType) && (
             <KeyValueTable data={detailContent} />
           )}
         </DetailModal>
@@ -510,12 +555,12 @@ export default function App() {
   // --- Manual mode (existing, simplified) ---
   const manualActs = ['ordinary', 'call', 'threshold', 'ordeal', 'reward', 'return'] as const;
   const manualMeta: Record<string, { title: string; subtitle: string; next: string }> = {
-    ordinary:  { title: 'The Ordinary World',     subtitle: 'Everything is normal. The factory hums.',       next: 'Begin the story →' },
-    call:      { title: 'The Call to Adventure',   subtitle: 'Signals arrive. Something is different.',      next: 'Cross the threshold →' },
-    threshold: { title: 'Crossing the Threshold',  subtitle: 'The baseline reveals the shape of normal.',    next: 'Face the ordeal →' },
-    ordeal:    { title: 'The Ordeal',              subtitle: 'Multi-modal evidence converges on the truth.', next: 'Claim the reward →' },
-    reward:    { title: 'The Reward',              subtitle: 'The system proposes what to do — safely.',     next: 'Begin the return →' },
-    return:    { title: 'The Return',              subtitle: 'What was learned will protect the future.',    next: '' },
+    ordinary:  { title: 'Normal Operations',       subtitle: 'Everything is normal. The factory hums.',                next: 'See the signals →' },
+    call:      { title: 'Signal Ingestion',        subtitle: 'Multimodal evidence arrives from the factory floor.',    next: 'Build the baseline →' },
+    threshold: { title: 'Baseline Compilation',    subtitle: 'Learning the shape of normal from historical data.',     next: 'Run the cascade →' },
+    ordeal:    { title: 'Classification Cascade',  subtitle: 'Three tiers of agents classify the evidence.',           next: 'See the action →' },
+    reward:    { title: 'Decide & Act',            subtitle: 'The system proposes what to do — safely.',               next: 'See what was learned →' },
+    return:    { title: 'Learn & Adapt',           subtitle: 'Capturing what changed for next time.',                  next: '' },
   };
   const currentAct = manualActs[actIndex];
   const meta = manualMeta[currentAct];
@@ -583,39 +628,139 @@ export default function App() {
             )}
             {currentAct === 'ordeal' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>Evidence flows through three tiers: <strong>nanoagents</strong> detect drift, <strong>microagents</strong> classify defects, <strong>macroagents</strong> build the timeline.</p>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>Evidence flows through three tiers. Run each tier to see what it does.</p>
                 {evidence.length === 0 && <StepCard num={1} title="Ingest evidence first" status={ingestStatus} onRun={doIngest} buttonLabel="Ingest" />}
                 {evidence.length > 0 && !baseline && <StepCard num={2} title="Build baseline first" status={baselineStatus} onRun={doBaseline} buttonLabel="Build baseline" />}
-                <StepCard num={3} title="Run Classification Cascade" status={cascadeStatus} onRun={baseline ? doCascade : undefined} buttonLabel="Run cascade">
-                  {classifications.length > 0 && (
+
+                {/* Nano tier */}
+                <StepCard num={3} title="Nano Tier — Deterministic Rules" status={nanoStatus} onRun={baseline ? doNano : undefined} buttonLabel="Run nanoagents">
+                  {nanoResult && (
                     <div>
-                      <CascadeDiagram records={classifications} activeStage="all" />
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                        <MetricCard label="Total" value={classifications.length} />
-                        <MetricCard label="Nano" value={classifications.filter(c => c.agent_tier === 'nano').length} color="var(--rh-blue)" />
-                        <MetricCard label="Micro" value={classifications.filter(c => c.agent_tier === 'micro').length} color="var(--rh-green)" />
-                        <MetricCard label="Macro" value={classifications.filter(c => c.agent_tier === 'macro').length} color="var(--rh-purple)" />
+                      <FlowDescription text="Nanoagents are deterministic — no LLM, pure CPU. They run threshold checks (z-score > 2.0?), pattern matching (ERROR in log?), and gating decisions. This is the compression layer." />
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                        <MetricCard label="Records" value={nanoResult.records.length} color="var(--rh-blue)" />
+                        <MetricCard label="Time" value={`${nanoResult.elapsed_ms}ms`} color="var(--rh-teal)" />
+                        <MetricCard label="Runtime" value={nanoResult.runtime} color="var(--rh-green)" detail={nanoResult.decision_type} />
                       </div>
+                      {nanoResult.records.slice(0, 8).map(r => (
+                        <div key={r.classification_id} onClick={() => openDetail(`${r.agent_name}`, { tier: 'nano', taxonomy: r.taxonomy, class_name: r.class_name, severity: r.severity, confidence: r.confidence, rationale: r.rationale, decision_type: 'Deterministic (no LLM)', runtime: 'CPU' }, 'agent')}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 11, cursor: 'pointer', border: '1px solid transparent' }}>
+                          <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--rh-blue)', minWidth: 110 }}>{r.agent_name}</span>
+                          <span style={{ color: 'var(--text-dim)' }}>{r.taxonomy}/{r.class_name}</span>
+                          <span style={{ marginLeft: 'auto', color: r.severity === 'high' || r.severity === 'critical' ? 'var(--rh-orange)' : 'var(--text-disabled)' }}>{r.severity}</span>
+                          <span style={{ color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{(r.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                      ))}
+                      <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 4 }}>Click any row for full rationale</div>
                     </div>
                   )}
                 </StepCard>
+
+                {/* Micro tier */}
+                {nanoStatus === 'done' && (
+                  <StepCard num={4} title="Micro Tier — Rule-Backed Classifiers" status={microStatus} onRun={doMicro} buttonLabel="Run microagents">
+                    {microResult && (
+                      <div>
+                        <FlowDescription text="Microagents run rule-backed classifiers on CPU. Image defect scores, audio anomaly scores, text pattern matching. Extension points for OpenVINO/ONNX. When LLM is configured, this tier uses live model inference." />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+                          <MetricCard label="Records" value={microResult.records.length} color="var(--rh-green)" />
+                          <MetricCard label="Escalated" value={microResult.escalated_from_nano} color="var(--rh-orange)" detail="from nano" />
+                          <MetricCard label="Time" value={`${microResult.elapsed_ms}ms`} color="var(--rh-teal)" />
+                          <MetricCard label="Runtime" value={microResult.runtime} color="var(--rh-green)" detail={microResult.decision_type} />
+                        </div>
+                        {microResult.records.map(r => (
+                          <div key={r.classification_id} onClick={() => openDetail(`${r.agent_name}`, { tier: 'micro', taxonomy: r.taxonomy, class_name: r.class_name, severity: r.severity, confidence: r.confidence, rationale: r.rationale, decision_type: microResult.decision_type, runtime: microResult.runtime, ...(r.metrics || {}) }, 'agent')}
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 11, cursor: 'pointer' }}>
+                            <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--rh-green)', minWidth: 110 }}>{r.agent_name}</span>
+                            <span style={{ color: 'var(--text-dim)' }}>{r.taxonomy}/{r.class_name}</span>
+                            <span style={{ marginLeft: 'auto', color: r.severity === 'high' || r.severity === 'critical' ? 'var(--rh-orange)' : 'var(--text-disabled)' }}>{r.severity}</span>
+                            <span style={{ color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{(r.confidence * 100).toFixed(0)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </StepCard>
+                )}
+
+                {/* Macro tier */}
+                {microStatus === 'done' && (
+                  <StepCard num={5} title="Macro Tier — Incident Reasoning" status={macroStatus} onRun={doMacro} buttonLabel="Run macroagents">
+                    {macroResult && (
+                      <div>
+                        <FlowDescription text="Macroagents correlate across modalities. The timeline agent sequences evidence. The root cause agent identifies the most likely failure family. The action planner proposes safe responses. When LLM is configured, this tier uses model reasoning." />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                          <MetricCard label="Records" value={macroResult.records.length} color="var(--rh-purple)" />
+                          <MetricCard label="Time" value={`${macroResult.elapsed_ms}ms`} color="var(--rh-teal)" />
+                          <MetricCard label="Runtime" value={macroResult.runtime} color="var(--rh-purple)" detail={macroResult.decision_type} />
+                        </div>
+                        {macroResult.records.map(r => (
+                          <div key={r.classification_id} onClick={() => openDetail(`${r.agent_name}`, { tier: 'macro', taxonomy: r.taxonomy, class_name: r.class_name, severity: r.severity, confidence: r.confidence, rationale: r.rationale, decision_type: macroResult.decision_type, runtime: macroResult.runtime }, 'agent')}
+                            style={{ padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, cursor: 'pointer' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                              <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--rh-purple)', minWidth: 130 }}>{r.agent_name}</span>
+                              <span style={{ color: 'var(--text-dim)' }}>{r.taxonomy}/{r.class_name}</span>
+                              <span style={{ marginLeft: 'auto', color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{(r.confidence * 100).toFixed(0)}%</span>
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>{r.rationale.slice(0, 120)}...</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </StepCard>
+                )}
+
+                {/* Summary */}
+                {macroStatus === 'done' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 12 }}>
+                    <MetricCard label="Total" value={classifications.length} />
+                    <MetricCard label="Nano" value={nanoResult?.records.length || 0} color="var(--rh-blue)" />
+                    <MetricCard label="Micro" value={microResult?.records.length || 0} color="var(--rh-green)" />
+                    <MetricCard label="Macro" value={macroResult?.records.length || 0} color="var(--rh-purple)" />
+                  </div>
+                )}
               </div>
             )}
             {currentAct === 'reward' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>DeepField proposes a <strong>safe, governed action</strong> — never destructive, always requiring human approval.</p>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>The ordeal is complete. Now the system decides what to do — safely.</p>
+                <FlowDescription text="Actions follow a strict safety model: only non-destructive operations (notify, observe, ticket) are proposed. Destructive actions (restart, scale, quarantine) require explicit human approval and are never auto-executed." />
                 {evidence.length === 0 && <StepCard num={1} title="Ingest evidence first" status={ingestStatus} onRun={doIngest} buttonLabel="Ingest" />}
                 {evidence.length > 0 && !baseline && <StepCard num={2} title="Build baseline first" status={baselineStatus} onRun={doBaseline} buttonLabel="Build baseline" />}
-                <StepCard num={4} title="Run Full Agent Loop" status={loopStatus} onRun={baseline ? doLoop : undefined} buttonLabel="Decide → Act → Verify → Learn">
+                <StepCard num={6} title="Decide → Act → Verify → Learn" status={loopStatus} onRun={baseline ? doLoop : undefined} buttonLabel="Run agent loop">
                   {loopResult && (
                     <div>
+                      {/* Actions */}
+                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Actions Proposed</div>
                       {loopResult.actions.map(a => (
-                        <div key={a.action_id} style={{ padding: 10, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--rh-blue)' }} />
-                          <div><div style={{ fontSize: 14, fontWeight: 600 }}>{a.action_type}</div><div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Status: {a.status} · {a.requires_human_approval ? 'Requires approval' : 'Auto'}</div></div>
-                          <span style={{ marginLeft: 'auto', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: 'var(--rh-green-dim)', color: 'var(--rh-green)' }}>SAFE</span>
+                        <div key={a.action_id} onClick={() => openDetail(`Action: ${a.action_type}`, { action_type: a.action_type, status: a.status, requires_human_approval: a.requires_human_approval, created_by_agent: a.created_by_agent, safety: 'Non-destructive — no restart, no scale, no quarantine', ...a.payload }, 'action')}
+                          style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 8, cursor: 'pointer', border: '1px solid var(--border)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--rh-blue)' }} />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 14, fontWeight: 600 }}>{a.action_type}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                                Status: {a.status} · {a.requires_human_approval ? 'Requires human approval' : 'Auto-approved'} · by {a.created_by_agent}
+                              </div>
+                            </div>
+                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: 'var(--rh-green-dim)', color: 'var(--rh-green)' }}>SAFE</span>
+                          </div>
                         </div>
                       ))}
+
+                      {/* Verifications */}
+                      <div style={{ fontSize: 13, fontWeight: 700, marginTop: 16, marginBottom: 8 }}>Verification Checks</div>
+                      {loopResult.verifications.map(v => (
+                        <div key={v.verification_id} onClick={() => openDetail(`Verification: ${v.verification_type}`, { verification_type: v.verification_type, status: v.status, confidence: v.confidence, expected_outcome: v.expected_outcome }, 'action')}
+                          style={{ padding: 10, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 4, cursor: 'pointer', border: '1px solid var(--border)', fontSize: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 600 }}>{v.verification_type}</span>
+                            <span style={{ color: 'var(--text-dim)' }}>Status: {v.status}</span>
+                            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-disabled)' }}>Click for expected outcomes</span>
+                          </div>
+                        </div>
+                      ))}
+
+                      <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 8 }}>Click any item for full details</div>
                     </div>
                   )}
                 </StepCard>
@@ -623,17 +768,64 @@ export default function App() {
             )}
             {currentAct === 'return' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>The hero returns transformed. DeepField captures what was learned as <strong>proposals</strong> that require human review.</p>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>The system captures what it learned — not as silent changes, but as <strong>proposals</strong> that require human review before activation.</p>
+                <FlowDescription text="Learning proposals never apply silently. Each captures a concrete before/after delta (e.g., lower the vibration z-score warning from 2.0σ to 1.8σ). The operator decides whether to accept, reject, or modify." />
+
                 {loopResult?.learning_proposals.map(p => (
-                  <div key={p.proposal_id} style={{ padding: 14, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 8 }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: 'var(--rh-purple-dim)', color: 'var(--rh-purple)' }}>{p.proposal_type}</span>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8 }}>{p.rationale}</p>
+                  <div key={p.proposal_id}
+                    onClick={() => openDetail(`Proposal: ${p.proposal_type}`, {
+                      proposal_type: p.proposal_type, status: p.status, confidence: p.confidence,
+                      rationale: p.rationale, before: p.before, after: p.after,
+                    }, 'learning')}
+                    style={{ padding: 14, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 8, cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: 'var(--rh-purple-dim)', color: 'var(--rh-purple)' }}>{p.proposal_type}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'Red Hat Mono, monospace' }}>{(p.confidence * 100).toFixed(0)}% confidence</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-disabled)' }}>Click for before/after</span>
+                    </div>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>{p.rationale}</p>
+                    {p.before && Object.keys(p.before).length > 0 && (
+                      <div style={{ marginTop: 8, display: 'flex', gap: 12, fontSize: 11 }}>
+                        <div style={{ flex: 1, padding: 8, background: 'var(--surface-2)', borderRadius: 6 }}>
+                          <div style={{ fontSize: 9, color: 'var(--text-disabled)', marginBottom: 4 }}>BEFORE</div>
+                          {Object.entries(p.before).slice(0, 3).map(([k, v]) => (
+                            <div key={k} style={{ color: 'var(--text-dim)', fontFamily: 'Red Hat Mono, monospace' }}>
+                              {k}: {typeof v === 'object' ? '...' : String(v)}
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ flex: 1, padding: 8, background: 'var(--rh-orange-dim)', borderRadius: 6 }}>
+                          <div style={{ fontSize: 9, color: 'var(--rh-orange)', marginBottom: 4 }}>AFTER (proposed)</div>
+                          {Object.entries(p.after).slice(0, 3).map(([k, v]) => (
+                            <div key={k} style={{ color: 'var(--text-secondary)', fontFamily: 'Red Hat Mono, monospace' }}>
+                              {k}: {typeof v === 'object' ? '...' : String(v)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
+
+                {/* Journey summary */}
+                {loopResult && (
+                  <div style={{ marginTop: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Pipeline Summary</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                      <MetricCard label="Evidence" value={evidence.length} color="var(--rh-blue)" />
+                      <MetricCard label="Classifications" value={classifications.length} color="var(--rh-teal)" />
+                      <MetricCard label="Actions" value={loopResult.actions.length} color="var(--rh-orange)" detail="non-destructive" />
+                      <MetricCard label="Verifications" value={loopResult.verifications.length} color="var(--rh-green)" detail="pending" />
+                      <MetricCard label="Learning" value={loopResult.learning_proposals.length} color="var(--rh-purple)" detail="awaiting review" />
+                    </div>
+                  </div>
+                )}
+
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
                   style={{ marginTop: 24, padding: 20, background: 'var(--surface-1)', border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center' }}>
                   <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.8 }}>
-                    The hero returns. The cycle begins again.
+                    The system studied signals, classified reality, proposed safe action,
+                    and captured what should change. The cycle continues.
                   </p>
                 </motion.div>
               </div>

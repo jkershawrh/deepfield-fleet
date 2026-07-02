@@ -42,6 +42,7 @@ export interface ClassificationRecord {
   confidence: number;
   rationale: string;
   evidence_ids: string[];
+  metrics?: Record<string, unknown>;
 }
 
 export interface BaselineProfile {
@@ -107,4 +108,13 @@ export const api = {
 
   listEvidence: () =>
     request<EvidenceArtifact[]>('GET', '/api/v1/multimodal/evidence'),
+
+  classifyNano: () =>
+    request<{ tier: string; records: ClassificationRecord[]; count: number; elapsed_ms: number; agents: string[]; decision_type: string; runtime: string }>('POST', '/api/v1/demo/classify/nano'),
+
+  classifyMicro: () =>
+    request<{ tier: string; records: ClassificationRecord[]; count: number; elapsed_ms: number; escalated_from_nano: number; agents: string[]; decision_type: string; runtime: string }>('POST', '/api/v1/demo/classify/micro'),
+
+  classifyMacro: () =>
+    request<{ tier: string; records: ClassificationRecord[]; count: number; elapsed_ms: number; agents: string[]; decision_type: string; runtime: string }>('POST', '/api/v1/demo/classify/macro'),
 };

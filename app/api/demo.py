@@ -721,22 +721,131 @@ async def build_baseline():
 
 @router.post("/classify")
 async def run_classification():
+    from app.inference.client import set_force_rules
+    set_force_rules(True)
     evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
     compiler = BaselineCompiler()
     bl = compiler.compile(evidence=evidence, scope={"scope_type": "site", "scope_id": "factory-line-01"})
     bl.status = "active"
     from app.classification.engine import ClassificationEngine
-    return [r.model_dump(mode="json") for r in ClassificationEngine().classify(evidence, bl)]
+    records = ClassificationEngine().classify(evidence, bl)
+    set_force_rules(False)
+    return [r.model_dump(mode="json") for r in records]
+
+
+@router.post("/classify/nano")
+async def run_nano_only():
+    import time as _time
+    start = _time.monotonic()
+    evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
+    compiler = BaselineCompiler()
+    bl = compiler.compile(evidence=evidence, scope={"scope_type": "site", "scope_id": "factory-line-01"})
+    bl.status = "active"
+    from app.nanoagents.pipeline import run_pipeline
+    records = run_pipeline(evidence, bl)
+    elapsed = round((_time.monotonic() - start) * 1000)
+    return {
+        "tier": "nano",
+        "records": [r.model_dump(mode="json") for r in records],
+        "count": len(records),
+        "elapsed_ms": elapsed,
+        "agents": list({r.agent_name for r in records}),
+        "decision_type": "deterministic",
+        "runtime": "CPU — no inference",
+    }
+
+
+@router.post("/classify/micro")
+async def run_micro_only():
+    import time as _time
+    start = _time.monotonic()
+    evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
+    compiler = BaselineCompiler()
+    bl = compiler.compile(evidence=evidence, scope={"scope_type": "site", "scope_id": "factory-line-01"})
+    bl.status = "active"
+    from app.nanoagents.pipeline import run_pipeline
+    from app.classification.cascade import should_escalate_to_micro as esc_micro
+    nano = run_pipeline(evidence, bl)
+    escalated = [ev for ev in evidence if esc_micro(nano, ev)]
+    from app.microagents.text_classifier import TextClassifierAgent
+    from app.microagents.document_classifier import DocumentClassifierAgent
+    from app.microagents.image_classifier import ImageDefectClassifierAgent
+    from app.microagents.audio_classifier import AudioAnomalyClassifierAgent
+    records = []
+    for agent in [TextClassifierAgent(), DocumentClassifierAgent(), ImageDefectClassifierAgent(), AudioAnomalyClassifierAgent()]:
+        modalities = getattr(agent, "modalities", set())
+        relevant = [ev for ev in escalated if ev.modality in modalities] if modalities else escalated
+        if relevant:
+            records.extend(agent.classify(relevant))
+    elapsed = round((_time.monotonic() - start) * 1000)
+    from app.inference.client import is_inference_available
+    return {
+        "tier": "micro",
+        "records": [r.model_dump(mode="json") for r in records],
+        "count": len(records),
+        "elapsed_ms": elapsed,
+        "escalated_from_nano": len(escalated),
+        "agents": list({r.agent_name for r in records}),
+        "decision_type": "LLM inference" if is_inference_available() else "rule-backed",
+        "runtime": "LLM via LiteLLM" if is_inference_available() else "CPU — rules only",
+    }
+
+
+@router.post("/classify/macro")
+async def run_macro_only():
+    import time as _time
+    start = _time.monotonic()
+    evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
+    compiler = BaselineCompiler()
+    bl = compiler.compile(evidence=evidence, scope={"scope_type": "site", "scope_id": "factory-line-01"})
+    bl.status = "active"
+    from app.nanoagents.pipeline import run_pipeline
+    from app.classification.cascade import should_escalate_to_micro as esc_micro, should_escalate_to_macro as esc_macro
+    nano = run_pipeline(evidence, bl)
+    escalated = [ev for ev in evidence if esc_micro(nano, ev)]
+    from app.microagents.text_classifier import TextClassifierAgent
+    from app.microagents.document_classifier import DocumentClassifierAgent
+    from app.microagents.image_classifier import ImageDefectClassifierAgent
+    from app.microagents.audio_classifier import AudioAnomalyClassifierAgent
+    micro = []
+    for agent in [TextClassifierAgent(), DocumentClassifierAgent(), ImageDefectClassifierAgent(), AudioAnomalyClassifierAgent()]:
+        modalities = getattr(agent, "modalities", set())
+        relevant = [ev for ev in escalated if ev.modality in modalities] if modalities else escalated
+        if relevant:
+            micro.extend(agent.classify(relevant))
+    records = []
+    if esc_macro(micro, evidence):
+        from app.macroagents.incident_timeline import IncidentTimelineAgent
+        from app.macroagents.root_cause_hypothesis import RootCauseHypothesisAgent
+        from app.macroagents.action_planner import ActionPlannerAgent
+        from app.macroagents.verification_planner import VerificationPlannerAgent
+        from app.macroagents.learning_proposal_agent import LearningProposalMacroAgent
+        for agent in [IncidentTimelineAgent(), RootCauseHypothesisAgent(), ActionPlannerAgent(), VerificationPlannerAgent(), LearningProposalMacroAgent()]:
+            records.extend(agent.reason(evidence, nano + micro, bl))
+    elapsed = round((_time.monotonic() - start) * 1000)
+    from app.inference.client import is_inference_available
+    return {
+        "tier": "macro",
+        "records": [r.model_dump(mode="json") for r in records],
+        "count": len(records),
+        "elapsed_ms": elapsed,
+        "agents": list({r.agent_name for r in records}),
+        "decision_type": "LLM reasoning" if is_inference_available() else "template-based",
+        "runtime": "LLM via LiteLLM" if is_inference_available() else "CPU — templates only",
+    }
 
 
 @router.post("/loop")
 async def run_full_loop():
+    from app.inference.client import set_force_rules
+    set_force_rules(True)
     evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
     compiler = BaselineCompiler()
     bl = compiler.compile(evidence=evidence, scope={"scope_type": "site", "scope_id": "factory-line-01"})
     bl.status = "active"
     from app.agent_loop.loop import AgentLoop
     result = AgentLoop().run(evidence, bl)
+    set_force_rules(False)
     return {
         "classifications": [c.model_dump(mode="json") for c in result["classifications"]],
         "actions": [a.model_dump(mode="json") for a in result["actions"]],
