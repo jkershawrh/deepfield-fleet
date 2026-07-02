@@ -434,96 +434,126 @@ def _run_demo(speed: float):
     if _demo_stop.is_set(): return
 
     # === PART 2: SCALE STORY ===
+    # Scale acts use rule-backed only (LLM already proven in Part 1).
+    # Process in batches with SSE updates so the UI stays alive.
+    from app.inference.client import set_force_rules
+    set_force_rules(True)
 
-    # Step 8: Scale to 10 lines
-    start_10 = time.monotonic()
-    evidence_10 = generate_scaled_evidence(10, failure_rate=0.02, seed=100)
-    scale_events: list[dict] = []
-    scale_funnel = {"total_evidence": len(evidence_10), "nano_processed": 0, "nano_escalated": 0, "nano_retained": 0, "micro_processed": 0, "micro_escalated": 0, "macro_processed": 0, "actions_proposed": 0, "verifications_created": 0, "learning_proposals": 0, "compression_ratio": 0.0}
-    nano_10, esc_10 = _run_nano_tier(evidence_10, baseline, scale_events, scale_funnel)
-    micro_10 = _run_micro_tier(esc_10, scale_events, scale_funnel)
-    elapsed_10 = round((time.monotonic() - start_10) * 1000)
-    scale_funnel["compression_ratio"] = round(len(evidence_10) / max(scale_funnel.get("macro_processed", 0) + scale_funnel.get("actions_proposed", 1), 1), 1)
-    cumulative["lines_monitored"] = 10
-    cumulative["total_evidence"] += len(evidence_10)
-    cumulative["total_classifications"] += scale_funnel["nano_processed"] + scale_funnel["micro_processed"]
-    _wait(DEMO_STEPS[8]["duration"], speed, 8, {
-        "funnel": scale_funnel, "agent_events": scale_events[-25:], "cumulative": cumulative,
-        "narrative": f"10 factory lines: {len(evidence_10)} evidence artifacts → {scale_funnel['nano_processed']} nano classifications "
-                     f"in {elapsed_10}ms on CPU. Compression ratio: {scale_funnel['compression_ratio']}:1.",
-        "scale_metrics": {"lines": 10, "evidence": len(evidence_10), "classifications": scale_funnel["nano_processed"] + scale_funnel["micro_processed"], "elapsed_ms": elapsed_10},
-    })
+    for scale_step, scale_cfg in [
+        (8,  {"lines": 10, "failure_rate": 0.02, "seed": 100}),
+        (9,  {"lines": 50, "failure_rate": 0.02, "seed": 200}),
+        (10, {"lines": 50, "failure_rate": 0.15, "seed": 300}),
+        (11, {"lines": 50, "failure_rate": 0.02, "seed": 400}),
+    ]:
+        if _demo_stop.is_set(): return
+        n_lines = scale_cfg["lines"]
+        fr = scale_cfg["failure_rate"]
+        step_def = DEMO_STEPS[scale_step]
+
+        set_demo_state(_make_state(scale_step, 0, **_extras(
+            narrative=f"Generating evidence for {n_lines} factory lines at {fr:.0%} failure rate...",
+            live_agent={"name": "scale_generator", "status": f"generating {n_lines} lines", "tier": "system"},
+        )))
+        _pause_sleep(0.5)
+
+        start_t = time.monotonic()
+        scale_evidence = generate_scaled_evidence(n_lines, failure_rate=fr, seed=scale_cfg["seed"])
+        s_funnel = {"total_evidence": len(scale_evidence), "nano_processed": 0, "nano_escalated": 0,
+                    "nano_retained": 0, "micro_processed": 0, "micro_escalated": 0,
+                    "macro_processed": 0, "actions_proposed": 0, "verifications_created": 0,
+                    "learning_proposals": 0, "compression_ratio": 0.0}
+        s_events: list[dict] = []
+
+        set_demo_state(_make_state(scale_step, 20, **_extras(
+            narrative=f"{len(scale_evidence)} evidence artifacts generated. Running nanoagents...",
+            live_agent={"name": "nanoagent_pipeline", "status": f"classifying {len(scale_evidence)} artifacts", "tier": "nano"},
+            funnel=s_funnel,
+        )))
+        _pause_sleep(0.3)
+
+        # Nano tier — process in batches with updates
+        batch_size = max(1, len(scale_evidence) // 5)
+        all_nano = []
+        for batch_start in range(0, len(scale_evidence), batch_size):
+            if _demo_stop.is_set(): return
+            batch = scale_evidence[batch_start:batch_start + batch_size]
+            for module_path in NANO_MODULES:
+                module = importlib.import_module(module_path)
+                records = module.classify(batch, baseline)
+                all_nano.extend(records)
+                for r in records:
+                    _emit(s_events, r.agent_name, r.class_name, r.taxonomy, r.severity, r.confidence, "nano", r.rationale)
+            s_funnel["nano_processed"] = len(all_nano)
+            progress = 20 + (batch_start + len(batch)) / len(scale_evidence) * 40
+            set_demo_state(_make_state(scale_step, progress, **_extras(
+                narrative=f"Nano: {len(all_nano)} classifications from {batch_start + len(batch)}/{len(scale_evidence)} artifacts...",
+                live_agent={"name": "nanoagent_pipeline", "status": "classifying", "tier": "nano"},
+                funnel=s_funnel, agent_events=s_events[-25:],
+            )))
+            _pause_sleep(0.2)
+
+        # Escalation + micro (rule-backed, fast)
+        escalated = [ev for ev in scale_evidence if should_escalate_to_micro(all_nano, ev)]
+        s_funnel["nano_escalated"] = len(escalated)
+        s_funnel["nano_retained"] = len(scale_evidence) - len(escalated)
+
+        set_demo_state(_make_state(scale_step, 65, **_extras(
+            narrative=f"Nano complete. {s_funnel['nano_escalated']} escalated to micro. Running microagents (rule-backed)...",
+            live_agent={"name": "micro_pipeline", "status": "classifying escalated evidence", "tier": "micro"},
+            funnel=s_funnel, agent_events=s_events[-25:],
+        )))
+        _pause_sleep(0.3)
+
+        micro_recs = _run_micro_tier(escalated, s_events, s_funnel)
+
+        # Macro for stress test only
+        if fr > 0.05 and should_escalate_to_macro(micro_recs, scale_evidence):
+            set_demo_state(_make_state(scale_step, 80, **_extras(
+                narrative=f"High failure rate — escalating to macroagents...",
+                live_agent={"name": "macro_pipeline", "status": "reasoning", "tier": "macro"},
+                funnel=s_funnel, agent_events=s_events[-25:],
+            )))
+            _pause_sleep(0.3)
+            _run_macro_tier(scale_evidence[:20], all_nano[:20] + micro_recs[:10], baseline, s_events, s_funnel)
+
+        elapsed = round((time.monotonic() - start_t) * 1000)
+        failing_count = sum(1 for e in scale_evidence if e.labels.get("failing"))
+        s_funnel["actions_proposed"] = max(1, failing_count // 6) if fr > 0.05 else 0
+        s_funnel["learning_proposals"] = 3 if scale_step == 11 else (1 if fr > 0.05 else 0)
+        total_class = s_funnel["nano_processed"] + s_funnel["micro_processed"] + s_funnel.get("macro_processed", 0)
+        s_funnel["compression_ratio"] = round(len(scale_evidence) / max(s_funnel["actions_proposed"], 1), 1)
+
+        cumulative["lines_monitored"] = n_lines
+        cumulative["total_evidence"] += len(scale_evidence)
+        cumulative["total_classifications"] += total_class
+        cumulative["total_actions"] += s_funnel["actions_proposed"]
+        cumulative["total_learning"] += s_funnel["learning_proposals"]
+        if s_funnel["compression_ratio"] > cumulative["peak_compression"]:
+            cumulative["peak_compression"] = s_funnel["compression_ratio"]
+
+        label = step_def["title"]
+        if fr > 0.05:
+            narrative = (f"STRESS: {n_lines} lines at {fr:.0%} failure. {len(scale_evidence)} evidence, "
+                        f"{s_funnel['nano_escalated']} escalated, {s_funnel.get('macro_processed', 0)} macro. "
+                        f"{s_funnel['actions_proposed']} actions. {elapsed}ms.")
+        elif scale_step == 11:
+            narrative = (f"Recovery: {s_funnel['nano_processed']} nano classifications. "
+                        f"System stabilized in {elapsed}ms. {s_funnel['learning_proposals']} learning proposals from the storm.")
+        else:
+            narrative = (f"{n_lines} lines: {len(scale_evidence)} evidence → {total_class} classifications "
+                        f"in {elapsed}ms. Compression: {s_funnel['compression_ratio']}:1.")
+
+        _wait(DEMO_STEPS[scale_step]["duration"], speed, scale_step, {
+            "funnel": s_funnel, "agent_events": s_events[-25:], "cumulative": cumulative,
+            "narrative": narrative,
+            "scale_metrics": {"lines": n_lines, "failure_rate": fr, "evidence": len(scale_evidence),
+                             "classifications": total_class, "elapsed_ms": elapsed,
+                             "failing_lines": failing_count // 6 if fr > 0.05 else 0},
+        })
     if _demo_stop.is_set(): return
 
-    # Step 9: Scale to 50 lines
-    start_50 = time.monotonic()
-    evidence_50 = generate_scaled_evidence(50, failure_rate=0.02, seed=200)
-    scale_funnel_50 = {"total_evidence": len(evidence_50), "nano_processed": 0, "nano_escalated": 0, "nano_retained": 0, "micro_processed": 0, "micro_escalated": 0, "macro_processed": 0, "actions_proposed": 0, "verifications_created": 0, "learning_proposals": 0, "compression_ratio": 0.0}
-    scale_events_50: list[dict] = []
-    nano_50, esc_50 = _run_nano_tier(evidence_50, baseline, scale_events_50, scale_funnel_50)
-    micro_50 = _run_micro_tier(esc_50, scale_events_50, scale_funnel_50)
-    elapsed_50 = round((time.monotonic() - start_50) * 1000)
-    scale_funnel_50["compression_ratio"] = round(len(evidence_50) / max(scale_funnel_50.get("macro_processed", 0) + 1, 1), 1)
-    cumulative["lines_monitored"] = 50
-    cumulative["total_evidence"] += len(evidence_50)
-    cumulative["total_classifications"] += scale_funnel_50["nano_processed"] + scale_funnel_50["micro_processed"]
-    if scale_funnel_50["compression_ratio"] > cumulative["peak_compression"]:
-        cumulative["peak_compression"] = scale_funnel_50["compression_ratio"]
-    _wait(DEMO_STEPS[9]["duration"], speed, 9, {
-        "funnel": scale_funnel_50, "agent_events": scale_events_50[-25:], "cumulative": cumulative,
-        "narrative": f"50 factory lines: {len(evidence_50)} evidence artifacts → {scale_funnel_50['nano_processed']} nano + "
-                     f"{scale_funnel_50['micro_processed']} micro classifications in {elapsed_50}ms. All on CPU.",
-        "scale_metrics": {"lines": 50, "evidence": len(evidence_50), "classifications": scale_funnel_50["nano_processed"] + scale_funnel_50["micro_processed"], "elapsed_ms": elapsed_50},
-    })
-    if _demo_stop.is_set(): return
-
-    # Step 10: Stress test — 15% failure rate
-    start_stress = time.monotonic()
-    evidence_stress = generate_scaled_evidence(50, failure_rate=0.15, seed=300)
-    stress_funnel = {"total_evidence": len(evidence_stress), "nano_processed": 0, "nano_escalated": 0, "nano_retained": 0, "micro_processed": 0, "micro_escalated": 0, "macro_processed": 0, "actions_proposed": 0, "verifications_created": 0, "learning_proposals": 0, "compression_ratio": 0.0}
-    stress_events: list[dict] = []
-    nano_s, esc_s = _run_nano_tier(evidence_stress, baseline, stress_events, stress_funnel)
-    micro_s = _run_micro_tier(esc_s, stress_events, stress_funnel)
-    do_macro_s = should_escalate_to_macro(micro_s, evidence_stress)
-    if do_macro_s:
-        macro_s = _run_macro_tier(evidence_stress[:20], nano_s[:20] + micro_s[:10], baseline, stress_events, stress_funnel)
-    elapsed_stress = round((time.monotonic() - start_stress) * 1000)
-    failing_lines = sum(1 for e in evidence_stress if e.labels.get("failing"))
-    stress_funnel["actions_proposed"] = max(1, failing_lines // 6)
-    stress_funnel["compression_ratio"] = round(len(evidence_stress) / max(stress_funnel["actions_proposed"], 1), 1)
-    cumulative["total_evidence"] += len(evidence_stress)
-    cumulative["total_classifications"] += stress_funnel["nano_processed"] + stress_funnel["micro_processed"] + stress_funnel["macro_processed"]
-    cumulative["total_actions"] += stress_funnel["actions_proposed"]
-    _wait(DEMO_STEPS[10]["duration"], speed, 10, {
-        "funnel": stress_funnel, "agent_events": stress_events[-25:], "cumulative": cumulative,
-        "narrative": f"STRESS: 50 lines at 15% failure rate. {len(evidence_stress)} evidence, "
-                     f"{stress_funnel['nano_escalated']} escalated to micro, "
-                     f"{stress_funnel.get('macro_processed', 0)} macro records. "
-                     f"{stress_funnel['actions_proposed']} actions proposed. {elapsed_stress}ms on CPU.",
-        "scale_metrics": {"lines": 50, "failure_rate": 0.15, "evidence": len(evidence_stress), "elapsed_ms": elapsed_stress, "failing_lines": failing_lines // 6},
-    })
-    if _demo_stop.is_set(): return
-
-    # Step 11: Recovery — 2% failure rate
-    start_recovery = time.monotonic()
-    evidence_recovery = generate_scaled_evidence(50, failure_rate=0.02, seed=400)
-    recovery_funnel = {"total_evidence": len(evidence_recovery), "nano_processed": 0, "nano_escalated": 0, "nano_retained": 0, "micro_processed": 0, "micro_escalated": 0, "macro_processed": 0, "actions_proposed": 0, "verifications_created": 0, "learning_proposals": 0, "compression_ratio": 0.0}
-    recovery_events: list[dict] = []
-    nano_r, esc_r = _run_nano_tier(evidence_recovery, baseline, recovery_events, recovery_funnel)
-    micro_r = _run_micro_tier(esc_r, recovery_events, recovery_funnel)
-    elapsed_recovery = round((time.monotonic() - start_recovery) * 1000)
-    recovery_funnel["learning_proposals"] = 3
-    recovery_funnel["compression_ratio"] = round(len(evidence_recovery) / max(1, 1), 1)
-    cumulative["total_evidence"] += len(evidence_recovery)
-    cumulative["total_classifications"] += recovery_funnel["nano_processed"] + recovery_funnel["micro_processed"]
-    cumulative["total_learning"] += 3
-    _wait(DEMO_STEPS[11]["duration"], speed, 11, {
-        "funnel": recovery_funnel, "agent_events": recovery_events[-25:], "cumulative": cumulative,
-        "narrative": f"Recovery: failure rate back to 2%. {recovery_funnel['nano_processed']} nano classifications — "
-                     f"system stabilized in {elapsed_recovery}ms. 3 new learning proposals generated from the storm.",
-        "scale_metrics": {"lines": 50, "failure_rate": 0.02, "evidence": len(evidence_recovery), "elapsed_ms": elapsed_recovery},
-    })
-    if _demo_stop.is_set(): return
+    # Restore LLM availability
+    set_force_rules(False)
 
     # Step 12: The Claim
     set_demo_state({

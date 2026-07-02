@@ -90,7 +90,17 @@ def reset_inference_stats():
     _stats = InferenceStats()
 
 
+_force_rules = False
+
+
+def set_force_rules(val: bool):
+    global _force_rules
+    _force_rules = val
+
+
 def is_inference_available() -> bool:
+    if _force_rules:
+        return False
     return bool(os.getenv("LITELLM_API_BASE"))
 
 
