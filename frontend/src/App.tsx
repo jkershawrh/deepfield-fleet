@@ -72,6 +72,7 @@ interface DemoState {
   evidence_detail?: Record<string, unknown>;
   inference_mode?: string;
   inference_stats?: { total_calls: number; total_tokens_out: number; avg_latency_ms: number; avg_tokens_per_sec: number; errors: number } | null;
+  waiting_for_next?: boolean;
 }
 
 export default function App() {
@@ -633,7 +634,13 @@ export default function App() {
                   Pause
                 </button>
               )}
-              {isPaused && (
+              {isPaused && demoState.waiting_for_next && (
+                <button onClick={resumeAuto}
+                  style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '8px 24px', borderRadius: 6, fontSize: 14, fontWeight: 700 }}>
+                  Next →
+                </button>
+              )}
+              {isPaused && !demoState.waiting_for_next && (
                 <button onClick={resumeAuto}
                   style={{ background: 'var(--rh-green)', border: 'none', color: '#fff', padding: '6px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600 }}>
                   Resume

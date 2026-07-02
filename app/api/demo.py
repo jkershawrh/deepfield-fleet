@@ -160,6 +160,17 @@ def _pause_sleep(seconds: float):
     _demo_stop.wait(timeout=seconds)
 
 
+def _auto_pause_between_steps(step_index: int, extras: dict):
+    """Pause at the end of a step so the presenter can narrate."""
+    step = DEMO_STEPS[step_index]
+    _demo_pause.clear()
+    set_demo_state(_make_state(step_index, 100, paused=True,
+                               waiting_for_next=True, **extras))
+    _demo_pause.wait()
+    if _demo_stop.is_set():
+        return
+
+
 def _wait(duration: float, speed: float, step_index: int, extras: dict):
     actual = duration / speed
     start = time.monotonic()
@@ -283,6 +294,8 @@ def _run_demo(speed: float):
         baseline_metrics={"vibration_rms": 0.22, "temperature_c": 38.2, "defect_rate": 0.001},
     ))
     if _demo_stop.is_set(): return
+    _auto_pause_between_steps(0, _extras(narrative="Normal operations established. Ready to ingest signals."))
+    if _demo_stop.is_set(): return
 
     # Step 1: Call to Adventure — ingest evidence
     evidence_all = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
@@ -300,6 +313,8 @@ def _run_demo(speed: float):
         )))
         _pause_sleep(max(0.5, DEMO_STEPS[1]["duration"] / len(evidence_all) / speed))
     if _demo_stop.is_set(): return
+    _auto_pause_between_steps(1, _extras(narrative=f"{len(evidence)} evidence artifacts ingested across {len(set(e.modality for e in evidence))} modalities. Ready to compile baseline."))
+    if _demo_stop.is_set(): return
 
     # Step 2: Crossing the Threshold — build baseline
     compiler = BaselineCompiler()
@@ -311,6 +326,8 @@ def _run_demo(speed: float):
                   f"The shape of normal is now defined.",
         baseline=baseline.model_dump(mode="json"),
     ))
+    if _demo_stop.is_set(): return
+    _auto_pause_between_steps(2, _extras(narrative=f"Baseline ready: {baseline.confidence:.0%} confidence. Ready to run classification cascade."))
     if _demo_stop.is_set(): return
 
     # Steps 3-5: The Ordeal — Nano, Micro, Macro (one at a time for drama)
@@ -336,6 +353,8 @@ def _run_demo(speed: float):
     escalated = evidence  # for single scenario, all escalate due to multi-modality
     funnel["nano_escalated"] = len(escalated)
     funnel["nano_retained"] = max(0, len(evidence) - len(escalated))
+    if _demo_stop.is_set(): return
+    _auto_pause_between_steps(3, _extras(narrative=f"Nano tier complete: {funnel['nano_processed']} classifications. {funnel['nano_escalated']} escalated to micro. Ready for microagent classification."))
     if _demo_stop.is_set(): return
 
     # Micro tier
@@ -364,6 +383,8 @@ def _run_demo(speed: float):
         )))
         _pause_sleep(max(0.5, DEMO_STEPS[4]["duration"] / len(micro_agents) / speed))
     if _demo_stop.is_set(): return
+    _auto_pause_between_steps(4, _extras(narrative=f"Micro tier complete: {funnel['micro_processed']} classifications. Escalating to macroagent reasoning."))
+    if _demo_stop.is_set(): return
 
     # Macro tier
     from app.macroagents.incident_timeline import IncidentTimelineAgent
@@ -389,6 +410,8 @@ def _run_demo(speed: float):
         )))
         _pause_sleep(max(0.5, DEMO_STEPS[5]["duration"] / len(macro_agents) / speed))
     if _demo_stop.is_set(): return
+    _auto_pause_between_steps(5, _extras(narrative=f"Classification cascade complete: {funnel['nano_processed']} nano + {funnel['micro_processed']} micro + {funnel['macro_processed']} macro. Ready to propose action."))
+    if _demo_stop.is_set(): return
 
     # Step 6: The Reward
     from app.agent_loop.actions import ActionManager
@@ -406,6 +429,8 @@ def _run_demo(speed: float):
         action=action.model_dump(mode="json"),
         verification=verification.model_dump(mode="json"),
     ))
+    if _demo_stop.is_set(): return
+    _auto_pause_between_steps(6, _extras(narrative="Action proposed and verification created. Ready to generate learning proposals."))
     if _demo_stop.is_set(): return
 
     # Step 7: The Return
@@ -431,6 +456,8 @@ def _run_demo(speed: float):
                   "Requires human review before activation.",
         learning_proposal=proposal.model_dump(mode="json"),
     ))
+    if _demo_stop.is_set(): return
+    _auto_pause_between_steps(7, _extras(narrative="Single-line walkthrough complete. Ready to scale."))
     if _demo_stop.is_set(): return
 
     # === PART 2: SCALE STORY ===
@@ -550,7 +577,12 @@ def _run_demo(speed: float):
                              "classifications": total_class, "elapsed_ms": elapsed,
                              "failing_lines": failing_count // 6 if fr > 0.05 else 0},
         })
-    if _demo_stop.is_set(): return
+        if _demo_stop.is_set(): return
+        _auto_pause_between_steps(scale_step, {
+            "funnel": s_funnel, "agent_events": s_events[-25:], "cumulative": cumulative,
+            "narrative": narrative,
+        })
+        if _demo_stop.is_set(): return
 
     # Restore LLM availability
     set_force_rules(False)
