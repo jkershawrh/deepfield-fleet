@@ -11,6 +11,7 @@ import type { AgentEvent } from './components/LiveAgentFeed';
 import { StepProgress } from './components/StepProgress';
 import { DetailModal, KeyValueTable, ComparisonTable } from './components/DetailModal';
 import { FlowDescription } from './components/FlowDescription';
+import { InfraPanel } from './components/InfraPanel';
 import { api } from './api/client';
 import type { EvidenceArtifact, ClassificationRecord, BaselineProfile, LoopResult, ApiCall } from './api/client';
 
@@ -272,8 +273,11 @@ export default function App() {
 
         {/* Content */}
         <div style={{ flex: 1, maxWidth: 900, margin: '0 auto', padding: '24px 24px', width: '100%' }}>
+          {/* Infrastructure panel — always available */}
+          <InfraPanel />
+
           {/* Step progress */}
-          {isRunning && demoState.step_title && (
+          {(isRunning || isPaused) && demoState.step_title && (
             <StepProgress
               progress={demoState.step_progress || 0}
               title={demoState.step_title}

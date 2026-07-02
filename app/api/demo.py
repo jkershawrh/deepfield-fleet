@@ -592,6 +592,71 @@ async def get_state():
     return state if state else {"status": "idle"}
 
 
+@router.get("/infrastructure")
+async def get_infrastructure():
+    import os
+    import platform
+    import sys
+
+    nano_agents = [
+        {"name": "baseline_distance", "type": "deterministic", "runtime": "CPU", "description": "Compares feature values to baseline thresholds, flags drift beyond normal ranges"},
+        {"name": "metric_drift", "type": "deterministic", "runtime": "CPU", "description": "Slope and z-score checks — detects gradual trends in metric time series"},
+        {"name": "log_pattern", "type": "deterministic", "runtime": "CPU", "description": "Regex pattern matching for ERROR/WARN/CRIT in log evidence"},
+        {"name": "document_heuristic", "type": "deterministic", "runtime": "CPU", "description": "Keyword analysis for actionable terms in documents and notes"},
+        {"name": "image_metadata", "type": "deterministic", "runtime": "CPU", "description": "Defect score evaluation from image inspection labels"},
+        {"name": "audio_energy", "type": "deterministic", "runtime": "CPU", "description": "Anomaly score evaluation from audio/vibration sensor labels"},
+        {"name": "evidence_gate", "type": "deterministic", "runtime": "CPU", "description": "Decides ignore/retain/escalate for each evidence piece based on modality and severity"},
+    ]
+    micro_agents = [
+        {"name": "text_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Pattern matching against known incident families — infrastructure, quality, security, capacity"},
+        {"name": "document_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Document type and sensitivity classification by keyword analysis"},
+        {"name": "image_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Defect classification using fixture labels — extension point for OpenVINO/ONNX"},
+        {"name": "audio_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Anomaly classification using fixture labels — extension point for OpenVINO/ONNX"},
+        {"name": "embedding_classifier", "type": "placeholder", "runtime": "CPU", "description": "Placeholder for embedding/clustering — extension point for vector inference"},
+    ]
+    macro_agents = [
+        {"name": "incident_timeline", "type": "template-based", "runtime": "CPU", "description": "Sequences evidence by timestamp, overlays classifications to build incident narrative"},
+        {"name": "root_cause_hypothesis", "type": "template-based", "runtime": "CPU", "description": "Counts classification families across modalities to identify most likely root cause"},
+        {"name": "action_planner", "type": "template-based", "runtime": "CPU", "description": "Proposes safe actions (notify, observe, ticket) — never destructive without human approval"},
+        {"name": "verification_planner", "type": "template-based", "runtime": "CPU", "description": "Builds verification plan to check if post-action metrics return to baseline"},
+        {"name": "learning_proposal", "type": "template-based", "runtime": "CPU", "description": "Proposes threshold/rule updates based on high-confidence findings — never auto-applied"},
+    ]
+
+    return {
+        "runtime": {
+            "python_version": platform.python_version(),
+            "platform": platform.platform(),
+            "architecture": platform.machine(),
+            "cpu_count": os.cpu_count(),
+            "hostname": platform.node(),
+        },
+        "inference": {
+            "gpu": "none",
+            "llm_endpoints": "none",
+            "inference_framework": "Deterministic rules + rule-backed classifiers",
+            "hardware_acceleration": "CPU only — OpenVINO/ONNX extension points available for Xeon optimization",
+        },
+        "agents": {
+            "total": 17,
+            "tiers": 3,
+            "nano": {"count": len(nano_agents), "type": "deterministic", "agents": nano_agents},
+            "micro": {"count": len(micro_agents), "type": "rule-backed", "agents": micro_agents},
+            "macro": {"count": len(macro_agents), "type": "template-based", "agents": macro_agents},
+        },
+        "pipeline": {
+            "flow": "Signals → Evidence → Baseline → Nano → Micro → Macro → Act → Verify → Learn",
+            "compression": "Nanoagents filter most evidence before micro/macro tiers — no inference cost for filtered signals",
+            "safety": "Only non-destructive actions proposed. Destructive ops require human approval. Learning never auto-applied.",
+        },
+        "framework": {
+            "backend": "FastAPI + Pydantic v2",
+            "frontend": "React 19 + motion/react",
+            "database": "PostgreSQL (optional — graceful degradation without DB)",
+            "container": "Podman / OCI-compatible",
+        },
+    }
+
+
 @router.post("/ingest")
 async def ingest_fixture():
     evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
