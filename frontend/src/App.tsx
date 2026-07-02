@@ -213,88 +213,204 @@ export default function App() {
     setLoopStatus('done');
   }, []);
 
-  // --- Landing page ---
-  if (!started) {
-    return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-dark)' }}>
-        {/* Hero */}
-        <div style={{ padding: '80px 24px 48px', maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <div style={{ fontSize: 13, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, marginBottom: 16 }}>
-              RED HAT + INTEL
-            </div>
-            <h1 style={{ fontSize: 44, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.15, margin: 0 }}>
-              Classify reality before
-              <br />you react to it.
-            </h1>
-            <p style={{ fontSize: 17, color: 'var(--text-dim)', marginTop: 20, lineHeight: 1.7, maxWidth: 600, marginLeft: 'auto', marginRight: 'auto' }}>
-              The first job of enterprise AI is not generation. It is classifying
-              reality well enough to know what should happen next — on the
-              infrastructure you already own.
-            </p>
-          </motion.div>
+  // --- Presentation slides ---
+  const [slide, setSlide] = useState(0);
 
-          {/* Compression ratio hook */}
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4, type: 'spring', stiffness: 300 }}
-            style={{ display: 'inline-flex', alignItems: 'baseline', gap: 8, marginTop: 32, padding: '16px 32px', background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 12 }}>
-            <span style={{ fontSize: 48, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>98%</span>
-            <span style={{ fontSize: 15, color: 'var(--text-dim)' }}>of signals classified on CPU<br />before anything expensive runs</span>
-          </motion.div>
-        </div>
-
-        {/* Value props */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 800, margin: '0 auto', padding: '0 24px 48px' }}>
+  const SLIDES = [
+    // 0: Title
+    () => (
+      <div style={{ textAlign: 'center' }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+          <div style={{ fontSize: 14, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 3 }}>
+            RED HAT + INTEL
+          </div>
+        </motion.div>
+        <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }}
+          style={{ fontSize: 56, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.1, margin: '24px 0 0', maxWidth: 700 }}>
+          DeepField<br /><span style={{ color: 'var(--rh-red)' }}>Multimodal</span>
+        </motion.h1>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+          style={{ fontSize: 20, color: 'var(--text-dim)', marginTop: 24 }}>
+          Enterprise Signal Intelligence
+        </motion.p>
+      </div>
+    ),
+    // 1: The problem
+    () => (
+      <div style={{ textAlign: 'center', maxWidth: 700 }}>
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 36, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3 }}>
+          Your operations generate
+          <br />thousands of signals per hour.
+        </motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+          style={{ fontSize: 20, color: 'var(--text-dim)', marginTop: 24, lineHeight: 1.6 }}>
+          Metrics. Logs. Events. Images. Audio.
+          <br />Streaming right now. <strong style={{ color: 'var(--rh-orange)' }}>Unclassified.</strong>
+        </motion.p>
+      </div>
+    ),
+    // 2: The thesis
+    () => (
+      <div style={{ textAlign: 'center', maxWidth: 700 }}>
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 32, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+          "The first job of enterprise AI
+          <br />is not generation.
+        </motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+          style={{ fontSize: 32, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginTop: 16 }}>
+          It is classifying reality well enough
+          <br />to know what should happen next."
+        </motion.p>
+      </div>
+    ),
+    // 3: The proof — compression ratio
+    () => (
+      <div style={{ textAlign: 'center' }}>
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
+          <div style={{ fontSize: 120, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1 }}>
+            98%
+          </div>
+        </motion.div>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+          style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 16, lineHeight: 1.5 }}>
+          of signals classified on CPU
+          <br />before anything expensive runs.
+        </motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+          style={{ fontSize: 16, color: 'var(--text-disabled)', marginTop: 24 }}>
+          Deterministic nanoagents compress the noise. Only what matters reaches inference.
+        </motion.p>
+      </div>
+    ),
+    // 4: How — the three tiers
+    () => (
+      <div style={{ maxWidth: 700 }}>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          style={{ fontSize: 14, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, textAlign: 'center', marginBottom: 32 }}>
+          THREE TIERS — ONE PIPELINE
+        </motion.p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {[
-            { title: 'You have the infrastructure', body: 'Intel Xeon CPUs and Red Hat OpenShift. The compute and the platform are already there.', color: 'var(--rh-blue)' },
-            { title: 'You have the signals', body: 'Metrics, logs, events, images, audio — streaming right now from your operations. Unclassified.', color: 'var(--rh-teal)' },
-            { title: 'The gap is the classification layer', body: 'Not more dashboards. A system that knows normal, detects abnormal, and proposes what to do — governed and verified.', color: 'var(--rh-green)' },
-          ].map(p => (
-            <div key={p.title} style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: p.color, marginBottom: 8 }}>{p.title}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6 }}>{p.body}</div>
+            { tier: 'Nanoagents', count: 7, desc: 'Deterministic rules. Z-score checks, pattern matching, gating. Always CPU. Zero inference cost.', color: 'var(--rh-blue)', delay: 0.2 },
+            { tier: 'Microagents', count: 5, desc: 'Rule-backed classifiers. Image defect scoring, audio anomaly, text patterns. CPU with OpenVINO extension points. LLM when configured.', color: 'var(--rh-green)', delay: 0.4 },
+            { tier: 'Macroagents', count: 5, desc: 'Incident reasoning. Timeline building, root cause hypothesis, action planning. Template-based or LLM-backed.', color: 'var(--rh-purple)', delay: 0.6 },
+          ].map(t => (
+            <motion.div key={t.tier} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: t.delay }}
+              style={{ display: 'flex', gap: 16, padding: 20, background: 'var(--surface-1)', border: `1px solid ${t.color}40`, borderLeft: `4px solid ${t.color}`, borderRadius: '0 10px 10px 0' }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: t.color }}>{t.tier} <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-disabled)' }}>({t.count})</span></div>
+                <div style={{ fontSize: 14, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>{t.desc}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    ),
+    // 5: What you already have
+    () => (
+      <div style={{ textAlign: 'center', maxWidth: 700 }}>
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.4 }}>
+          Start deterministic. Add LLM when ready.
+        </motion.p>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 32 }}>
+          {[
+            { num: '207 MB', label: 'Container image', sub: 'vs 4-15 GB for ML stack' },
+            { num: '26', label: 'Dependencies', sub: 'vs 150-300 for PyTorch' },
+            { num: '30s', label: 'To first demo', sub: 'podman run, done' },
+          ].map(s => (
+            <div key={s.label} style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>{s.num}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 2 }}>{s.sub}</div>
             </div>
           ))}
         </motion.div>
-
-        {/* How it works strip */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px 48px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '14px 0', background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--border)' }}>
-            {[
-              { label: 'Signals arrive', color: 'var(--text-dim)' },
-              { label: 'Nanoagents compress (CPU, free)', color: 'var(--rh-blue)' },
-              { label: 'Microagents classify', color: 'var(--rh-green)' },
-              { label: 'Macroagents reason', color: 'var(--rh-purple)' },
-              { label: 'Act safely', color: 'var(--rh-orange)' },
-              { label: 'Learn', color: 'var(--rh-red)' },
-            ].map((s, i) => (
-              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 11, color: s.color, fontFamily: 'Red Hat Mono, monospace' }}>{s.label}</span>
-                {i < 5 && <span style={{ color: 'var(--border)', fontSize: 10 }}>→</span>}
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* CTAs */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}
-          style={{ display: 'flex', justifyContent: 'center', gap: 16, padding: '0 24px 32px' }}>
+      </div>
+    ),
+    // 6: CTA — enter the demo
+    () => (
+      <div style={{ textAlign: 'center' }}>
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 36, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginBottom: 40 }}>
+          Let's see it work.
+        </motion.p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+          style={{ display: 'flex', justifyContent: 'center', gap: 20 }}>
           <button onClick={() => { setStarted(true); startAuto(); }}
-            style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '12px 32px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '16px 40px', borderRadius: 10, fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
             Watch the Demo
           </button>
           <button onClick={() => { setStarted(true); setMode('manual'); }}
-            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '12px 32px', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '16px 40px', borderRadius: 10, fontSize: 18, fontWeight: 600, cursor: 'pointer' }}>
             Step Through It
           </button>
         </motion.div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+          style={{ marginTop: 32, fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
+          207 MB container · no GPU required · 30 seconds to first demo
+        </motion.div>
+      </div>
+    ),
+  ];
 
-        {/* Bottom line */}
-        <div style={{ textAlign: 'center', padding: '0 24px 48px' }}>
-          <div style={{ fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
-            207 MB container · 26 dependencies · no GPU required · 30 seconds to first demo
-          </div>
+  if (!started) {
+    const isLastSlide = slide === SLIDES.length - 1;
+    return (
+      <div
+        onClick={() => { if (!isLastSlide) setSlide(s => s + 1); }}
+        style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-dark)', cursor: isLastSlide ? 'default' : 'pointer' }}
+      >
+        {/* Slide dots */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '20px 0' }}>
+          {SLIDES.map((_, i) => (
+            <div key={i}
+              onClick={(e) => { e.stopPropagation(); setSlide(i); }}
+              style={{
+                width: 8, height: 8, borderRadius: '50%', cursor: 'pointer',
+                background: i === slide ? 'var(--rh-red)' : i < slide ? 'var(--rh-green)' : 'var(--border)',
+                transition: 'background 0.3s',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Slide content */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 48px' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={slide}
+              initial={{ opacity: 0, x: 60 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -60 }}
+              transition={{ duration: 0.35 }}
+            >
+              {SLIDES[slide]()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Footer nav */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 32px' }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); if (slide > 0) setSlide(s => s - 1); }}
+            style={{ background: 'none', border: 'none', color: slide > 0 ? 'var(--text-dim)' : 'transparent', fontSize: 13, cursor: slide > 0 ? 'pointer' : 'default', padding: '6px 16px' }}>
+            ← Back
+          </button>
+          <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
+            {slide + 1} / {SLIDES.length}
+          </span>
+          {!isLastSlide && (
+            <button onClick={(e) => { e.stopPropagation(); setSlide(s => s + 1); }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 13, cursor: 'pointer', padding: '6px 16px' }}>
+              Next →
+            </button>
+          )}
+          {isLastSlide && <div style={{ width: 80 }} />}
         </div>
       </div>
     );
