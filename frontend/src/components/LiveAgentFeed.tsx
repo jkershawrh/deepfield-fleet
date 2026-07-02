@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
-interface AgentEvent {
+export interface AgentEvent {
   agent_name: string;
   modality: string;
   class_name: string;
@@ -10,10 +10,12 @@ interface AgentEvent {
   confidence: number;
   tier: string;
   timestamp: string;
+  rationale?: string;
 }
 
 interface Props {
   events: AgentEvent[];
+  onEventClick?: (event: AgentEvent) => void;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -25,7 +27,7 @@ const SEV_COLORS: Record<string, string> = {
   medium: 'var(--rh-yellow)', low: 'var(--rh-blue)', info: 'var(--text-disabled)',
 };
 
-export function LiveAgentFeed({ events }: Props) {
+export function LiveAgentFeed({ events, onEventClick }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,10 +52,11 @@ export function LiveAgentFeed({ events }: Props) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              onClick={() => onEventClick?.(e)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '5px 8px', borderBottom: '1px solid var(--border)',
-                fontSize: 11,
+                fontSize: 11, cursor: onEventClick ? 'pointer' : 'default',
               }}
             >
               <span style={{

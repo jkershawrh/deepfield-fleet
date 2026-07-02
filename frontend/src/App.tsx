@@ -7,7 +7,10 @@ import { CascadeDiagram } from './components/CascadeDiagram';
 import { JsonViewer } from './components/JsonViewer';
 import { PipelineFunnel } from './components/PipelineFunnel';
 import { LiveAgentFeed } from './components/LiveAgentFeed';
+import type { AgentEvent } from './components/LiveAgentFeed';
 import { StepProgress } from './components/StepProgress';
+import { DetailModal, KeyValueTable, ComparisonTable } from './components/DetailModal';
+import { FlowDescription } from './components/FlowDescription';
 import { api } from './api/client';
 import type { EvidenceArtifact, ClassificationRecord, BaselineProfile, LoopResult, ApiCall } from './api/client';
 
@@ -26,12 +29,14 @@ const MODALITY_COLORS: Record<string, string> = {
 
 const STEP_TO_ACT: Record<string, number> = {
   ordinary: 0, call: 1, threshold: 2,
-  ordeal_nano: 3, ordeal_micro: 3, ordeal_macro: 3,
-  reward: 4, return: 5,
+  ordeal_nano: 3, ordeal_micro: 4, ordeal_macro: 5,
+  reward: 6, return: 7,
+  scale_10: 8, scale_50: 9, stress: 10, recovery: 11, claim: 12,
 };
 
 const ACT_LABELS = [
-  'Ordinary World', 'The Call', 'Threshold', 'The Ordeal', 'The Reward', 'The Return',
+  'Ordinary', 'Call', 'Threshold', 'Nano', 'Micro', 'Macro',
+  'Reward', 'Return', '10x', '50x', 'Stress', 'Recovery', 'Claim',
 ];
 
 interface DemoState {
@@ -59,6 +64,11 @@ interface DemoState {
   verification?: Record<string, unknown>;
   learning_proposal?: Record<string, unknown>;
   journey_summary?: Record<string, unknown>;
+  flow_description?: string;
+  scale_metrics?: Record<string, unknown>;
+  cumulative?: Record<string, unknown>;
+  claim?: Record<string, unknown>;
+  evidence_detail?: Record<string, unknown>;
 }
 
 export default function App() {
@@ -79,6 +89,32 @@ export default function App() {
   const [loopStatus, setLoopStatus] = useState<'idle' | 'running' | 'done'>('idle');
   const [apiCalls, setApiCalls] = useState<ApiCall<unknown>[]>([]);
   const addCall = (call: ApiCall<unknown>) => setApiCalls(prev => [...prev, call]);
+
+  // Detail modal state
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailTitle, setDetailTitle] = useState('');
+  const [detailContent, setDetailContent] = useState<Record<string, unknown> | null>(null);
+  const [detailType, setDetailType] = useState<'agent' | 'evidence' | 'baseline' | 'action' | 'learning'>('agent');
+
+  const openDetail = (title: string, content: Record<string, unknown>, type: typeof detailType) => {
+    setDetailTitle(title);
+    setDetailContent(content);
+    setDetailType(type);
+    setDetailOpen(true);
+  };
+
+  const onAgentEventClick = (event: AgentEvent) => {
+    openDetail(`Agent: ${event.agent_name}`, {
+      tier: event.tier,
+      taxonomy: event.taxonomy,
+      class_name: event.class_name,
+      severity: event.severity,
+      confidence: event.confidence,
+      rationale: event.rationale || '(no rationale recorded)',
+      decision_type: event.tier === 'nano' ? 'Deterministic (no LLM)' : event.tier === 'micro' ? 'Rule-backed (CPU)' : 'Template-based (CPU)',
+      runtime: 'CPU — no GPU, no LLM API',
+    }, 'agent');
+  };
 
   // SSE connection for auto mode
   useEffect(() => {
@@ -243,13 +279,18 @@ export default function App() {
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 style={{
                   padding: 16, background: 'var(--surface-1)', border: '1px solid var(--border)',
-                  borderRadius: 10, marginBottom: 16, fontSize: 14, color: 'var(--text-secondary)',
+                  borderRadius: 10, marginBottom: 12, fontSize: 14, color: 'var(--text-secondary)',
                   lineHeight: 1.7, fontStyle: 'italic',
                 }}>
                 {demoState.narrative}
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Flow description — always visible in auto mode */}
+          {demoState.flow_description && (
+            <FlowDescription text={demoState.flow_description} alwaysOpen />
+          )}
 
           {/* Live agent indicator */}
           {isRunning && demoState.live_agent && (
@@ -269,14 +310,40 @@ export default function App() {
                 <strong style={{ color: 'var(--text-primary)' }}>{demoState.live_agent.name}</strong>
                 {' '}{demoState.live_agent.status}
                 {demoState.live_agent.tier && <span style={{ marginLeft: 8, color: 'var(--text-disabled)' }}>({demoState.live_agent.tier})</span>}
+                {'decision_type' in demoState.live_agent && (
+                  <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--rh-teal)' }}>
+                    {String((demoState.live_agent as Record<string, string>).decision_type)} · {String((demoState.live_agent as Record<string, string>).runtime)}
+                  </span>
+                )}
               </span>
             </motion.div>
           )}
 
+          {/* Scale metrics (for scale/stress/recovery acts) */}
+          {demoState.scale_metrics && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+              <MetricCard label="Lines" value={String((demoState.scale_metrics as Record<string, unknown>).lines || '—')} color="var(--rh-blue)" />
+              <MetricCard label="Evidence" value={String((demoState.scale_metrics as Record<string, unknown>).evidence || '—')} color="var(--rh-teal)" />
+              <MetricCard label="Classifications" value={String((demoState.scale_metrics as Record<string, unknown>).classifications || '—')} color="var(--rh-green)" />
+              <MetricCard label="CPU Time" value={`${(demoState.scale_metrics as Record<string, unknown>).elapsed_ms || '—'}ms`} color="var(--rh-orange)" />
+            </div>
+          )}
+
+          {/* Cumulative totals (during scale acts) */}
+          {demoState.cumulative && (demoState.step_id || '').startsWith('scale') || (demoState.step_id || '') === 'stress' || (demoState.step_id || '') === 'recovery' ? (
+            demoState.cumulative && (
+              <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginBottom: 12, fontFamily: 'Red Hat Mono, monospace', display: 'flex', gap: 16, justifyContent: 'center' }}>
+                <span>Total evidence: {String((demoState.cumulative as Record<string, unknown>).total_evidence || 0)}</span>
+                <span>Total classifications: {String((demoState.cumulative as Record<string, unknown>).total_classifications || 0)}</span>
+                <span>Lines monitored: {String((demoState.cumulative as Record<string, unknown>).lines_monitored || 0)}</span>
+              </div>
+            )
+          ) : null}
+
           {/* Two-column layout: funnel + agent feed */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {demoState.funnel && <PipelineFunnel funnel={demoState.funnel} />}
-            {demoState.agent_events && <LiveAgentFeed events={demoState.agent_events} />}
+            {demoState.agent_events && <LiveAgentFeed events={demoState.agent_events} onEventClick={onAgentEventClick} />}
           </div>
 
           {/* Cascade diagram when we have records */}
@@ -285,34 +352,39 @@ export default function App() {
               activeStage={demoState.step_id === 'ordeal_nano' ? 'nano' : demoState.step_id === 'ordeal_micro' ? 'micro' : demoState.step_id === 'ordeal_macro' ? 'macro' : 'all'} />
           )}
 
-          {/* Journey summary on completion */}
-          {isComplete && demoState.journey_summary && (
+          {/* The Claim — final metrics on completion */}
+          {isComplete && demoState.claim && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginTop: 16 }}>
-                {[
-                  { icon: '📡', label: 'Evidence', value: demoState.journey_summary.total_evidence },
-                  { icon: '🧠', label: 'Classifications', value: demoState.journey_summary.total_classifications },
-                  { icon: '🤖', label: 'Agents Used', value: demoState.journey_summary.agents_used },
-                  { icon: '⚡', label: 'Action', value: demoState.journey_summary.action },
-                  { icon: '📚', label: 'Learning', value: demoState.journey_summary.learning_proposal },
-                ].map(s => (
-                  <MetricCard key={s.label} label={s.label} value={String(s.value || '—')} />
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 16 }}>
+                <MetricCard label="Evidence Processed" value={String((demoState.claim as Record<string, unknown>).total_evidence_processed || '—')} color="var(--rh-blue)" />
+                <MetricCard label="Classifications" value={String((demoState.claim as Record<string, unknown>).total_classifications || '—')} color="var(--rh-green)" />
+                <MetricCard label="Peak Lines" value={String((demoState.claim as Record<string, unknown>).peak_lines_monitored || '—')} color="var(--rh-teal)" />
+                <MetricCard label="Actions Proposed" value={String((demoState.claim as Record<string, unknown>).total_actions_proposed || '—')} color="var(--rh-orange)" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+                <MetricCard label="Agents" value={String((demoState.claim as Record<string, unknown>).agents || 17)} color="var(--rh-purple)" />
+                <MetricCard label="Tiers" value={String((demoState.claim as Record<string, unknown>).tiers || 3)} color="var(--rh-purple)" />
+                <MetricCard label="GPU" value={String((demoState.claim as Record<string, unknown>).gpu || 'none')} color="var(--rh-green)" />
+                <MetricCard label="LLM" value={String((demoState.claim as Record<string, unknown>).llm || 'none')} color="var(--rh-green)" />
               </div>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
                 style={{
                   marginTop: 24, padding: 20, background: 'var(--surface-1)',
                   border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center',
                 }}>
-                <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.8 }}>
-                  DeepField studied past enterprise signals, learned the shape of normal,
-                  classified new multimodal evidence, proposed safe action, verified the
-                  result, and captured what should be learned next.
+                <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'Red Hat Display, sans-serif' }}>
+                  All on CPU. No GPU. No LLM.
+                </p>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 12, lineHeight: 1.8 }}>
+                  17 deterministic and rule-backed agents. Three classification tiers.
+                  Scaled to 50 factory lines. Survived a 15% failure storm.
+                  Signals → Decide → Act → Verify → Learn — in milliseconds.
                 </p>
                 <p style={{ fontSize: 13, color: 'var(--rh-red)', marginTop: 12, fontWeight: 700 }}>
                   The hero returns. The cycle begins again.
                 </p>
               </motion.div>
+              {demoState.flow_description && <FlowDescription text={demoState.flow_description} alwaysOpen />}
             </motion.div>
           )}
         </div>
@@ -343,6 +415,34 @@ export default function App() {
           )}
           {!isRunning && !isComplete && <div />}
         </div>
+
+        {/* Detail modal — slides in when user clicks an agent event */}
+        <DetailModal open={detailOpen} title={detailTitle} onClose={() => setDetailOpen(false)}>
+          {detailContent && detailType === 'agent' && (
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--rh-teal)', marginBottom: 12, fontWeight: 700 }}>
+                {String(detailContent.decision_type)} · {String(detailContent.runtime)}
+              </div>
+              <KeyValueTable data={{
+                Tier: detailContent.tier,
+                Taxonomy: detailContent.taxonomy,
+                Classification: detailContent.class_name,
+                Severity: detailContent.severity,
+                Confidence: `${Number(detailContent.confidence) * 100}%`,
+              }} label="Classification" />
+              <div style={{
+                padding: 12, background: 'var(--surface-2)', borderRadius: 6, marginBottom: 12,
+                fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7,
+              }}>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>RATIONALE</div>
+                {String(detailContent.rationale)}
+              </div>
+            </div>
+          )}
+          {detailContent && detailType !== 'agent' && (
+            <KeyValueTable data={detailContent} />
+          )}
+        </DetailModal>
       </div>
     );
   }
