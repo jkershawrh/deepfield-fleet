@@ -567,46 +567,128 @@ export default function App() {
               activeStage={demoState.step_id === 'ordeal_nano' ? 'nano' : demoState.step_id === 'ordeal_micro' ? 'micro' : demoState.step_id === 'ordeal_macro' ? 'macro' : 'all'} />
           )}
 
-          {/* The Claim — final metrics on completion */}
-          {isComplete && demoState.claim && (
+          {/* The Claim — final metrics + use cases */}
+          {isComplete && demoState.claim && (() => {
+            const cl = demoState.claim as Record<string, unknown>;
+            return (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 16 }}>
-                <MetricCard label="Evidence Processed" value={String((demoState.claim as Record<string, unknown>).total_evidence_processed || '—')} color="var(--rh-blue)" />
-                <MetricCard label="Classifications" value={String((demoState.claim as Record<string, unknown>).total_classifications || '—')} color="var(--rh-green)" />
-                <MetricCard label="Peak Lines" value={String((demoState.claim as Record<string, unknown>).peak_lines_monitored || '—')} color="var(--rh-teal)" />
-                <MetricCard label="Actions Proposed" value={String((demoState.claim as Record<string, unknown>).total_actions_proposed || '—')} color="var(--rh-orange)" />
+              {/* Logos */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
+                <img src="/logos/redhat.svg" alt="Red Hat" style={{ height: 24 }} />
+                <span style={{ color: 'var(--text-disabled)', fontSize: 24, fontWeight: 300 }}>&times;</span>
+                <img src="/logos/intel.png" alt="Intel" style={{ height: 24 }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
-                <MetricCard label="Agents" value={String((demoState.claim as Record<string, unknown>).agents || 17)} color="var(--rh-purple)" />
-                <MetricCard label="Tiers" value={String((demoState.claim as Record<string, unknown>).tiers || 3)} color="var(--rh-purple)" />
-                <MetricCard label="GPU" value={String((demoState.claim as Record<string, unknown>).gpu || 'none')} color="var(--rh-green)" />
-                <MetricCard label="LLM" value={String((demoState.claim as Record<string, unknown>).llm || 'none')} color="var(--rh-green)" />
+
+              {/* Headline stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>{String(cl.total_evidence_processed)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>Evidence artifacts processed</div>
+                </div>
+                <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--rh-blue)', fontFamily: 'Red Hat Display, sans-serif' }}>{String(cl.total_classifications)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>Classifications generated</div>
+                </div>
+                <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--rh-teal)', fontFamily: 'Red Hat Display, sans-serif' }}>{String(cl.peak_lines_monitored)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>Factory lines at peak scale</div>
+                </div>
               </div>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-                style={{
-                  marginTop: 24, padding: 20, background: 'var(--surface-1)',
-                  border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center',
-                }}>
-                <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'Red Hat Display, sans-serif' }}>
-                  {demoState.inference_stats?.total_calls
-                    ? `${demoState.inference_stats.total_calls} live LLM calls. ${demoState.inference_stats.total_tokens_out} tokens generated.`
-                    : '17 agents. Deterministic nano. Rule-backed micro. Template macro.'}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 24 }}>
+                <MetricCard label="Agents" value={String(cl.agents || 17)} color="var(--rh-purple)" />
+                <MetricCard label="Tiers" value={String(cl.tiers || 3)} />
+                <MetricCard label="Actions" value={String(cl.total_actions_proposed)} color="var(--rh-orange)" detail="non-destructive" />
+                <MetricCard label="Learning" value={String(cl.total_learning_proposals)} color="var(--rh-green)" detail="proposals generated" />
+              </div>
+
+              {/* The claim */}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                style={{ padding: 24, background: 'var(--surface-1)', border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center', marginBottom: 24 }}>
+                <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'Red Hat Display, sans-serif' }}>
+                  Classify reality before you react to it.
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 12, lineHeight: 1.8 }}>
-                  Three classification tiers from deterministic rules to LLM reasoning.
-                  Scaled to 50 factory lines. Survived a 15% failure storm.
-                  Signals → Decide → Act → Verify → Learn.
-                  {demoState.inference_stats?.avg_latency_ms
-                    ? ` Avg inference: ${demoState.inference_stats.avg_latency_ms}ms, ${demoState.inference_stats.avg_tokens_per_sec} tok/s.`
-                    : ' Nanoagents compress on CPU. LLM optional for micro/macro.'}
-                </p>
-                <p style={{ fontSize: 13, color: 'var(--rh-red)', marginTop: 12, fontWeight: 700 }}>
-                  The hero returns. The cycle begins again.
+                  Three classification tiers. Deterministic compression on CPU.
+                  LLM reasoning when you need it. Scaled to 50 lines under 15% failure storm.
+                  {demoState.inference_stats?.total_calls
+                    ? ` ${demoState.inference_stats.total_calls} live inference calls at ${demoState.inference_stats.avg_latency_ms}ms avg.`
+                    : ' All on the infrastructure you already own.'}
                 </p>
               </motion.div>
+
               {demoState.flow_description && <FlowDescription text={demoState.flow_description} alwaysOpen />}
+
+              {/* Where else this applies */}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+                <div style={{ fontSize: 14, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, textAlign: 'center', marginBottom: 16 }}>
+                  BEYOND THE FACTORY FLOOR
+                </div>
+                <p style={{ fontSize: 14, color: 'var(--text-dim)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
+                  The same three-tier agent architecture applies anywhere signals need classification.
+                  Nanoagents compress. Microagents classify. Macroagents reason.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[
+                    { title: 'Telecom Network Operations', color: 'var(--rh-blue)',
+                      nano: 'Threshold checks on latency, packet loss, signal strength across cell towers',
+                      micro: 'Classify outage type: hardware, software, capacity, weather-related',
+                      macro: 'Correlate across regions — is this a local fault or a cascading failure?' },
+                    { title: 'Energy Grid Monitoring', color: 'var(--rh-green)',
+                      nano: 'Frequency deviation, voltage sag, transformer temperature drift detection',
+                      micro: 'Classify asset health from SCADA signals, vibration, thermal imaging',
+                      macro: 'Predict demand-supply imbalance, propose load shedding or rerouting' },
+                    { title: 'Healthcare / Clinical Systems', color: 'var(--rh-teal)',
+                      nano: 'Vitals threshold alerts, lab result anomaly flags, medication interaction checks',
+                      micro: 'Classify diagnostic images (X-ray, MRI), lab panel patterns, clinical notes',
+                      macro: 'Correlate patient history with current signals for differential diagnosis support' },
+                    { title: 'Supply Chain & Logistics', color: 'var(--rh-orange)',
+                      nano: 'Delivery SLA breach detection, inventory level threshold, route deviation alerts',
+                      micro: 'Classify disruption type: weather, port congestion, supplier delay, customs hold',
+                      macro: 'Build impact timeline across multi-tier suppliers, propose alternate sourcing' },
+                    { title: 'Financial Services / Fraud', color: 'var(--rh-purple)',
+                      nano: 'Transaction velocity checks, geo-impossible travel, amount threshold breaches',
+                      micro: 'Classify transaction patterns against known fraud families, merchant risk scoring',
+                      macro: 'Correlate across accounts and time windows for organized fraud ring detection' },
+                    { title: 'Autonomous Vehicle / Fleet', color: 'var(--rh-red)',
+                      nano: 'Sensor fusion anomaly detection: lidar, camera, IMU, GPS drift checks',
+                      micro: 'Classify road conditions, obstacle types, weather impact on sensor reliability',
+                      macro: 'Fleet-wide incident correlation, predictive maintenance scheduling, route optimization' },
+                  ].map(uc => (
+                    <motion.div key={uc.title} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                      style={{ padding: 16, background: 'var(--surface-1)', border: `1px solid ${uc.color}30`, borderRadius: 10 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: uc.color, marginBottom: 10 }}>{uc.title}</div>
+                      <div style={{ fontSize: 11, lineHeight: 1.7 }}>
+                        <div style={{ marginBottom: 6 }}>
+                          <span style={{ color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontSize: 9, fontWeight: 700 }}>NANO</span>
+                          <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>{uc.nano}</span>
+                        </div>
+                        <div style={{ marginBottom: 6 }}>
+                          <span style={{ color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontSize: 9, fontWeight: 700 }}>MICRO</span>
+                          <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>{uc.micro}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--rh-purple)', fontFamily: 'Red Hat Mono, monospace', fontSize: 9, fontWeight: 700 }}>MACRO</span>
+                          <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>{uc.macro}</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div style={{ textAlign: 'center', marginTop: 24, padding: 16, background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7 }}>
+                    Same architecture. Same three tiers. Same compression economics.
+                    <br />Swap the signals, swap the classifiers — the pipeline stays.
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--text-disabled)', marginTop: 12, fontFamily: 'Red Hat Mono, monospace' }}>
+                    207 MB · Intel Xeon · Red Hat OpenShift · 30 seconds to your first demo
+                  </p>
+                </div>
+              </motion.div>
             </motion.div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Footer */}
