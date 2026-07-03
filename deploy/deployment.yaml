@@ -59,14 +59,10 @@ spec:
             capabilities:
               drop: [ALL]
           env:
-            - name: LITELLM_API_BASE
-              value: ""
             - name: LITELLM_MODEL_MICRO
               value: "granite-3-2-8b-instruct-cpu"
             - name: LITELLM_MODEL_MACRO
               value: "granite-3-2-8b-instruct-cpu"
-            - name: BOOTSTRAP_API_BASE
-              value: ""
             - name: BOOTSTRAP_MODEL
               value: "qwen3-235b"
           envFrom:
