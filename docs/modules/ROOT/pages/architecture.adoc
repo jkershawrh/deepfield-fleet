@@ -39,9 +39,9 @@ The architecture ensures that cheap, deterministic agents handle the majority of
 
 ==== Nanoagents (7) -- Deterministic, No LLM
 
-Nanoagents are pure CPU agents.
+Nanoagents are pure CPU agents running on Intel Xeon 6.
 They perform threshold checks, pattern matching, and gating decisions.
-No inference endpoint is ever called.
+No inference endpoint is ever called — zero GPU cost.
 
 [cols="2,4"]
 |===
@@ -71,9 +71,9 @@ No inference endpoint is ever called.
 
 ==== Microagents (5) -- Rule-Backed Classifiers
 
-Microagents run entirely on CPU using rule-backed classification.
-When `LITELLM_API_BASE` is configured, they can optionally use LLM inference.
-Extension points exist for OpenVINO and ONNX optimized inference, keeping the pipeline CPU-native.
+Microagents run entirely on Intel Xeon 6 using rule-backed classification.
+When `LITELLM_API_BASE` is configured, they can optionally use LLM inference via Granite 3.2 8B on Xeon.
+Extension points exist for Intel OpenVINO and ONNX optimized inference, keeping the pipeline CPU-native on Intel hardware.
 
 [cols="2,2,4"]
 |===
@@ -103,8 +103,8 @@ Extension points exist for OpenVINO and ONNX optimized inference, keeping the pi
 ==== Macroagents (5) -- Higher-Level Reasoning
 
 Macroagents perform cross-modal correlation and reasoning.
-By default they use template-based reasoning on CPU.
-When `LITELLM_API_BASE` is configured, they use LLM inference for richer reasoning.
+By default they use template-based reasoning on Intel Xeon 6 CPU.
+When `LITELLM_API_BASE` is configured, they use LLM inference for richer reasoning — Granite 3.2 8B on Xeon for CPU inference, or Intel Gaudi 3 for GPU-accelerated reasoning.
 
 [cols="2,4"]
 |===

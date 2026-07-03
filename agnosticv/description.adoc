@@ -1,0 +1,30 @@
+= DeepField Multimodal — Agentic Signal Classification Engine on Intel Xeon 6
+
+Classify enterprise signals before you react to them. Three-tier agent cascade — deterministic nanoagents, rule-backed microagents, and LLM macroagents — running on Intel Xeon 6 with Red Hat OpenShift.
+
+== What You'll Experience
+
+* *Presentation* — 7 slides covering the business case for agentic signal classification
+* *Demo walkthrough* — Step through a factory bearing failure detected across 5 modalities
+* *Scale run* — Watch 50 factory lines classified under a 15% failure storm, all on CPU
+* *Bootstrap lab* — Pick a scenario (OpenShift, Telecom, AAP) and watch agents earn their tier through empirical validation
+
+== Technology
+
+* *Intel Xeon 6* — CPU inference for deterministic nanoagents and rule-backed microagents. No GPU required for runtime classification.
+* *Intel Gaudi 3* — Optional GPU acceleration for macroagent LLM reasoning when configured.
+* *Intel TDX* — Trust Domain Extensions for secure bootstrap analysis. Data encrypted in-use.
+* *Red Hat OpenShift* — Container platform with OAuth proxy, cluster-reader access for live monitoring.
+* *Qwen 3 235B on Intel* — Open-weight frontier model for one-time bootstrap semantic analysis.
+* *Granite 3.2 8B on Intel Xeon* — CPU-optimized model for runtime micro/macro classification.
+
+== Key Metrics
+
+* 98% of signals classified on CPU before anything expensive runs
+* 17 agents across 3 tiers (7 nano, 5 micro, 5 macro)
+* 207 tests, ~210 MB container, 30 seconds to first demo
+* Agent promotion pipeline: agents earn their tier through rubric-scored validation
+
+== Powered by
+
+Red Hat OpenShift • Intel Xeon 6 • Intel Gaudi 3 • Intel TDX

@@ -115,7 +115,7 @@ __meta__:
       destroy:
         catch_all: false
   catalog:
-    display_name: "DeepField Multimodal — Agentic Signal Classification Engine"
+    display_name: "DeepField Multimodal — Agentic Signal Classification Engine on Intel Xeon 6"
     category: Labs
     namespace: "babylon-catalog-{{ stage | default('?') }}"
     keywords:
