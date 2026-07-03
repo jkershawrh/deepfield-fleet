@@ -158,7 +158,7 @@ def infer(
     start = time.monotonic()
     try:
         req = Request(url, data=payload, headers=headers, method="POST")
-        with urlopen(req, timeout=120) as resp:
+        with urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read())
 
         latency = (time.monotonic() - start) * 1000
