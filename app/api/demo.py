@@ -768,6 +768,8 @@ async def run_classification():
 @router.post("/classify/nano")
 async def run_nano_only():
     import time as _time
+    from app.inference.client import set_force_rules
+    set_force_rules(True)
     start = _time.monotonic()
     evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
     compiler = BaselineCompiler()
@@ -785,11 +787,14 @@ async def run_nano_only():
         "decision_type": "deterministic",
         "runtime": "CPU — no inference",
     }
+    set_force_rules(False)
 
 
 @router.post("/classify/micro")
 async def run_micro_only():
     import time as _time
+    from app.inference.client import set_force_rules
+    set_force_rules(True)
     start = _time.monotonic()
     evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
     compiler = BaselineCompiler()
@@ -818,14 +823,17 @@ async def run_micro_only():
         "elapsed_ms": elapsed,
         "escalated_from_nano": len(escalated),
         "agents": list({r.agent_name for r in records}),
-        "decision_type": "LLM inference" if is_inference_available() else "rule-backed",
-        "runtime": "LLM via LiteLLM" if is_inference_available() else "CPU — rules only",
+        "decision_type": "rule-backed",
+        "runtime": "CPU — deterministic rules",
     }
+    set_force_rules(False)
 
 
 @router.post("/classify/macro")
 async def run_macro_only():
     import time as _time
+    from app.inference.client import set_force_rules
+    set_force_rules(True)
     start = _time.monotonic()
     evidence = normalize_fixture(FIXTURE_DIR / "manifest.yaml")
     compiler = BaselineCompiler()
@@ -862,9 +870,10 @@ async def run_macro_only():
         "count": len(records),
         "elapsed_ms": elapsed,
         "agents": list({r.agent_name for r in records}),
-        "decision_type": "LLM reasoning" if is_inference_available() else "template-based",
-        "runtime": "LLM via LiteLLM" if is_inference_available() else "CPU — templates only",
+        "decision_type": "template-based",
+        "runtime": "CPU — deterministic templates",
     }
+    set_force_rules(False)
 
 
 @router.post("/loop")
