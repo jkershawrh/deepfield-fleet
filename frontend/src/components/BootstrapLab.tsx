@@ -11,6 +11,16 @@ interface Profile {
   description: string;
 }
 
+interface Scenario {
+  id: string;
+  name: string;
+  domain: string;
+  description: string;
+  signal_count: number;
+  modalities: string[];
+  profile?: string;
+}
+
 async function post(path: string, body?: unknown) {
   const res = await fetch(path, {
     method: 'POST',
@@ -27,9 +37,10 @@ async function get(path: string) {
 
 export function BootstrapLab({ onExit }: { onExit: () => void }) {
   const [step, setStep] = useState(0);
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
-  const [connectType, setConnectType] = useState('profile');
+  const [connectType, setConnectType] = useState('scenario');
 
   const [connectStatus, setConnectStatus] = useState<'idle' | 'running' | 'done'>('idle');
   const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'running' | 'done'>('idle');
@@ -41,6 +52,32 @@ export function BootstrapLab({ onExit }: { onExit: () => void }) {
   const [sourceType, setSourceType] = useState('file');
   const [hints, setHints] = useState('');
   const [error, setError] = useState('');
+
+  const loadScenarios = useCallback(async () => {
+    const data = await get('/api/v1/bootstrap/scenarios');
+    setScenarios(data.scenarios || []);
+  }, []);
+
+  const loadScenario = useCallback(async (scenarioId: string) => {
+    setConnectStatus('running');
+    setError('');
+    const data = await post(`/api/v1/bootstrap/scenarios/${scenarioId}/load`);
+    if (data.status === 'scenario_loaded') {
+      setConnectStatus('done');
+      if (data.suggested_profile) {
+        await post(`/api/v1/bootstrap/profiles/${data.suggested_profile}/apply`);
+        const analysisData = await get('/api/v1/bootstrap/status');
+        setAnalysis(analysisData.analysis || null);
+        setAnalyzeStatus('done');
+        setStep(2);
+      } else {
+        setStep(1);
+      }
+    } else {
+      setError('Failed to load scenario');
+      setConnectStatus('idle');
+    }
+  }, []);
 
   const loadProfiles = useCallback(async () => {
     const data = await get('/api/v1/bootstrap/profiles');
@@ -148,15 +185,16 @@ export function BootstrapLab({ onExit }: { onExit: () => void }) {
             {step === 0 && (
               <div>
                 <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Configure Data Source</h2>
-                <p style={{ color: 'var(--text-dim)', marginBottom: 24 }}>Select a pre-built profile or connect to your own data source.</p>
+                <p style={{ color: 'var(--text-dim)', marginBottom: 24 }}>Pick a scenario that looks like your environment, or connect your own source.</p>
 
                 <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
                   {[
-                    { value: 'profile', label: 'Pre-built Profile', desc: 'No LLM needed' },
-                    { value: 'connect', label: 'Connect Source', desc: 'Analyze with LLM' },
+                    { value: 'scenario', label: 'Pick a Scenario', desc: 'Synthetic data, no URL needed' },
+                    { value: 'profile', label: 'Pre-built Profile', desc: 'Rules only, no data' },
+                    { value: 'connect', label: 'Connect Source', desc: 'Your Prometheus / K8s' },
                   ].map(opt => (
                     <div key={opt.value}
-                      onClick={() => { setConnectType(opt.value); if (opt.value === 'profile') loadProfiles(); }}
+                      onClick={() => { setConnectType(opt.value); if (opt.value === 'scenario') loadScenarios(); if (opt.value === 'profile') loadProfiles(); }}
                       style={{
                         flex: 1, padding: 16, borderRadius: 8, cursor: 'pointer', textAlign: 'center',
                         background: connectType === opt.value ? 'var(--rh-red)15' : 'var(--surface-2)',
@@ -167,6 +205,34 @@ export function BootstrapLab({ onExit }: { onExit: () => void }) {
                     </div>
                   ))}
                 </div>
+
+                {connectType === 'scenario' && (
+                  <div>
+                    <FlowDescription text="Each scenario contains realistic synthetic data for a specific domain. The system will load the data, analyze it, and build classification agents — just like it would with your real signals." alwaysOpen />
+                    {scenarios.length === 0 && (
+                      <button onClick={loadScenarios} style={{ background: 'var(--rh-blue)', border: 'none', color: '#fff', padding: '8px 20px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                        Load Scenarios
+                      </button>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+                      {scenarios.map(s => (
+                        <div key={s.id}
+                          onClick={() => loadScenario(s.id)}
+                          style={{
+                            padding: 14, borderRadius: 8, cursor: 'pointer',
+                            background: 'var(--surface-2)', border: '1px solid var(--border)',
+                          }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{s.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>{s.description}</div>
+                          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 3, background: 'var(--rh-blue-dim)', color: 'var(--rh-blue)' }}>{s.domain}</span>
+                            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 3, background: 'var(--surface-1)', color: 'var(--text-dim)' }}>{s.signal_count} signals</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {connectType === 'profile' && (
                   <div>

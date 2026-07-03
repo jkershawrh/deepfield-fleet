@@ -1,0 +1,16 @@
+tower_id,region,event_type,severity,message,timestamp
+TWR-098,west,outage,critical,Tower offline — power supply failure detected,2024-06-15T06:30:00Z
+TWR-099,north,outage,critical,Tower offline — backhaul link down,2024-06-15T07:15:00Z
+TWR-093,east,signal_degradation,high,Signal strength dropped below -90dBm — possible antenna fault,2024-06-15T08:00:00Z
+TWR-096,south,signal_degradation,high,Signal strength dropped below -95dBm — RF interference suspected,2024-06-15T08:30:00Z
+TWR-092,north,packet_loss_spike,high,Packet loss exceeded 5% — backhaul congestion,2024-06-15T09:00:00Z
+TWR-091,north,handover_failure,medium,Handover success rate dropped below 80%,2024-06-15T09:30:00Z
+TWR-094,east,signal_degradation,medium,Signal strength trending down — monitor for further degradation,2024-06-15T10:00:00Z
+TWR-095,south,packet_loss_spike,medium,Packet loss exceeded 3% — link quality degrading,2024-06-15T10:30:00Z
+TWR-097,west,jitter_spike,medium,Jitter exceeded 40ms — voice quality impacted,2024-06-15T11:00:00Z
+TWR-100,east,handover_failure,low,Handover success rate at 85% — below optimal,2024-06-15T11:30:00Z
+TWR-091,north,maintenance_alert,info,Scheduled firmware update pending for TWR-091,2024-06-15T12:00:00Z
+TWR-098,west,power_alert,critical,UPS battery level at 5% — generator not started,2024-06-15T12:30:00Z
+TWR-099,north,backhaul_alert,critical,Fiber cut detected on backhaul segment NR-7,2024-06-15T13:00:00Z
+TWR-093,east,equipment_alarm,high,Antenna tilt sensor reporting abnormal reading,2024-06-15T13:30:00Z
+TWR-096,south,rf_interference,high,Co-channel interference detected from adjacent cell,2024-06-15T14:00:00Z

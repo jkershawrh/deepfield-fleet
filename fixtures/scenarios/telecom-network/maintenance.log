@@ -1,0 +1,15 @@
+2024-06-15T06:30:00Z CRIT TWR-098 Power supply failure — tower offline. Dispatch field tech.
+2024-06-15T07:15:00Z CRIT TWR-099 Backhaul fiber cut on segment NR-7. NOC notified. ETA repair: 4 hours.
+2024-06-15T08:00:00Z ERROR TWR-093 Signal strength -95dBm. Antenna inspection required.
+2024-06-15T08:30:00Z ERROR TWR-096 RF interference from adjacent cell. Frequency coordination needed.
+2024-06-15T09:00:00Z WARN TWR-092 Packet loss 5.1%. Backhaul link saturated during peak hours.
+2024-06-15T09:30:00Z WARN TWR-091 Handover failure rate increasing. Neighbor list may need update.
+2024-06-15T10:00:00Z WARN TWR-094 Signal trending down -86dBm. Weather-related or antenna drift.
+2024-06-15T10:30:00Z WARN TWR-095 Packet loss 4.7%. Link quality degrading — check cable connections.
+2024-06-15T11:00:00Z WARN TWR-097 Jitter 45ms. VoLTE quality impacted. Possible congestion.
+2024-06-15T11:30:00Z INFO TWR-100 Handover rate slightly below optimal. Monitoring.
+2024-06-15T12:00:00Z INFO TWR-091 Firmware update v4.2.1 available. Schedule during maintenance window.
+2024-06-15T12:30:00Z CRIT TWR-098 UPS at 5%. Generator failed to auto-start. Manual intervention required.
+2024-06-15T13:00:00Z CRIT TWR-099 Fiber repair crew on site. Estimated completion 17:00.
+2024-06-15T13:30:00Z ERROR TWR-093 Antenna tilt sensor abnormal. Possible wind damage or mount loosening.
+2024-06-15T14:00:00Z INFO All other towers nominal. Fleet health: 90/100 towers operational.

@@ -1,0 +1,14 @@
+id: openshift-cluster
+name: OpenShift Cluster Health
+domain: it_ops
+description: "Monitor pod health, node status, and cluster events across 8 namespaces on a production OpenShift cluster."
+signal_count: 156
+modalities: [event]
+profile: openshift-monitoring
+files:
+  - file: pods.csv
+    description: "100 pods across 8 namespaces — 85 Running, 5 CrashLoopBackOff, 3 Pending, 2 ImagePullBackOff, 5 Completed"
+  - file: events.csv
+    description: "50 warning events — BackOff, FailedMount, Unhealthy, OOMKilled, FailedScheduling"
+  - file: nodes.csv
+    description: "6 worker nodes — 5 Ready, 1 with MemoryPressure"

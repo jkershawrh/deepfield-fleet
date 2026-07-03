@@ -34,6 +34,30 @@ class ApproveRequest(BaseModel):
     edits: dict = {}
 
 
+@router.get("/scenarios")
+async def get_scenarios():
+    from app.bootstrap.scenarios import list_scenarios
+    return {"scenarios": list_scenarios()}
+
+
+@router.post("/scenarios/{scenario_id}/load")
+async def load_scenario_data(scenario_id: str):
+    global _samples, _state
+    from app.bootstrap.scenarios import load_scenario
+    samples, profile_id = load_scenario(scenario_id)
+    if not samples:
+        raise HTTPException(404, f"Scenario not found or empty: {scenario_id}")
+    _samples = samples
+    _state = {
+        "status": "scenario_loaded",
+        "scenario_id": scenario_id,
+        "sample_count": len(samples),
+        "sample_preview": samples[:5],
+        "suggested_profile": profile_id,
+    }
+    return _state
+
+
 @router.get("/profiles")
 async def get_profiles():
     from app.bootstrap.profiles import list_profiles

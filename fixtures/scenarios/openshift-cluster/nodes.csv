@@ -1,0 +1,7 @@
+type,name,ready,memory_pressure,disk_pressure,os,kubelet
+node,worker-1,True,False,False,Red Hat Enterprise Linux CoreOS 416.94,v1.29.6+aba1e8d
+node,worker-2,True,False,False,Red Hat Enterprise Linux CoreOS 416.94,v1.29.6+aba1e8d
+node,worker-3,True,True,False,Red Hat Enterprise Linux CoreOS 416.94,v1.29.6+aba1e8d
+node,master-1,True,False,False,Red Hat Enterprise Linux CoreOS 416.94,v1.29.6+aba1e8d
+node,master-2,True,False,False,Red Hat Enterprise Linux CoreOS 416.94,v1.29.6+aba1e8d
+node,master-3,True,False,False,Red Hat Enterprise Linux CoreOS 416.94,v1.29.6+aba1e8d

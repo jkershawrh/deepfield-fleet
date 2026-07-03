@@ -1,0 +1,10 @@
+id: aap-jobs
+name: AAP Job Failures
+domain: it_ops
+description: "Monitor Ansible Automation Platform job execution — playbook failures, timeouts, unreachable hosts, and workflow errors."
+signal_count: 100
+modalities: [event]
+profile: aap-job-health
+files:
+  - file: jobs.csv
+    description: "80 jobs — 60 successful, 10 failed, 5 timeout, 5 unreachable hosts"

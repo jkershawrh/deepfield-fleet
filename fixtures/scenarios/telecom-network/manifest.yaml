@@ -1,0 +1,14 @@
+id: telecom-network
+name: Telecom Network Operations
+domain: telecom
+description: "Monitor cell tower signal quality, packet loss, and outage events across a regional network of 100 towers."
+signal_count: 150
+modalities: [metric, event, log]
+profile: null
+files:
+  - file: signal_strength.csv
+    description: "100 cell towers — signal strength dBm, 10% showing degradation"
+  - file: events.csv
+    description: "Outage events, handover failures, equipment alarms"
+  - file: maintenance.log
+    description: "Field technician notes and automated maintenance alerts"
