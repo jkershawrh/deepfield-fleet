@@ -623,6 +623,35 @@ export default function App() {
 
               {demoState.flow_description && <FlowDescription text={demoState.flow_description} alwaysOpen />}
 
+              {/* Three key messages */}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
+                {/* Economics */}
+                <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-green)30', borderRadius: 10 }}>
+                  <div style={{ fontSize: 10, color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>ECONOMICS</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-green)', fontFamily: 'Red Hat Display, sans-serif' }}>98%</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
+                    classified on CPU. GPU only when the rubric proves it's needed. One frontier call at bootstrap. Deterministic at runtime.
+                  </div>
+                </div>
+                {/* Security */}
+                <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-blue)30', borderRadius: 10 }}>
+                  <div style={{ fontSize: 10, color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>SECURITY</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-blue)', fontFamily: 'Red Hat Display, sans-serif' }}>TDX</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
+                    Bootstrap on Intel TDX with Qwen 235B. Data encrypted in-use. Runtime is deterministic on CPU — no model, no data exposure.
+                  </div>
+                </div>
+                {/* Lifecycle */}
+                <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-purple)30', borderRadius: 10 }}>
+                  <div style={{ fontSize: 10, color: 'var(--rh-purple)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>LIFECYCLE</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-purple)', fontFamily: 'Red Hat Display, sans-serif' }}>Earn</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
+                    Agents earn their tier. Draft → Candidate → Nano → Micro → Macro. Evidence-based promotion. Human approval gates. Cross-modal proof.
+                  </div>
+                </div>
+              </motion.div>
+
               {/* Where else this applies */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
                 <div style={{ fontSize: 14, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, textAlign: 'center', marginBottom: 16 }}>
@@ -681,13 +710,33 @@ export default function App() {
                   ))}
                 </div>
 
-                <div style={{ textAlign: 'center', marginTop: 24, padding: 16, background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                {/* Integration readiness */}
+                <div style={{ marginTop: 24, padding: 16, background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, textAlign: 'center', marginBottom: 12 }}>
+                    INTEGRATION READY
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+                    {['OpenShift', 'AAP', 'ACS', 'RHEL Insights', 'Satellite', 'Service Mesh', 'Quay',
+                      'ServiceNow', 'PagerDuty', 'Slack', 'Prometheus', 'Splunk', 'Kafka', 'S3'].map(name => (
+                      <span key={name} style={{
+                        padding: '4px 10px', borderRadius: 6, fontSize: 10,
+                        background: 'var(--surface-2)', border: '1px solid var(--border)',
+                        color: 'var(--text-dim)', fontFamily: 'Red Hat Mono, monospace',
+                      }}>{name}</span>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text-disabled)', textAlign: 'center', marginTop: 10 }}>
+                    Same connector pattern. connect() · sample() · stream(). Add a source in hours, not weeks.
+                  </p>
+                </div>
+
+                <div style={{ textAlign: 'center', marginTop: 16, padding: 16, background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--rh-red)40' }}>
                   <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7 }}>
                     Same architecture. Same three tiers. Same compression economics.
                     <br />Swap the signals, swap the classifiers — the pipeline stays.
                   </p>
                   <p style={{ fontSize: 12, color: 'var(--text-disabled)', marginTop: 12, fontFamily: 'Red Hat Mono, monospace' }}>
-                    207 MB · Intel Xeon · Red Hat OpenShift · 30 seconds to your first demo
+                    ~210 MB · Intel Xeon · Red Hat OpenShift · 30 seconds to your first demo
                   </p>
                   <button onClick={() => setMode('lab')}
                     style={{ marginTop: 16, background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '10px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
