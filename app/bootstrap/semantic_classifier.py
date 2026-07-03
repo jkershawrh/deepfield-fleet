@@ -9,13 +9,25 @@ from app.inference.client import infer
 
 logger = logging.getLogger(__name__)
 
-ANALYSIS_PROMPT = """Analyze these {n_samples} data samples. Determine modality, domain, and classification config.
+ANALYSIS_PROMPT = """You are a data analysis agent. Analyze these {n_samples} sample records from a data source and determine how to configure a signal classification pipeline.
 
 Samples:
 {samples}
 
-Respond as JSON:
-{{"modality":"metric|log|event|text|document","domain":"manufacturing|telecom|healthcare|energy|finance|it_ops","domain_description":"...","schema_mapping":{{"timestamp_field":"...","value_field":"..."}},"features":[{{"name":"...","field":"...","type":"numeric"}}],"taxonomy":{{"operational_state":["normal","watch","degraded","critical"],"incident_family":["...","..."],"action_class":["observe","notify","ticket"]}},"thresholds":{{"field":{{"warning":0,"critical":0}}}},"nano_rules":[{{"name":"...","field":"...","operator":"gt","value":0,"class_name":"degraded","taxonomy":"operational_state","severity":"high"}}],"micro_prompt":"Classify this signal...","macro_prompt":"Correlate these signals...","confidence":0.8,"reasoning":"..."}}}"""
+Determine:
+1. MODALITY: metric, log, event, text, document, trace, or other
+2. DOMAIN: manufacturing, telecom, healthcare, energy, finance, logistics, it_ops, security, or other
+3. DOMAIN_DESCRIPTION: one sentence
+4. SCHEMA_MAPPING: which fields map to timestamp, value, resource, namespace
+5. FEATURES: 3-8 key numeric/categorical features to extract and track
+6. TAXONOMY: domain-appropriate categories for operational_state (4-6), incident_family (5-8), action_class (4-6)
+7. THRESHOLDS: warning and critical thresholds per numeric feature
+8. NANO_RULES: 3-6 deterministic rules (field, operator, value → classification)
+9. MICRO_PROMPT: one paragraph classification prompt for LLM micro tier
+10. MACRO_PROMPT: one paragraph reasoning prompt for LLM macro tier
+
+Respond ONLY with valid JSON:
+{{"modality":"...","domain":"...","domain_description":"...","schema_mapping":{{"timestamp_field":"...","value_field":"...","resource_field":"...","namespace_field":"..."}},"features":[{{"name":"...","field":"...","type":"numeric"}}],"taxonomy":{{"operational_state":["normal","watch","degraded","critical"],"incident_family":["..."],"action_class":["observe","notify","ticket"]}},"thresholds":{{"feature_name":{{"warning":0,"critical":0}}}},"nano_rules":[{{"name":"...","field":"...","operator":"gt","value":0,"class_name":"degraded","taxonomy":"operational_state","severity":"high"}}],"micro_prompt":"...","macro_prompt":"...","confidence":0.8,"reasoning":"..."}}}"""
 
 
 @dataclass
@@ -44,15 +56,15 @@ def analyze_samples(samples: list[dict], hints: str = "") -> SourceAnalysis:
     display_samples = samples[:5]
     samples_text = json.dumps(display_samples, default=str)[:1000]
 
-    prompt = ANALYSIS_PROMPT.format(n_samples=len(display_samples), samples=samples_text)
+    prompt = ANALYSIS_PROMPT.replace("{n_samples}", str(len(display_samples))).replace("{samples}", samples_text)
     if hints:
         prompt += f"\n\nAdditional context from the user: {hints}"
 
     result = infer(
         prompt=prompt,
         system_prompt="You are a data analysis agent. Respond only with valid JSON. No markdown, no explanation.",
-        tier="macro",
-        max_tokens=800,
+        tier="bootstrap",
+        max_tokens=2000,
     )
 
     if result is None:

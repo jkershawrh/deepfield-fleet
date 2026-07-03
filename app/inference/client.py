@@ -106,11 +106,14 @@ def is_inference_available() -> bool:
 
 def get_inference_config() -> dict:
     base = os.getenv("LITELLM_API_BASE", "")
+    bootstrap_base = os.getenv("BOOTSTRAP_API_BASE", base)
     return {
         "available": bool(base),
         "api_base": base,
         "model_micro": os.getenv("LITELLM_MODEL_MICRO", "granite-3-2-8b-instruct-cpu"),
         "model_macro": os.getenv("LITELLM_MODEL_MACRO", "granite-3-2-8b-instruct-cpu"),
+        "bootstrap_available": bool(bootstrap_base),
+        "bootstrap_model": os.getenv("BOOTSTRAP_MODEL", "claude-sonnet-4-6"),
         "has_key": bool(os.getenv("LITELLM_API_KEY")),
     }
 
@@ -125,9 +128,16 @@ def infer(
     if not base:
         return None
 
-    key = os.getenv("LITELLM_API_KEY", "")
-    model_env = "LITELLM_MODEL_MICRO" if tier == "micro" else "LITELLM_MODEL_MACRO"
-    model = os.getenv(model_env, "granite-3-2-8b-instruct-cpu")
+    if tier == "bootstrap":
+        key = os.getenv("BOOTSTRAP_API_KEY", os.getenv("LITELLM_API_KEY", ""))
+        base = os.getenv("BOOTSTRAP_API_BASE", base)
+        model = os.getenv("BOOTSTRAP_MODEL", "claude-sonnet-4-6")
+    else:
+        key = os.getenv("LITELLM_API_KEY", "")
+        model = os.getenv(
+            "LITELLM_MODEL_MICRO" if tier == "micro" else "LITELLM_MODEL_MACRO",
+            "granite-3-2-8b-instruct-cpu",
+        )
 
     url = f"{base.rstrip('/')}/v1/chat/completions"
     payload = json.dumps({
