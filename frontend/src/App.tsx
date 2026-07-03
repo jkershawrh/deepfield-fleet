@@ -871,52 +871,102 @@ export default function App() {
                 )}
               </div>
             )}
-            {currentAct === 'reward' && (
+            {currentAct === 'reward' && (() => {
+              const highFindings = loopResult ? loopResult.classifications.filter(c => c.confidence >= 0.7 && (c.severity === 'high' || c.severity === 'critical')) : [];
+              const tiers = loopResult ? { nano: loopResult.classifications.filter(c => c.agent_tier === 'nano').length, micro: loopResult.classifications.filter(c => c.agent_tier === 'micro').length, macro: loopResult.classifications.filter(c => c.agent_tier === 'macro').length } : null;
+              return (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>The ordeal is complete. Now the system decides what to do — safely.</p>
-                <FlowDescription text="Actions follow a strict safety model: only non-destructive operations (notify, observe, ticket) are proposed. Destructive actions (restart, scale, quarantine) require explicit human approval and are never auto-executed." />
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  The cascade found convergent signals across multiple modalities. Now the system
+                  decides what to do — and proves it's safe before proposing anything.
+                </p>
                 {evidence.length === 0 && <StepCard num={1} title="Ingest evidence first" status={ingestStatus} onRun={doIngest} buttonLabel="Ingest" />}
                 {evidence.length > 0 && !baseline && <StepCard num={2} title="Build baseline first" status={baselineStatus} onRun={doBaseline} buttonLabel="Build baseline" />}
                 <StepCard num={6} title="Decide → Act → Verify → Learn" status={loopStatus} onRun={baseline ? doLoop : undefined} buttonLabel="Run agent loop">
                   {loopResult && (
                     <div>
-                      {/* Actions */}
-                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Actions Proposed</div>
+                      {/* Decision chain — WHY this action */}
+                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--rh-blue)' }}>Decision Chain</div>
+                      <div style={{ padding: 14, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 16, border: '1px solid var(--border)' }}>
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 10px', lineHeight: 1.7 }}>
+                          {highFindings.length} high-confidence findings across {tiers ? `${tiers.nano} nano + ${tiers.micro} micro + ${tiers.macro} macro` : ''} classifications:
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                          {highFindings.slice(0, 6).map(c => (
+                            <div key={c.classification_id} onClick={() => openDetail(c.agent_name, { tier: c.agent_tier, taxonomy: c.taxonomy, class_name: c.class_name, severity: c.severity, confidence: c.confidence, rationale: c.rationale, decision_type: c.agent_tier === 'nano' ? 'Deterministic' : c.agent_tier === 'micro' ? 'Rule-backed' : 'Template', runtime: 'CPU' }, 'agent')}
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: 'var(--surface-1)', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.severity === 'critical' ? 'var(--rh-red)' : 'var(--rh-orange)', flexShrink: 0 }} />
+                              <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--text-secondary)', minWidth: 110 }}>{c.agent_name}</span>
+                              <span style={{ color: 'var(--text-dim)' }}>{c.class_name}</span>
+                              <span style={{ color: 'var(--text-dim)', marginLeft: 'auto' }}>{c.rationale.slice(0, 60)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-dim)', borderTop: '1px solid var(--border)', paddingTop: 10, lineHeight: 1.6 }}>
+                          Multiple modalities converged on <strong style={{ color: 'var(--text-secondary)' }}>quality/bearing failure</strong>:
+                          vibration drift, thermal increase, log errors, image defect, audio anomaly.
+                          This cross-modal agreement triggers the action planner.
+                        </div>
+                      </div>
+
+                      {/* Action — WHAT it proposes */}
+                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--rh-orange)' }}>Proposed Action</div>
                       {loopResult.actions.map(a => (
-                        <div key={a.action_id} onClick={() => openDetail(`Action: ${a.action_type}`, { action_type: a.action_type, status: a.status, requires_human_approval: a.requires_human_approval, created_by_agent: a.created_by_agent, safety: 'Non-destructive — no restart, no scale, no quarantine', ...a.payload }, 'action')}
-                          style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 8, cursor: 'pointer', border: '1px solid var(--border)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--rh-blue)' }} />
+                        <div key={a.action_id} onClick={() => openDetail(`Action: ${a.action_type}`, { action_type: a.action_type, status: a.status, requires_human_approval: a.requires_human_approval, created_by_agent: a.created_by_agent, ...a.payload }, 'action')}
+                          style={{ padding: 14, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 12, cursor: 'pointer', border: '1px solid var(--border)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--rh-orange)' }} />
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 14, fontWeight: 600 }}>{a.action_type}</div>
-                              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                                Status: {a.status} · {a.requires_human_approval ? 'Requires human approval' : 'Auto-approved'} · by {a.created_by_agent}
+                              <div style={{ fontSize: 16, fontWeight: 700 }}>{a.action_type.toUpperCase()}</div>
+                            </div>
+                            <span style={{ padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 700, background: 'var(--rh-green-dim)', color: 'var(--rh-green)' }}>NON-DESTRUCTIVE</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
+                            {String(a.payload.rationale || a.payload.reason || 'Action proposed based on classification cascade')}
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                            <div style={{ padding: 8, background: 'var(--surface-1)', borderRadius: 6, textAlign: 'center' }}>
+                              <div style={{ fontSize: 9, color: 'var(--text-disabled)' }}>STATUS</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--rh-blue)' }}>{a.status}</div>
+                            </div>
+                            <div style={{ padding: 8, background: 'var(--surface-1)', borderRadius: 6, textAlign: 'center' }}>
+                              <div style={{ fontSize: 9, color: 'var(--text-disabled)' }}>APPROVAL</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: a.requires_human_approval ? 'var(--rh-yellow)' : 'var(--rh-green)' }}>
+                                {a.requires_human_approval ? 'Human required' : 'Auto'}
                               </div>
                             </div>
-                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: 'var(--rh-green-dim)', color: 'var(--rh-green)' }}>SAFE</span>
+                            <div style={{ padding: 8, background: 'var(--surface-1)', borderRadius: 6, textAlign: 'center' }}>
+                              <div style={{ fontSize: 9, color: 'var(--text-disabled)' }}>PROPOSED BY</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>{a.created_by_agent}</div>
+                            </div>
                           </div>
                         </div>
                       ))}
 
-                      {/* Verifications */}
-                      <div style={{ fontSize: 13, fontWeight: 700, marginTop: 16, marginBottom: 8 }}>Verification Checks</div>
+                      <FlowDescription text="The system will NOT restart services, scale infrastructure, or quarantine resources without explicit human approval. Only non-destructive actions (notify, observe, create ticket) are proposed automatically. This is a governance constraint, not a limitation." />
+
+                      {/* Verification — HOW it checks */}
+                      <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 8, color: 'var(--rh-green)' }}>Verification Plan</div>
                       {loopResult.verifications.map(v => (
                         <div key={v.verification_id} onClick={() => openDetail(`Verification: ${v.verification_type}`, { verification_type: v.verification_type, status: v.status, confidence: v.confidence, expected_outcome: v.expected_outcome }, 'action')}
-                          style={{ padding: 10, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 4, cursor: 'pointer', border: '1px solid var(--border)', fontSize: 12 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontWeight: 600 }}>{v.verification_type}</span>
-                            <span style={{ color: 'var(--text-dim)' }}>Status: {v.status}</span>
-                            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-disabled)' }}>Click for expected outcomes</span>
+                          style={{ padding: 14, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 8, cursor: 'pointer', border: '1px solid var(--border)' }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{v.verification_type.replace(/_/g, ' ')}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.6 }}>
+                            After the action is taken, the system will check whether metrics return to baseline.
+                            This verification runs automatically to confirm the action had the desired effect.
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
+                            Expected: {Object.entries(v.expected_outcome).slice(0, 3).map(([k, val]) => `${k}: ${typeof val === 'number' ? (val as number).toFixed(1) : String(val)}`).join(' · ')}
+                            {Object.keys(v.expected_outcome).length > 3 && ` · +${Object.keys(v.expected_outcome).length - 3} more`}
                           </div>
                         </div>
                       ))}
-
-                      <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 8 }}>Click any item for full details</div>
                     </div>
                   )}
                 </StepCard>
               </div>
-            )}
+              );
+            })()}
             {currentAct === 'return' && (
               <div>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>The system captures what it learned — not as silent changes, but as <strong>proposals</strong> that require human review before activation.</p>
