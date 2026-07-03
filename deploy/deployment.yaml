@@ -37,6 +37,8 @@ spec:
         app: deepfield-multimodal
     spec:
       serviceAccountName: deepfield-reader
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: app
           image: quay.io/deepfield-fleet/deepfield-multimodal:latest
@@ -51,15 +53,20 @@ spec:
             limits:
               cpu: "1"
               memory: 512Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
           env:
             - name: LITELLM_API_BASE
-              value: "https://litellm.example.com"
+              value: ""
             - name: LITELLM_MODEL_MICRO
               value: "granite-3-2-8b-instruct-cpu"
             - name: LITELLM_MODEL_MACRO
               value: "granite-3-2-8b-instruct-cpu"
             - name: BOOTSTRAP_API_BASE
-              value: "https://litellm.example.com"
+              value: ""
             - name: BOOTSTRAP_MODEL
               value: "qwen3-235b"
           envFrom:
@@ -103,6 +110,11 @@ spec:
             limits:
               cpu: 200m
               memory: 128Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
           readinessProbe:
             httpGet:
               path: /oauth/healthz

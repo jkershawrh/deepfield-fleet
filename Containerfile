@@ -19,6 +19,9 @@ COPY fixtures/ ./fixtures/
 COPY config/ ./config/
 COPY --from=frontend-build /build/dist ./frontend/dist/
 
+RUN chown -R 1001:0 /app && chmod -R g=u /app
+USER 1001
+
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
