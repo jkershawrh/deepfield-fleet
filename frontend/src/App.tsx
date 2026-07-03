@@ -12,6 +12,7 @@ import { StepProgress } from './components/StepProgress';
 import { DetailModal, KeyValueTable, ComparisonTable } from './components/DetailModal';
 import { FlowDescription } from './components/FlowDescription';
 import { InfraPanel } from './components/InfraPanel';
+import { BootstrapLab } from './components/BootstrapLab';
 import { api } from './api/client';
 import type { EvidenceArtifact, ClassificationRecord, BaselineProfile, LoopResult, ApiCall } from './api/client';
 
@@ -76,7 +77,7 @@ interface DemoState {
 }
 
 export default function App() {
-  const [mode, setMode] = useState<'slides' | 'manual' | 'auto'>('slides');
+  const [mode, setMode] = useState<'slides' | 'manual' | 'auto' | 'lab'>('slides');
   const [actIndex, setActIndex] = useState(0);
   const [demoState, setDemoState] = useState<DemoState>({ status: 'idle' });
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -417,6 +418,11 @@ export default function App() {
   }
 
 
+  // --- Lab mode ---
+  if (mode === 'lab') {
+    return <BootstrapLab onExit={() => setMode('auto')} />;
+  }
+
   // --- Auto mode ---
   if (mode === 'auto') {
     const isRunning = demoState.status === 'running' || demoState.status === 'starting';
@@ -683,6 +689,10 @@ export default function App() {
                   <p style={{ fontSize: 12, color: 'var(--text-disabled)', marginTop: 12, fontFamily: 'Red Hat Mono, monospace' }}>
                     207 MB · Intel Xeon · Red Hat OpenShift · 30 seconds to your first demo
                   </p>
+                  <button onClick={() => setMode('lab')}
+                    style={{ marginTop: 16, background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '10px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                    Try it with your data →
+                  </button>
                 </div>
               </motion.div>
             </motion.div>
