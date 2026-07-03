@@ -1,34 +1,48 @@
-"""Classification taxonomies — hardcoded defaults, YAML-configurable later."""
+"""Classification taxonomies — loads from YAML config, falls back to hardcoded."""
 
-OPERATIONAL_STATES = [
-    "normal", "watch", "degraded", "incident", "critical", "unknown",
-]
+import logging
+from typing import Optional
 
-SIGNAL_QUALITIES = [
-    "noise", "duplicate", "weak_signal", "actionable",
-    "contradictory", "missing_context",
-]
+logger = logging.getLogger(__name__)
 
-INCIDENT_FAMILIES = [
-    "infrastructure", "application", "model_serving", "data_pipeline",
-    "security", "capacity", "quality", "supply_chain", "human_process", "unknown",
-]
-
-ACTION_CLASSES = [
-    "observe", "notify", "ticket", "scale", "restart",
-    "quarantine", "pause", "rollback", "human_approval", "no_action",
-]
-
-ALL_TAXONOMIES = {
-    "operational_state": OPERATIONAL_STATES,
-    "signal_quality": SIGNAL_QUALITIES,
-    "incident_family": INCIDENT_FAMILIES,
-    "action_class": ACTION_CLASSES,
+_HARDCODED = {
+    "operational_state": ["normal", "watch", "degraded", "incident", "critical", "unknown"],
+    "signal_quality": ["noise", "duplicate", "weak_signal", "actionable", "contradictory", "missing_context"],
+    "incident_family": ["infrastructure", "application", "model_serving", "data_pipeline", "security", "capacity", "quality", "supply_chain", "human_process", "unknown"],
+    "action_class": ["observe", "notify", "ticket", "scale", "restart", "quarantine", "pause", "rollback", "human_approval", "no_action"],
 }
+
+_loaded: Optional[dict] = None
+
+
+def _get_taxonomies() -> dict:
+    global _loaded
+    if _loaded is not None:
+        return _loaded
+    try:
+        from app.bootstrap.config_loader import load_taxonomies
+        _loaded = load_taxonomies()
+        logger.info("Taxonomies loaded from config (%d categories)", len(_loaded))
+    except Exception:
+        _loaded = dict(_HARDCODED)
+    return _loaded
+
+
+def reload():
+    global _loaded
+    _loaded = None
+
+
+OPERATIONAL_STATES = _HARDCODED["operational_state"]
+SIGNAL_QUALITIES = _HARDCODED["signal_quality"]
+INCIDENT_FAMILIES = _HARDCODED["incident_family"]
+ACTION_CLASSES = _HARDCODED["action_class"]
+ALL_TAXONOMIES = _HARDCODED
 
 
 def is_valid_classification(taxonomy: str, class_name: str) -> bool:
-    values = ALL_TAXONOMIES.get(taxonomy)
+    taxonomies = _get_taxonomies()
+    values = taxonomies.get(taxonomy)
     if values is None:
         return False
     return class_name in values

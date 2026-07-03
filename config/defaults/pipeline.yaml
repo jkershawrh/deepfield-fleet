@@ -1,0 +1,43 @@
+nano_agents:
+  - app.nanoagents.baseline_distance
+  - app.nanoagents.metric_drift
+  - app.nanoagents.log_pattern
+  - app.nanoagents.document_heuristic
+  - app.nanoagents.image_metadata
+  - app.nanoagents.audio_energy
+  - app.nanoagents.evidence_gate
+
+micro_agents:
+  - name: text_classifier
+    class: app.microagents.text_classifier.TextClassifierAgent
+    modalities: [text, log]
+  - name: document_classifier
+    class: app.microagents.document_classifier.DocumentClassifierAgent
+    modalities: [document]
+  - name: image_classifier
+    class: app.microagents.image_classifier.ImageDefectClassifierAgent
+    modalities: [image]
+  - name: audio_classifier
+    class: app.microagents.audio_classifier.AudioAnomalyClassifierAgent
+    modalities: [audio]
+
+macro_agents:
+  - name: incident_timeline
+    class: app.macroagents.incident_timeline.IncidentTimelineAgent
+  - name: root_cause_hypothesis
+    class: app.macroagents.root_cause_hypothesis.RootCauseHypothesisAgent
+  - name: action_planner
+    class: app.macroagents.action_planner.ActionPlannerAgent
+  - name: verification_planner
+    class: app.macroagents.verification_planner.VerificationPlannerAgent
+  - name: learning_proposal
+    class: app.macroagents.learning_proposal_agent.LearningProposalMacroAgent
+
+escalation:
+  nano_to_micro:
+    confidence_threshold: 0.8
+    escalate_modalities: [image, audio, document]
+    escalate_severities: [high, critical]
+  micro_to_macro:
+    modality_threshold: 2
+    escalate_on_critical: true

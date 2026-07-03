@@ -196,3 +196,29 @@ class LearningProposal(BaseModel):
     status: Literal["proposed", "accepted", "rejected", "applied"] = "proposed"
     created_at: datetime = Field(default_factory=_now)
     reviewed_at: Optional[datetime] = None
+
+
+# ---------------------------------------------------------------------------
+# Agent maturity / promotion
+# ---------------------------------------------------------------------------
+
+class AgentMaturity(BaseModel):
+    agent_id: UUID = Field(default_factory=uuid4)
+    name: str
+    tier: Literal["draft", "candidate", "nano", "micro", "macro"] = "draft"
+    source: Literal["bootstrap", "manual", "builtin"] = "bootstrap"
+    config: dict = Field(default_factory=dict)
+
+    samples_tested: int = 0
+    accuracy: float = Field(ge=0.0, le=1.0, default=0.0)
+    false_positive_rate: float = Field(ge=0.0, le=1.0, default=0.0)
+    false_negative_rate: float = Field(ge=0.0, le=1.0, default=0.0)
+    coverage: float = Field(ge=0.0, le=1.0, default=0.0)
+    confidence_calibration: Literal["none", "rough", "calibrated"] = "none"
+    human_reviewed: bool = False
+    cross_modal_agreement: bool = False
+
+    rubric_status: Literal["red", "yellow", "green"] = "red"
+    promotion_history: list[dict] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=_now)
+    promoted_at: Optional[datetime] = None

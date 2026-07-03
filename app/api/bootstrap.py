@@ -1,0 +1,274 @@
+"""Bootstrap API — connect, analyze, approve, deploy."""
+
+import logging
+from dataclasses import asdict
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from app.bootstrap.semantic_classifier import SourceAnalysis
+from app.domain.models import AgentMaturity
+
+router = APIRouter(prefix="/api/v1/bootstrap", tags=["bootstrap"])
+
+logger = logging.getLogger(__name__)
+
+_state: dict = {"status": "idle"}
+_samples: list[dict] = []
+_analysis: Optional[SourceAnalysis] = None
+_configs: dict = {}
+_agents: list[AgentMaturity] = []
+
+
+class ConnectRequest(BaseModel):
+    source_type: str = "file"
+    config: dict = {}
+
+
+class AnalyzeRequest(BaseModel):
+    hints: str = ""
+
+
+class ApproveRequest(BaseModel):
+    edits: dict = {}
+
+
+@router.post("/connect")
+async def connect_source(req: ConnectRequest):
+    global _samples, _state
+    _state = {"status": "connecting", "source_type": req.source_type}
+
+    if req.source_type == "file":
+        from app.connectors.file import FileConnector
+        connector = FileConnector()
+    else:
+        raise HTTPException(400, f"Unsupported source type: {req.source_type}. Supported: file")
+
+    if not connector.connect(req.config):
+        raise HTTPException(400, "Failed to connect to source")
+
+    _samples = connector.sample(200)
+    _state = {
+        "status": "connected",
+        "source_type": req.source_type,
+        "source_info": connector.describe(),
+        "sample_count": len(_samples),
+        "sample_preview": _samples[:5],
+    }
+    return _state
+
+
+@router.post("/analyze")
+async def analyze_source(req: AnalyzeRequest = AnalyzeRequest()):
+    global _analysis, _state
+    if not _samples:
+        raise HTTPException(400, "No samples — connect to a source first")
+
+    _state["status"] = "analyzing"
+
+    from app.bootstrap.semantic_classifier import analyze_samples
+    _analysis = analyze_samples(_samples, hints=req.hints)
+
+    if _analysis.error:
+        _state["status"] = "analysis_error"
+        _state["error"] = _analysis.error
+        return {"status": "error", "error": _analysis.error, "analysis": asdict(_analysis)}
+
+    _state["status"] = "analyzed"
+    _state["analysis"] = {
+        "modality": _analysis.modality,
+        "domain": _analysis.domain,
+        "domain_description": _analysis.domain_description,
+        "confidence": _analysis.confidence,
+        "reasoning": _analysis.reasoning,
+        "features": _analysis.features,
+        "taxonomy": _analysis.taxonomy,
+        "thresholds": _analysis.thresholds,
+        "nano_rules": _analysis.nano_rules,
+        "schema_mapping": _analysis.schema_mapping,
+        "micro_prompt": _analysis.micro_prompt,
+        "macro_prompt": _analysis.macro_prompt,
+        "inference_latency_ms": _analysis.inference_latency_ms,
+    }
+    return _state
+
+
+@router.get("/config")
+async def get_config():
+    if _analysis is None:
+        return {"status": "no_analysis", "configs": {}}
+    return {"status": _state.get("status", "idle"), "analysis": asdict(_analysis), "configs": _configs}
+
+
+@router.put("/config")
+async def edit_config(edits: dict):
+    global _analysis
+    if _analysis is None:
+        raise HTTPException(400, "No analysis to edit")
+    if "taxonomy" in edits and _analysis:
+        _analysis.taxonomy = edits["taxonomy"]
+    if "thresholds" in edits and _analysis:
+        _analysis.thresholds = edits["thresholds"]
+    if "nano_rules" in edits and _analysis:
+        _analysis.nano_rules = edits["nano_rules"]
+    if "micro_prompt" in edits and _analysis:
+        _analysis.micro_prompt = edits["micro_prompt"]
+    if "macro_prompt" in edits and _analysis:
+        _analysis.macro_prompt = edits["macro_prompt"]
+    _state["status"] = "edited"
+    return {"status": "edited", "analysis": asdict(_analysis)}
+
+
+@router.post("/approve")
+async def approve_config(req: ApproveRequest = ApproveRequest()):
+    global _configs, _state
+    if _analysis is None:
+        raise HTTPException(400, "No analysis to approve")
+
+    if req.edits:
+        await edit_config(req.edits)
+
+    from app.bootstrap.config_generator import generate_configs
+    source_name = _analysis.domain.replace(" ", "_").lower()
+    _configs = generate_configs(_analysis, source_name=source_name)
+
+    from app.classification.taxonomy import reload
+    reload()
+
+    _state["status"] = "approved"
+    _state["configs_generated"] = list(_configs.keys())
+    return {"status": "approved", "configs": list(_configs.keys()), "message": "Configuration approved and deployed"}
+
+
+@router.post("/test")
+async def test_pipeline():
+    if not _samples:
+        raise HTTPException(400, "No samples — connect first")
+    if _analysis is None:
+        raise HTTPException(400, "No analysis — analyze first")
+
+    from app.multimodal.normalizer import normalize_raw
+    from app.baseline.compiler import BaselineCompiler
+    from app.nanoagents.pipeline import run_pipeline
+
+    evidence = []
+    for sample in _samples[:20]:
+        ev = normalize_raw(
+            source="bootstrap_test",
+            modality=_analysis.modality,
+            content={"values": [float(v) for v in sample.values() if _is_numeric(v)], **sample},
+        )
+        evidence.append(ev)
+
+    compiler = BaselineCompiler()
+    baseline = compiler.compile(evidence=evidence, scope={"scope_type": "domain", "scope_id": _analysis.domain})
+
+    records = run_pipeline(evidence, baseline)
+
+    return {
+        "status": "tested",
+        "evidence_count": len(evidence),
+        "classification_count": len(records),
+        "records": [r.model_dump(mode="json") for r in records[:20]],
+        "baseline_confidence": baseline.confidence,
+    }
+
+
+@router.post("/validate")
+async def validate_agents():
+    if not _samples:
+        raise HTTPException(400, "No samples — connect first")
+    if _analysis is None:
+        raise HTTPException(400, "No analysis — analyze first")
+
+    from app.bootstrap.promotion import run_validation_round, get_rubric_matrix
+    from app.bootstrap.rule_engine import RuleBasedNanoagent
+    from app.multimodal.normalizer import normalize_raw
+    from app.baseline.compiler import BaselineCompiler
+
+    evidence = []
+    for sample in _samples:
+        ev = normalize_raw(
+            source="bootstrap_validate",
+            modality=_analysis.modality,
+            content={"values": [float(v) for v in sample.values() if _is_numeric(v)], **sample},
+        )
+        evidence.append(ev)
+
+    compiler = BaselineCompiler()
+    baseline = compiler.compile(evidence=evidence, scope={"scope_type": "domain", "scope_id": _analysis.domain})
+
+    global _agents
+    if not _agents:
+        for rule in _analysis.nano_rules:
+            _agents.append(AgentMaturity(
+                name=rule.get("name", "rule"),
+                tier="draft", source="bootstrap",
+                config={
+                    "name": rule.get("name", "rule"),
+                    "modality": _analysis.modality,
+                    "condition": {"field": rule.get("field", ""), "operator": rule.get("operator", "gt"), "value": rule.get("value", 0)},
+                    "classification": {"taxonomy": rule.get("taxonomy", "operational_state"), "class_name": rule.get("class_name", "degraded"), "severity": rule.get("severity", "high"), "confidence": 0.8},
+                },
+            ))
+
+    _agents = run_validation_round(_agents, evidence, baseline)
+    matrix = get_rubric_matrix(_agents)
+    _state["status"] = "validated"
+    _state["rubric"] = matrix
+    return matrix
+
+
+@router.get("/rubric")
+async def get_rubric():
+    from app.bootstrap.promotion import get_rubric_matrix
+    return get_rubric_matrix(_agents)
+
+
+@router.post("/promote/{agent_id}")
+async def promote_agent(agent_id: str):
+    from app.bootstrap.promotion import PromotionEngine
+    engine = PromotionEngine()
+    for i, agent in enumerate(_agents):
+        if str(agent.agent_id) == agent_id:
+            agent.human_reviewed = True
+            _agents[i] = engine.check_promotion(agent)
+            return {"status": "promoted", "agent": _agents[i].model_dump(mode="json")}
+    raise HTTPException(404, "Agent not found")
+
+
+@router.post("/demote/{agent_id}")
+async def demote_agent(agent_id: str):
+    for i, agent in enumerate(_agents):
+        if str(agent.agent_id) == agent_id:
+            prev = agent.tier
+            agent.tier = "draft"
+            agent.rubric_status = "red"
+            agent.promotion_history.append({"from": prev, "to": "draft", "reason": "manual_demotion"})
+            return {"status": "demoted", "agent": agent.model_dump(mode="json")}
+    raise HTTPException(404, "Agent not found")
+
+
+@router.get("/status")
+async def get_status():
+    return _state
+
+
+@router.post("/reset")
+async def reset():
+    global _samples, _analysis, _configs, _state, _agents
+    _samples = []
+    _analysis = None
+    _configs = {}
+    _agents = []
+    _state = {"status": "idle"}
+    return {"status": "reset"}
+
+
+def _is_numeric(val) -> bool:
+    try:
+        float(val)
+        return True
+    except (ValueError, TypeError):
+        return False
