@@ -25,6 +25,7 @@ incident_family:
   - supply_chain
   - human_process
   - unknown
+  - unclassified
 
 action_class:
   - observe

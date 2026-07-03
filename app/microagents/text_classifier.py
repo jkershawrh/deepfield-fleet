@@ -48,7 +48,7 @@ class TextClassifierAgent(BaseMicroagent):
             system_prompt="You are a signal classification agent for industrial monitoring. Respond only with JSON.",
             tier="micro", max_tokens=150,
         )
-        family = "unknown"
+        family = "unclassified"
         severity = "info"
         rationale = "LLM inference"
         model_name = "unknown"
@@ -75,7 +75,7 @@ class TextClassifierAgent(BaseMicroagent):
 
         valid_families = {"infrastructure", "application", "quality", "security", "capacity", "data_pipeline", "model_serving", "supply_chain", "human_process", "unknown"}
         if family not in valid_families:
-            family = "unknown"
+            family = "unclassified"
         valid_severities = {"info", "low", "medium", "high", "critical"}
         if severity not in valid_severities:
             severity = "info"
@@ -105,7 +105,7 @@ class TextClassifierAgent(BaseMicroagent):
         return ClassificationRecord(
             target_type="evidence", target_id=ev.evidence_id,
             agent_tier="micro", agent_name=self.name,
-            taxonomy="incident_family", class_name="unknown",
+            taxonomy="incident_family", class_name="unclassified",
             severity="info", confidence=0.5,
             rationale="No known pattern matched",
             evidence_ids=[ev.evidence_id],

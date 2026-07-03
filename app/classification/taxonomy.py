@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 _HARDCODED = {
     "operational_state": ["normal", "watch", "degraded", "incident", "critical", "unknown"],
     "signal_quality": ["noise", "duplicate", "weak_signal", "actionable", "contradictory", "missing_context"],
-    "incident_family": ["infrastructure", "application", "model_serving", "data_pipeline", "security", "capacity", "quality", "supply_chain", "human_process", "unknown"],
+    "incident_family": ["infrastructure", "application", "model_serving", "data_pipeline", "security", "capacity", "quality", "supply_chain", "human_process", "unknown", "unclassified"],
     "action_class": ["observe", "notify", "ticket", "scale", "restart", "quarantine", "pause", "rollback", "human_approval", "no_action"],
 }
 

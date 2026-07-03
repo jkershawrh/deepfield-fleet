@@ -31,7 +31,7 @@ class AudioAnomalyClassifierAgent(BaseMicroagent):
                 records.append(ClassificationRecord(
                     target_type="evidence", target_id=ev.evidence_id,
                     agent_tier="micro", agent_name=self.name,
-                    taxonomy="incident_family", class_name="unknown",
+                    taxonomy="incident_family", class_name="unclassified",
                     severity="info", confidence=0.5,
                     rationale="No anomaly detected or no labels available",
                     evidence_ids=[ev.evidence_id],

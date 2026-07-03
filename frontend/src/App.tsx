@@ -99,17 +99,16 @@ export default function App() {
   const [apiCalls, setApiCalls] = useState<ApiCall<unknown>[]>([]);
   const addCall = (call: ApiCall<unknown>) => setApiCalls(prev => [...prev, call]);
 
-  // Detail modal state
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailTitle, setDetailTitle] = useState('');
-  const [detailContent, setDetailContent] = useState<Record<string, unknown> | null>(null);
-  const [detailType, setDetailType] = useState<'agent' | 'evidence' | 'baseline' | 'action' | 'learning'>('agent');
+  // Detail modal state — single object to avoid stale renders
+  const [detail, setDetail] = useState<{ open: boolean; title: string; content: Record<string, unknown> | null; type: 'agent' | 'evidence' | 'baseline' | 'action' | 'learning' }>({ open: false, title: '', content: null, type: 'agent' });
+
+  const detailOpen = detail.open;
+  const detailTitle = detail.title;
+  const detailContent = detail.content;
+  const detailType = detail.type;
 
   const openDetail = (title: string, content: Record<string, unknown>, type: typeof detailType) => {
-    setDetailTitle(title);
-    setDetailContent(content);
-    setDetailType(type);
-    setDetailOpen(true);
+    setDetail({ open: true, title, content, type });
   };
 
   const onAgentEventClick = (event: AgentEvent) => {
@@ -739,7 +738,7 @@ export default function App() {
         </div>
 
         {/* Detail modal — slides in when user clicks an agent event */}
-        <DetailModal open={detailOpen} title={detailTitle} onClose={() => setDetailOpen(false)}>
+        <DetailModal open={detailOpen} title={detailTitle} onClose={() => setDetail(d => ({ ...d, open: false }))}>
           {detailContent && detailType === 'agent' && (
             <div>
               <div style={{ fontSize: 12, color: 'var(--rh-teal)', marginBottom: 12, fontWeight: 700 }}>
