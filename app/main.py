@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="DeepField Multimodal",
-    description="Multimodal agent pack for enterprise signal classification and action loops",
+    description="Agentic Signal Classification Engine — deterministic nanoagents, rule-backed microagents, LLM macroagents",
     version="0.1.0",
     lifespan=lifespan,
 )

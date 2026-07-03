@@ -231,7 +231,7 @@ export default function App() {
         </motion.h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
           style={{ fontSize: 20, color: 'var(--text-dim)', marginTop: 24 }}>
-          Enterprise Signal Intelligence
+          Agentic Signal Classification Engine
         </motion.p>
       </div>
     ),
