@@ -11,8 +11,10 @@ from typing import Optional
 import yaml
 from pathlib import Path
 
+from collections import defaultdict
+
 from app.bootstrap.rule_engine import RuleBasedNanoagent
-from app.domain.models import AgentMaturity, BaselineProfile, EvidenceArtifact
+from app.domain.models import AgentMaturity, BaselineProfile, ClassificationRecord, EvidenceArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +168,29 @@ def run_validation_round(
         promoted = engine.check_promotion(evaluated)
         updated.append(promoted)
     return updated
+
+
+def detect_cross_modal_convergence(
+    classifications: list[ClassificationRecord],
+    evidence: list[EvidenceArtifact],
+    min_modalities: int = 2,
+) -> bool:
+    evidence_map = {e.evidence_id: e for e in evidence}
+    resource_modalities: dict[str, set] = defaultdict(set)
+
+    high_conf = [c for c in classifications if c.confidence >= 0.6 and c.severity in ("high", "critical")]
+
+    for c in high_conf:
+        for eid in c.evidence_ids:
+            ev = evidence_map.get(eid)
+            if ev:
+                resource_key = ev.namespace or str(ev.evidence_id)
+                resource_modalities[resource_key].add(ev.modality)
+
+    for resource, modalities in resource_modalities.items():
+        if len(modalities) >= min_modalities:
+            return True
+    return False
 
 
 def get_rubric_matrix(agents: list[AgentMaturity]) -> dict:

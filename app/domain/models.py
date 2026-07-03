@@ -222,3 +222,19 @@ class AgentMaturity(BaseModel):
     promotion_history: list[dict] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=_now)
     promoted_at: Optional[datetime] = None
+
+
+# ---------------------------------------------------------------------------
+# Evidence-based constraints
+# ---------------------------------------------------------------------------
+
+class ConstraintRule(BaseModel):
+    constraint_id: UUID = Field(default_factory=uuid4)
+    name: str
+    description: str = ""
+    constraint_type: Literal["single_event", "evidence_based"] = "single_event"
+    conditions: list[dict] = Field(default_factory=list)
+    min_evidence_count: int = 1
+    taxonomy: str = "compliance_state"
+    class_name_on_violation: str = "policy_violation"
+    severity: str = "medium"
