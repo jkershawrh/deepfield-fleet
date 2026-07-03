@@ -42,8 +42,14 @@ async def connect_source(req: ConnectRequest):
     if req.source_type == "file":
         from app.connectors.file import FileConnector
         connector = FileConnector()
+    elif req.source_type == "prometheus":
+        from app.connectors.prometheus import PrometheusConnector
+        connector = PrometheusConnector()
+    elif req.source_type == "kubernetes":
+        from app.connectors.kubernetes import KubernetesConnector
+        connector = KubernetesConnector()
     else:
-        raise HTTPException(400, f"Unsupported source type: {req.source_type}. Supported: file")
+        raise HTTPException(400, f"Unsupported source type: {req.source_type}. Supported: file, prometheus, kubernetes")
 
     if not connector.connect(req.config):
         raise HTTPException(400, "Failed to connect to source")
