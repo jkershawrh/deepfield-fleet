@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deepfield-reader
+  namespace: deepfield-multimodal
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deepfield-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: deepfield-reader
+    namespace: deepfield-multimodal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-reader
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deepfield-multimodal
+  namespace: deepfield-multimodal
+  labels:
+    app: deepfield-multimodal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deepfield-multimodal
+  template:
+    metadata:
+      labels:
+        app: deepfield-multimodal
+    spec:
+      serviceAccountName: deepfield-reader
+      containers:
+        - name: app
+          image: quay.io/deepfield-fleet/deepfield-multimodal:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            - name: LITELLM_API_BASE
+              value: "https://litellm.example.com"
+            - name: LITELLM_MODEL_MICRO
+              value: "granite-3-2-8b-instruct-cpu"
+            - name: LITELLM_MODEL_MACRO
+              value: "granite-3-2-8b-instruct-cpu"
+            - name: BOOTSTRAP_API_BASE
+              value: "https://litellm.example.com"
+            - name: BOOTSTRAP_MODEL
+              value: "qwen3-235b"
+          envFrom:
+            - secretRef:
+                name: deepfield-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deepfield-multimodal
+  namespace: deepfield-multimodal
+  labels:
+    app: deepfield-multimodal
+spec:
+  selector:
+    app: deepfield-multimodal
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: deepfield-multimodal
+  namespace: deepfield-multimodal
+spec:
+  to:
+    kind: Service
+    name: deepfield-multimodal
+  port:
+    targetPort: 8000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
