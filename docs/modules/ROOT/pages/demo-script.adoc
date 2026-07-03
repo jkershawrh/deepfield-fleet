@@ -1,0 +1,305 @@
+= Demo Script
+:toc: left
+:toclevels: 3
+
+This is a step-by-step script with exact clicks and expected results.
+Use this when you need precision -- the xref:presenter-guide.adoc[Presenter Guide] covers what to say; this document covers what to click and what to expect.
+
+== Pre-Demo Checklist
+
+. Open the DeepField Multimodal URL in your browser
+. Verify the app loads -- you should see the presentation view with a title slide
+. If you want to show live LLM inference, confirm the Infrastructure panel (gear icon in the top right) shows "LLM inference via LiteLLM" with the model names
+. If running CPU-only (default), confirm it shows "Rule-backed (no LLM configured)"
+. Clear any previous demo state by refreshing the browser
+
+== Part 1: Presentation
+
+=== Step 1: Click Through Slides
+
+*Click:* The right arrow or "Next" button to advance slides.
+
+*Expected:* Each slide transitions with an animation. Seven slides total:
+
+. Title -- DeepField Multimodal
+. The Problem -- Signal overload
+. The Thesis -- Classification before generation
+. Three Tiers -- Nano, Micro, Macro diagram
+. The Loop -- Signals, Decide, Act, Verify, Learn
+. Intel + Red Hat -- CPU-native, no GPU
+. Transition -- "Let me show you"
+
+*Duration:* 4-5 minutes total for all slides.
+
+=== Step 2: Start the Walkthrough
+
+*Click:* The *Start Walkthrough* button on the final slide.
+
+*Expected:* The UI transitions to the walkthrough view. The first act ("The Ordinary World") begins automatically.
+
+== Part 2: Walkthrough
+
+The walkthrough auto-advances through each act with pause points.
+At each pause, click *Next* when you are ready.
+
+=== Act 1: The Ordinary World
+
+*What appears:*
+
+* Dashboard shows factory metrics: vibration RMS 0.22, temperature 38.2C
+* Status: "Everything is normal. The factory hums."
+* Flow description explains the baseline state
+
+*Duration:* ~10 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Act 2: The Call to Adventure
+
+*What appears:*
+
+* Evidence artifacts appear one by one in the evidence panel
+* Each artifact shows: modality badge (metric/log/document/image/audio), artifact type, feature extraction status
+* Progress bar advances with each artifact ingested
+* Live agent indicator shows "normalizer -- extracting features"
+
+*Expected artifact count:* 6 evidence artifacts across 5 modalities.
+
+*Duration:* ~12 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Act 3: Crossing the Threshold
+
+*What appears:*
+
+* Baseline compilation results: confidence percentage, threshold groups, normal range groups
+* Statistical details: vibration RMS normal range, temperature normal range
+* Flow description explains how the baseline defines the shape of normal
+
+*Duration:* ~12 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Act 4: The Ordeal -- Nano Tier
+
+*What appears:*
+
+* Seven nanoagents run in sequence
+* Each agent shows: name, classification results, rationale text
+* Live agent indicator shows agent name, "deterministic", "CPU"
+* Agent events accumulate in the events panel
+
+*Watch for:*
+
+* `baseline_distance` detecting vibration drift beyond normal range
+* `metric_drift` flagging z-score exceedance
+* `log_pattern` finding ERROR entries in the maintenance log
+* `evidence_gate` deciding escalation for image/audio evidence
+
+*Duration:* ~15 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Act 5: The Ordeal -- Micro Tier
+
+*What appears:*
+
+* Four microagents process escalated evidence
+* Each agent shows: name, "rule-backed", "CPU (Xeon-optimized)"
+* Classification results include taxonomy, class name, severity, confidence
+
+*Watch for:*
+
+* `text_classifier` classifying incident family
+* `image_classifier` detecting surface defect
+* `audio_classifier` detecting audio anomaly
+
+*Duration:* ~12 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Act 6: The Ordeal -- Macro Tier
+
+*What appears:*
+
+* Five macroagents process all evidence and prior classifications
+* Incident timeline shows events sequenced by time
+* Root cause hypothesis shows bearing failure as leading cause
+* Action plan shows notify maintenance
+
+*Watch for:*
+
+* Cross-modal convergence: vibration + temperature + image + audio agreeing
+
+*Duration:* ~12 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Act 7: The Reward
+
+*What appears:*
+
+* Action card: type "notify", target "maintenance_team", status "proposed"
+* Human approval required badge
+* Verification card: type "metric_return_to_baseline", expected outcome vibration < 0.35, temperature < 42C
+
+*Duration:* ~10 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Act 8: The Return
+
+*What appears:*
+
+* Learning proposal card: type "threshold_update"
+* Before/after values: vibration z-score warning 2.0 to 1.8, critical 3.0 to 2.5
+* Rationale: "Tighten vibration thresholds for earlier detection"
+* Compression ratio statistic
+* Cumulative statistics for the walkthrough
+
+*Duration:* ~10 seconds, then auto-pauses.
+
+*Click:* Next (starts scale run)
+
+== Part 3: Scale Run
+
+The scale run proceeds automatically through four acts.
+Each act generates scaled evidence, runs the cascade, and reports metrics.
+
+=== Scale 10 Lines
+
+*What appears:*
+
+* Evidence count jumps to ~60 artifacts
+* Nanoagent pipeline processes in batches
+* Compression ratio displayed
+* Elapsed time in milliseconds
+
+*Duration:* ~12 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Scale 50 Lines
+
+*What appears:*
+
+* Evidence count jumps to ~300 artifacts
+* Thousands of classifications
+* Higher compression ratio
+
+*Duration:* ~12 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Stress Test
+
+*What appears:*
+
+* 50 lines at 15% failure rate
+* Macro tier activates (critical severity triggers)
+* Actions proposed
+* System stays functional under load
+
+*Duration:* ~15 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== Recovery
+
+*What appears:*
+
+* Failure rate drops to 2%
+* System stabilizes
+* Learning proposals generated from the storm
+
+*Duration:* ~10 seconds, then auto-pauses.
+
+*Click:* Next
+
+=== The Claim
+
+*What appears:*
+
+* Summary statistics: total evidence processed, total classifications, peak lines monitored
+* "One CPU. No GPU. No LLM." claim
+* 17 agents, 3 tiers
+
+*Status changes to:* "completed"
+
+== Part 4: Bootstrap Lab
+
+After the walkthrough and scale run, transition to the Bootstrap Lab.
+See the xref:lab-guide.adoc[Lab Guide] for detailed instructions.
+
+*Click:* Navigate to the Bootstrap Lab tab or section.
+
+== Fallback Procedures
+
+=== LLM Timeout
+
+*Symptom:* The demo hangs during micro or macro tier processing, or the Infrastructure panel shows errors.
+
+*Fix:* The system has a 120-second timeout on LLM calls. If it times out, agents fall back to rule-backed classification automatically. You can also force rule-backed mode:
+
+. Open browser developer console
+. Run: `fetch('/api/v1/demo/stop', {method: 'POST'})`
+. Refresh the page
+. Restart the demo -- it will run in CPU-only mode
+
+Alternatively, the demo works perfectly without any LLM configured. The walkthrough you see is the same whether LLM is connected or not.
+
+=== No Events Appearing
+
+*Symptom:* The evidence panel stays empty during Act 2.
+
+*Fix:* Check that the fixture data exists:
+
+. Open the Infrastructure panel (gear icon) and verify the agent list loads
+. Try hitting the ingest endpoint directly: `curl -X POST <URL>/api/v1/demo/ingest`
+. If fixture data is missing, the container may not have been built correctly -- check that `fixtures/` was included in the image
+
+=== Demo Gets Stuck at a Pause Point
+
+*Symptom:* Clicking Next does not advance.
+
+*Fix:*
+
+. Try clicking the Resume button (if the demo is paused rather than waiting for next)
+. If that does not work, stop and restart: click Stop, then Start Walkthrough again
+. As a last resort, refresh the browser and restart
+
+=== Dashboard Shows "idle" State
+
+*Symptom:* You clicked Start Walkthrough but nothing happens.
+
+*Fix:*
+
+. Check the browser console for errors
+. Hit the state endpoint: `curl <URL>/api/v1/demo/state`
+. If it returns `{"status": "idle"}`, the start request may not have reached the server -- try again
+. Check that the backend pod is running: `oc get pods -n deepfield-multimodal`
+
+=== Scale Run Takes Too Long
+
+*Symptom:* The scale run acts take more than 30 seconds each.
+
+*Fix:* This usually means LLM inference is being called during scale acts. The scale run should force rule-backed mode automatically. If it does not:
+
+. The demo will still complete, just slower
+. Mention to the audience: "We are using live LLM inference here to show the full capability -- in production, the scale tiers would run on CPU rules"
+
+=== Screenshots (Placeholders)
+
+The following screenshots should be captured from a live deployment and added to this guide:
+
+* `screenshot-title-slide.png` -- Title slide of the presentation
+* `screenshot-evidence-ingestion.png` -- Evidence artifacts being ingested with modality badges
+* `screenshot-nano-classification.png` -- Nanoagent classification results with rationale
+* `screenshot-cascade-complete.png` -- All three tiers completed with funnel visualization
+* `screenshot-action-proposed.png` -- Action card with human approval required
+* `screenshot-learning-proposal.png` -- Learning proposal with before/after values
+* `screenshot-scale-stress.png` -- Stress test with 15% failure rate metrics
+* `screenshot-claim.png` -- Final claim screen with summary statistics
+* `screenshot-bootstrap-lab.png` -- Bootstrap Lab scenario selection
+* `screenshot-rubric-matrix.png` -- Rubric matrix with green/yellow/red agents

@@ -1,0 +1,481 @@
+= Configuration
+:toc: left
+:toclevels: 3
+
+== Environment Variables
+
+All configuration is done through environment variables.
+No config files need to be mounted or edited.
+
+[cols="2,1,3,2"]
+|===
+| Variable | Required | Description | Default
+
+| `LITELLM_API_BASE`
+| No
+| Base URL for the LiteLLM proxy (OpenAI-compatible API). Controls whether micro and macro agents use LLM inference or fall back to rule-backed/template-based classification. When not set, the entire system runs without any inference calls.
+| (not set)
+
+| `LITELLM_API_KEY`
+| No
+| API key for the LiteLLM proxy. Sent as a Bearer token in the Authorization header.
+| (empty)
+
+| `LITELLM_MODEL_MICRO`
+| No
+| Model identifier for micro-tier LLM inference. Only used when `LITELLM_API_BASE` is set.
+| `granite-3-2-8b-instruct-cpu`
+
+| `LITELLM_MODEL_MACRO`
+| No
+| Model identifier for macro-tier LLM inference. Only used when `LITELLM_API_BASE` is set.
+| `granite-3-2-8b-instruct-cpu`
+
+| `BOOTSTRAP_API_BASE`
+| No
+| Base URL for the frontier model used during bootstrap analysis. This can be a different endpoint from the runtime LiteLLM proxy -- for example, you might use a Qwen 235B endpoint for bootstrap while using Granite 8B for runtime. Falls back to `LITELLM_API_BASE` if not set.
+| (falls back to `LITELLM_API_BASE`)
+
+| `BOOTSTRAP_API_KEY`
+| No
+| API key for the bootstrap frontier model endpoint. Falls back to `LITELLM_API_KEY` if not set.
+| (falls back to `LITELLM_API_KEY`)
+
+| `BOOTSTRAP_MODEL`
+| No
+| Model identifier for bootstrap analysis.
+| `claude-sonnet-4-6`
+
+| `DATABASE_URL`
+| No
+| PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/deepfield`). When not set, the app runs with in-memory storage. All features work without a database.
+| (not set)
+|===
+
+=== Configuration Modes
+
+Depending on which environment variables are set, the system operates in one of these modes:
+
+[cols="1,2,3"]
+|===
+| Mode | Variables Set | Behavior
+
+| *Standalone CPU*
+| None
+| All agents use rule-backed/template-based classification. No external dependencies. Full demo and Bootstrap Lab work. This is the default.
+
+| *Runtime LLM*
+| `LITELLM_API_BASE`, `LITELLM_API_KEY`
+| Micro and macro agents use LLM inference for richer classification. Nano agents remain deterministic. Falls back to rules if LLM is unavailable.
+
+| *Bootstrap + Runtime*
+| All `LITELLM_*` + all `BOOTSTRAP_*`
+| Full capability: frontier model for bootstrap analysis, runtime models for classification, deterministic nano agents.
+
+| *Bootstrap Only*
+| `BOOTSTRAP_API_BASE`, `BOOTSTRAP_API_KEY`, `BOOTSTRAP_MODEL`
+| Frontier model for bootstrap analysis, but runtime classification is rule-backed. Useful when you want smart initial rule generation but CPU-only runtime.
+|===
+
+== Pre-Built Profiles
+
+Pre-built profiles provide instant configuration for common domains.
+They are stored in `config/profiles/` and can be applied through the Bootstrap Lab without needing a frontier model.
+
+=== OpenShift Monitoring
+
+*File:* `config/profiles/openshift-monitoring.yaml`
+
+*Domain:* IT Operations
+
+*Connectors:* Kubernetes, Prometheus
+
+*Taxonomy:*
+
+[cols="1,3"]
+|===
+| Category | Values
+
+| Operational State
+| normal, watch, degraded, incident, critical
+
+| Incident Family
+| pod_crash, image_pull, node_pressure, resource_exhaustion, network, scheduling, storage, config_error
+
+| Action Class
+| observe, notify, ticket, restart_pod, scale_deployment, cordon_node
+|===
+
+*Nano Rules:*
+
+[cols="2,1,2,1"]
+|===
+| Rule | Modality | Condition | Severity
+
+| `crashloop_detect`
+| event
+| restarts > 3
+| high
+
+| `image_pull_failure`
+| event
+| reason contains ImagePullBackOff
+| high
+
+| `node_not_ready`
+| event
+| ready == False
+| critical
+
+| `memory_pressure`
+| event
+| memory_pressure == True
+| high
+
+| `pod_pending`
+| event
+| phase == Pending
+| medium
+
+| `warning_event`
+| event
+| count > 5
+| medium
+|===
+
+=== AAP Job Health
+
+*File:* `config/profiles/aap-job-health.yaml`
+
+*Domain:* IT Operations
+
+*Connectors:* API
+
+*Taxonomy:*
+
+[cols="1,3"]
+|===
+| Category | Values
+
+| Operational State
+| normal, watch, degraded, incident, critical
+
+| Incident Family
+| playbook_failure, workflow_failure, inventory_sync, credential_issue, host_unreachable, timeout, permission_denied, dependency_missing
+
+| Action Class
+| observe, notify, ticket, rerun_job, update_inventory, check_credentials
+|===
+
+*Nano Rules:*
+
+[cols="2,1,2,1"]
+|===
+| Rule | Modality | Condition | Severity
+
+| `job_failed`
+| event
+| status == failed
+| high
+
+| `job_timeout`
+| metric
+| elapsed > 3600
+| medium
+
+| `host_unreachable`
+| event
+| host_status == unreachable
+| high
+
+| `workflow_failed`
+| event
+| workflow_status == failed
+| critical
+|===
+
+=== ACS Security
+
+*File:* `config/profiles/acs-security.yaml`
+
+*Domain:* Security
+
+*Connectors:* API
+
+*Taxonomy:*
+
+[cols="1,3"]
+|===
+| Category | Values
+
+| Operational State
+| normal, watch, degraded, incident, critical
+
+| Incident Family
+| vulnerability_critical, vulnerability_high, policy_violation, runtime_alert, image_risk, network_anomaly, compliance_drift, privilege_escalation
+
+| Action Class
+| observe, notify, ticket, quarantine_image, block_deployment, update_policy
+|===
+
+*Nano Rules:*
+
+[cols="2,1,2,1"]
+|===
+| Rule | Modality | Condition | Severity
+
+| `critical_cve`
+| event
+| cvss_score > 9.0
+| critical
+
+| `high_cve`
+| event
+| cvss_score > 7.0
+| high
+
+| `policy_violation`
+| event
+| violation_state == active
+| high
+
+| `privileged_container`
+| event
+| privileged == true
+| high
+|===
+
+== Connector Types
+
+=== File Connector
+
+Reads CSV files and log files from the filesystem or fixture directory.
+
+*Configuration:*
+
+[source,json]
+----
+{
+  "source_type": "file",
+  "config": {
+    "path": "/path/to/data.csv"
+  }
+}
+----
+
+*Capabilities:* `connect()`, `sample(count)`, `stream()`
+
+=== Prometheus Connector
+
+Queries a Prometheus or Thanos API endpoint.
+
+*Configuration:*
+
+[source,json]
+----
+{
+  "source_type": "prometheus",
+  "config": {
+    "url": "https://prometheus:9090",
+    "query": "up",
+    "start": "2024-01-01T00:00:00Z",
+    "end": "2024-01-02T00:00:00Z",
+    "step": "60s"
+  }
+}
+----
+
+*Capabilities:* Query by PromQL, sample time ranges, stream live data.
+
+=== Kubernetes Connector
+
+Reads from the Kubernetes/OpenShift API.
+
+*Configuration:*
+
+[source,json]
+----
+{
+  "source_type": "kubernetes",
+  "config": {
+    "namespaces": ["default", "openshift-monitoring"],
+    "resources": ["pods", "events", "nodes"]
+  }
+}
+----
+
+*Capabilities:* Read pods, events, nodes, deployments across specified namespaces.
+
+*Requirements:* The service account must have `cluster-reader` role.
+
+== Taxonomy Configuration
+
+Taxonomies define the classification vocabulary -- the categories that agents can assign to signals.
+
+=== Default Taxonomies
+
+The default taxonomies are in `config/defaults/taxonomies/general.yaml`:
+
+[cols="1,3"]
+|===
+| Taxonomy | Values
+
+| `operational_state`
+| normal, watch, degraded, incident, critical, unknown
+
+| `signal_quality`
+| noise, duplicate, weak_signal, actionable, contradictory, missing_context
+
+| `incident_family`
+| infrastructure, application, model_serving, data_pipeline, security, capacity, quality, supply_chain, human_process, unknown, unclassified
+
+| `action_class`
+| observe, notify, ticket, scale, restart, quarantine, pause, rollback, human_approval, no_action
+|===
+
+=== Custom Taxonomies
+
+Profiles can define domain-specific taxonomies.
+For example, the OpenShift monitoring profile defines:
+
+* `incident_family`: pod_crash, image_pull, node_pressure, resource_exhaustion, network, scheduling, storage, config_error
+* `action_class`: observe, notify, ticket, restart_pod, scale_deployment, cordon_node
+
+When the Bootstrap Lab's frontier model analyzes your data, it proposes a taxonomy specific to your domain.
+You can edit this taxonomy before approving the configuration.
+
+== Promotion Thresholds
+
+Agent promotion thresholds are defined in `config/defaults/promotion.yaml`:
+
+[source,yaml]
+----
+candidate:
+  min_samples: 50
+  min_accuracy: 0.60
+  max_false_positive: 0.30
+
+nano:
+  min_samples: 200
+  min_accuracy: 0.75
+  max_false_positive: 0.15
+  max_false_negative: 0.20
+
+micro:
+  min_samples: 500
+  min_accuracy: 0.85
+  max_false_positive: 0.10
+  human_reviewed: true
+
+macro:
+  min_samples: 1000
+  min_accuracy: 0.85
+  max_false_positive: 0.05
+  human_reviewed: true
+  cross_modal_agreement: true
+----
+
+=== Threshold Descriptions
+
+[cols="1,3"]
+|===
+| Threshold | Meaning
+
+| `min_samples`
+| Minimum number of evidence artifacts the agent must be tested against before promotion
+
+| `min_accuracy`
+| Minimum accuracy (TP + TN) / total. Ground truth comes from baseline ranges -- no human labeling needed
+
+| `max_false_positive`
+| Maximum acceptable false positive rate (FP / (FP + TN)). Controls alert fatigue
+
+| `max_false_negative`
+| Maximum acceptable false negative rate (FN / (FN + TP)). Controls missed detections
+
+| `human_reviewed`
+| Whether a human must explicitly approve the promotion (click Promote in the UI)
+
+| `cross_modal_agreement`
+| Whether the agent's findings must be corroborated by agents processing different modalities
+|===
+
+== Pipeline Configuration
+
+The agent pipeline is defined in `config/defaults/pipeline.yaml`:
+
+=== Nano Agent Pipeline
+
+The seven built-in nanoagents run in this order:
+
+. `baseline_distance` -- Compares features to baseline thresholds
+. `metric_drift` -- Slope and z-score trend detection
+. `log_pattern` -- Regex pattern matching for errors
+. `document_heuristic` -- Keyword analysis for actionable terms
+. `image_metadata` -- Defect score evaluation
+. `audio_energy` -- Anomaly score evaluation
+. `evidence_gate` -- Escalation decision
+
+=== Escalation Thresholds
+
+[cols="1,1,3"]
+|===
+| Transition | Threshold | Description
+
+| Nano to Micro
+| confidence < 0.8
+| Signals with low nanoagent confidence escalate for richer classification
+
+| Nano to Micro
+| (automatic)
+| Image, audio, and document modalities always escalate
+
+| Nano to Micro
+| severity in [high, critical]
+| High-severity nano findings escalate
+
+| Micro to Macro
+| modality_threshold >= 2
+| Findings spanning 2+ modalities trigger macro reasoning
+
+| Micro to Macro
+| (automatic)
+| Any critical severity finding triggers macro reasoning
+|===
+
+== Bootstrap Model Selection
+
+The Bootstrap Lab can use different frontier models for initial analysis.
+The choice depends on your security and performance requirements:
+
+[cols="2,1,2,3"]
+|===
+| Model | Type | Provider | When to Use
+
+| `qwen3-235b`
+| Open-weight
+| Alibaba / Intel Gaudi
+| Best for on-premises deployments. Can run on Intel Gaudi with TDX isolation. No data leaves your network.
+
+| `granite-3-2-8b-instruct-cpu`
+| Open-weight
+| IBM / Red Hat
+| Lightweight option. Runs on CPU. Good for environments without GPU access.
+
+| `claude-sonnet-4-6`
+| Frontier
+| Anthropic
+| Highest quality analysis. Cloud-hosted. Best when data sensitivity allows external API calls.
+
+| `claude-opus-4-6`
+| Frontier
+| Anthropic
+| Maximum reasoning capability. Use for complex domains where analysis quality is critical.
+
+| `claude-haiku-4-5`
+| Frontier
+| Anthropic
+| Fast and cost-effective. Good balance of quality and speed for bootstrap analysis.
+|===
+
+NOTE: The bootstrap model is only used during initial analysis in the Bootstrap Lab. After rules are generated and approved, the system runs entirely on CPU with deterministic and rule-backed agents. No ongoing frontier model dependency.

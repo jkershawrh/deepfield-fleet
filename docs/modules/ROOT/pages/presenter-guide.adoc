@@ -1,0 +1,198 @@
+= Presenter Guide
+:toc: left
+:toclevels: 3
+
+This guide covers what to say at each step of the DeepField Multimodal demo.
+The demo has three parts: a presentation (7 slides), an auto-orchestrated walkthrough (8 acts), and a scale run (5 acts).
+After those, attendees enter the Bootstrap Lab for hands-on self-service.
+
+== Before You Start
+
+* Open the DeepField Multimodal URL in a browser
+* Verify the app loads (you should see the presentation view)
+* If using live LLM inference, confirm the Infrastructure panel shows "LLM inference via LiteLLM"
+* If running CPU-only, confirm it shows "Rule-backed (no LLM configured)" -- this is the default and works perfectly for the demo
+* Have this guide open on a second screen or printed
+
+== Part 1: Presentation Slides
+
+The presentation sets the thesis before the live demo begins.
+Click through slides at your own pace.
+Each slide has a key message -- say it, then move on.
+
+=== Slide 1: Title (30 seconds)
+
+*Key message:* "This is DeepField Multimodal -- an agentic signal classification engine built on Red Hat OpenShift and Intel Xeon."
+
+Say: "We are going to show you something different today. Not another chatbot. Not another code generator. An engine that classifies enterprise signals -- metrics, logs, events, images, audio -- and turns them into governed action. All on CPU."
+
+=== Slide 2: The Problem (45 seconds)
+
+*Key message:* "Enterprises are drowning in signals, not insights."
+
+Say: "Every enterprise has the same problem. Prometheus is firing. Logs are filling up. Events are piling on. You have more signals than any team can process. The question is not 'how do I generate more?' -- the question is 'what am I looking at?'"
+
+=== Slide 3: The Thesis (45 seconds)
+
+*Key message:* "The first job of enterprise AI is not generation -- it is classification."
+
+Say: "Before you generate a single token, you need to know what you are looking at. Classification comes first. And here is the key insight: 98% of classification does not need a GPU. It does not need an LLM. It needs fast, deterministic agents running on the infrastructure you already have."
+
+=== Slide 4: The Three Tiers (60 seconds)
+
+*Key message:* "Nano, micro, macro -- cheapest first, most expensive last."
+
+Say: "DeepField uses a three-tier cascade. Nanoagents are pure CPU -- threshold checks, pattern matching, evidence gating. Seven of them, fully deterministic. Microagents are rule-backed classifiers -- text, image, audio, document. Still CPU. Macroagents do the heavy reasoning -- incident timelines, root cause analysis, action planning. They can use an LLM when configured, but they don't have to. The cascade compresses signal volume so only the most important findings reach expensive tiers."
+
+=== Slide 5: The Loop (45 seconds)
+
+*Key message:* "Signals, Decide, Act, Verify, Learn -- and the system gets smarter."
+
+Say: "This is not a one-shot classifier. It is a continuous loop. Signals come in. The cascade decides what they are. The system proposes safe action -- never destructive without human approval. It verifies whether the action worked. And it proposes what should be learned for next time. The learning is never applied silently. Always reviewed."
+
+=== Slide 6: Intel + Red Hat (30 seconds)
+
+*Key message:* "CPU-native classification on the platform you already run."
+
+Say: "This runs on Red Hat OpenShift. It uses Intel Xeon for the heavy lifting. No GPU cluster required. When you need a frontier model -- at bootstrap time, to generate initial rules -- Intel TDX provides hardware-isolated security. After bootstrap, it is all CPU."
+
+=== Slide 7: Let Me Show You (15 seconds)
+
+*Key message:* Transition to the live walkthrough.
+
+Say: "Enough slides. Let me show you."
+
+Click the *Start Walkthrough* button.
+
+== Part 2: Auto-Orchestrated Walkthrough
+
+The walkthrough runs automatically with pause points between each act.
+You narrate while the system processes.
+Each act auto-pauses at the end so you can explain what happened before clicking *Next*.
+
+=== Act 1: The Ordinary World (10 seconds)
+
+*What happens:* The dashboard shows a factory production line in normal state. Vibration RMS at 0.22, temperature at 38.2C.
+
+*What to say:* "A factory production line. Bearings spinning. Temperature steady. Every signal says: normal. This is the baseline -- the shape of what healthy looks like."
+
+*When it pauses:* Click Next.
+
+=== Act 2: The Call to Adventure (12 seconds)
+
+*What happens:* Evidence artifacts are ingested one by one. The UI shows each artifact appearing with its modality (metric, log, document, image, audio) and feature extraction happening in real time.
+
+*What to say:* "Now signals arrive. Vibration readings. Temperature data. A maintenance log. A surface inspection image. An audio sample from the bearing. Each one gets feature-extracted on CPU -- no inference endpoint called. Watch the modality badges -- this is multimodal evidence."
+
+*When it pauses:* "Six evidence artifacts across five modalities. All ingested. Now the system needs to understand what normal looks like."
+
+=== Act 3: Crossing the Threshold (12 seconds)
+
+*What happens:* The baseline compiler runs. Statistical signatures appear -- means, standard deviations, normal ranges, thresholds.
+
+*What to say:* "The baseline compiler analyzes historical evidence and computes the shape of normal. For vibration: normal range is 0.18 to 0.26 RMS. For temperature: 37.8 to 38.5 degrees. Any signal outside these boundaries will be flagged. This is deterministic. No LLM. Pure statistics."
+
+*When it pauses:* "Baseline ready. Now watch what happens when signals start deviating."
+
+=== Act 4: The Ordeal -- Nano Tier (15 seconds)
+
+*What happens:* Seven nanoagents run in sequence. Each one produces classifications. The UI shows agent names, classification results, and rationale.
+
+*What to say:* "Seven nanoagents. All deterministic. No GPU. Watch: baseline_distance checks if vibration has drifted. metric_drift checks the z-score. log_pattern finds ERROR entries. evidence_gate decides what escalates. Each agent produces a classification with confidence and rationale. This is the compression layer -- most signals get classified right here."
+
+*Key point to emphasize:* "This is where 98% of the work happens. On CPU. No inference cost per signal."
+
+*When it pauses:* State the numbers. "X classifications from 7 agents. Y escalated to micro."
+
+=== Act 5: The Ordeal -- Micro Tier (12 seconds)
+
+*What happens:* Four microagents process escalated evidence. Image classifier evaluates defect scores. Audio classifier evaluates anomaly scores.
+
+*What to say:* "Only the escalated evidence reaches micro. The text classifier matches incident-family patterns. The image classifier evaluates the surface defect. The audio classifier checks the vibration anomaly. All running on CPU with rule-backed classification. Extension points exist for OpenVINO and ONNX -- still CPU-native."
+
+*When it pauses:* "Micro tier complete. Multiple modalities are reporting problems. Time for macroagent reasoning."
+
+=== Act 6: The Ordeal -- Macro Tier (12 seconds)
+
+*What happens:* Five macroagents reason across all evidence and prior classifications. Incident timeline, root cause hypothesis, action plan, verification plan, learning proposal.
+
+*What to say:* "The incident timeline agent sequences everything by timestamp. The root cause hypothesis agent sees that multiple modalities agree -- vibration, temperature, image, audio all point to the same thing. Bearing failure. The action planner proposes: notify the maintenance team. The verification planner sets up a check: did vibration return to baseline after intervention?"
+
+*When it pauses:* "The cascade is complete. From raw signals to root cause in three tiers."
+
+=== Act 7: The Reward (10 seconds)
+
+*What happens:* An action is proposed. It is non-destructive (notify). It requires human approval.
+
+*What to say:* "The system proposes action: notify maintenance. Notice: it requires human approval. This is a strict safety model. Only non-destructive operations -- notify, observe, ticket -- are proposed automatically. Anything destructive requires explicit human sign-off."
+
+*When it pauses:* "Action proposed. Verification created. Now -- what does the system learn?"
+
+=== Act 8: The Return (10 seconds)
+
+*What happens:* A learning proposal appears. It suggests tightening vibration thresholds for earlier detection.
+
+*What to say:* "The system learned from this incident. It proposes: lower the vibration warning threshold from 2.0 sigma to 1.8 sigma for earlier detection next time. But -- and this is critical -- the proposal is not applied silently. It requires human review. The system suggests. Humans decide."
+
+*When it pauses:* "Single-line walkthrough complete. Now the real question: does it scale?"
+
+== Part 3: Scale Run
+
+The scale run proves the architecture handles volume.
+It runs automatically after the walkthrough.
+
+=== Scale 10 Lines (12 seconds)
+
+*What to say:* "Ten factory lines. Ten times the evidence. But the nanoagent pipeline is deterministic -- it scales linearly. No inference cost per signal. Watch the compression ratio."
+
+*What to emphasize:* The elapsed time in milliseconds. The compression ratio. "All on CPU."
+
+=== Scale 50 Lines (12 seconds)
+
+*What to say:* "Fifty production lines. Hundreds of evidence artifacts. Thousands of classifications. The three-tier cascade compresses the volume. Only the most important findings reach macro-level reasoning. Still all on CPU."
+
+=== Stress Test (15 seconds)
+
+*What to say:* "Now we break it. Fifteen percent failure rate. Bearing failures cascading across the plant. This is an incident storm. Watch what happens: the nanoagent filter layer absorbs the blast. More evidence escalates, but the system does not break. It classifies, proposes, verifies."
+
+*What to emphasize:* The nano retention rate dropping (more signals escalating). The system staying functional. The actions proposed.
+
+=== Recovery (10 seconds)
+
+*What to say:* "The storm passes. Failure rate drops to 2%. Metrics stabilize. But the system learned from the storm -- more anomaly families identified, more threshold proposals generated. Each incident makes the baseline smarter."
+
+=== The Claim (8 seconds)
+
+*What to say:* "One CPU. No GPU. No LLM for 98% of the work. Seventeen agents across three tiers. This is what enterprise AI looks like when you start with classification instead of generation."
+
+*Pause here.* Let the numbers sink in.
+
+== Part 4: Bootstrap Lab Handoff
+
+After the scale run completes, invite attendees to try the Bootstrap Lab.
+
+*What to say:* "That was the built-in scenario -- a factory bearing failure. But the real power is that you can connect your own data. The Bootstrap Lab lets you pick a scenario -- OpenShift cluster health, telecom network operations, AAP job monitoring -- or connect your own Prometheus endpoint. A frontier model analyzes your signals, generates classification rules, and you validate them before they go live. Want to try it?"
+
+Direct attendees to the xref:lab-guide.adoc[Lab Guide].
+
+== Common Audience Questions
+
+=== "Is this just monitoring?"
+
+No. Monitoring tells you something is wrong. DeepField classifies what is wrong, proposes action, verifies the action worked, and learns for next time. The loop is: Signals, Decide, Act, Verify, Learn.
+
+=== "Why not just use an LLM for everything?"
+
+Cost and latency. A frontier model costs $3-15 per million input tokens. Most enterprise signals do not need that. A deterministic nanoagent costs nothing per signal. The cascade ensures you only pay for LLM inference when it adds value.
+
+=== "What if the LLM is down?"
+
+The system degrades gracefully. Nanoagents are fully deterministic -- they never need an LLM. Microagents fall back to rule-backed classification. Macroagents fall back to template-based reasoning. The demo you just saw can run entirely without any LLM configured.
+
+=== "How long does deployment take?"
+
+The container image is ~210 MB. Deployment to OpenShift takes under 5 minutes. First demo runs in 30 seconds. The Bootstrap Lab takes 10-15 minutes to connect, analyze, and validate a new data source.
+
+=== "Can I use my own models?"
+
+Yes. The system uses LiteLLM, which supports any OpenAI-compatible API. You can point it at vLLM, Ollama, Granite on Intel Gaudi, or any hosted endpoint. For bootstrap, you can choose from Qwen 3 235B, Granite, or Claude Sonnet.

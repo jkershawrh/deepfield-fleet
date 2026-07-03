@@ -1,0 +1,319 @@
+= Lab Guide
+:toc: left
+:toclevels: 3
+
+This is a self-paced lab for Summit Connect attendees.
+You will walk through a guided presentation, watch a live classification walkthrough, observe a scale test, and then use the Bootstrap Lab to connect your own data source and build classification agents.
+
+== Prerequisites
+
+* A modern web browser (Chrome, Firefox, Edge, Safari)
+* The DeepField Multimodal URL provided by your lab instructor
+* No local software installation required -- everything runs in the browser
+
+== Step 1: Click Through the Presentation
+
+When you open the DeepField Multimodal URL, you will see a presentation view.
+
+. Click the *right arrow* or *Next* button to advance through 7 slides
+. The slides explain:
+** What DeepField Multimodal is -- an agentic signal classification engine
+** Why classification matters more than generation for enterprise AI
+** The three-tier cascade: nano (deterministic CPU), micro (rule-backed), macro (reasoning)
+** The continuous loop: Signals, Decide, Act, Verify, Learn
+** The Red Hat + Intel partnership: CPU-native, no GPU required
+. Take your time -- each slide has key points about the architecture
+
+After the final slide, you will see a *Start Walkthrough* button.
+
+== Step 2: Step Through the Walkthrough
+
+Click *Start Walkthrough* to begin the auto-orchestrated demo.
+
+The walkthrough tells the story of a factory bearing failure through 8 acts.
+Each act runs automatically, then pauses so you can read the results before clicking *Next*.
+
+=== What to watch for in each act:
+
+[cols="1,3"]
+|===
+| Act | What to Notice
+
+| *The Ordinary World*
+| Normal factory metrics: vibration 0.22 RMS, temperature 38.2C. This is the baseline.
+
+| *The Call to Adventure*
+| Evidence artifacts arriving one by one. Watch the modality badges -- metric, log, document, image, audio. All feature extraction happens on CPU.
+
+| *Crossing the Threshold*
+| The baseline compiler computes normal ranges. Vibration normal: 0.18-0.26. Temperature normal: 37.8-38.5. These become the detection boundaries.
+
+| *Nano Tier*
+| Seven deterministic agents classify in sequence. Watch for baseline_distance detecting vibration drift, metric_drift flagging z-scores, log_pattern finding ERROR entries. No LLM. No GPU. Pure CPU.
+
+| *Micro Tier*
+| Only escalated evidence reaches here. Image classifier evaluates surface defects. Audio classifier evaluates anomaly scores. Rule-backed, CPU-native.
+
+| *Macro Tier*
+| Cross-modal convergence: vibration + temperature + image + audio all pointing to bearing failure. Incident timeline, root cause hypothesis, action plan.
+
+| *The Reward*
+| A safe action is proposed: notify maintenance. Requires human approval. Non-destructive by design.
+
+| *The Return*
+| A learning proposal: tighten vibration thresholds for earlier detection. Not applied silently -- requires review.
+|===
+
+At each pause, click *Next* to advance.
+
+== Step 3: Watch the Scale Run
+
+After the walkthrough, the scale run begins automatically.
+This proves the architecture handles real-world volume.
+
+[cols="1,2,2"]
+|===
+| Scale Act | What Happens | What to Notice
+
+| *10 Lines*
+| 10 factory lines, ~60 evidence artifacts
+| The nanoagent pipeline scales linearly. Watch the compression ratio and elapsed time.
+
+| *50 Lines*
+| 50 factory lines, ~300 artifacts
+| Thousands of classifications. Still all on CPU. Watch the compression ratio grow.
+
+| *Stress Test*
+| 50 lines at 15% failure rate
+| An incident storm. The nano filter absorbs the blast. Macro tier activates for critical findings.
+
+| *Recovery*
+| Failure rate drops to 2%
+| System stabilizes. Learning proposals capture what was learned from the storm.
+
+| *The Claim*
+| Summary statistics
+| Total evidence processed, total classifications, peak lines, zero GPU.
+|===
+
+== Step 4: Enter the Bootstrap Lab
+
+After the scale run completes, navigate to the *Bootstrap Lab* section.
+
+The Bootstrap Lab is where you connect your own data and build classification agents from scratch.
+A frontier model (Qwen 3 235B, Granite, or Claude Sonnet) analyzes your data, proposes classification rules, and you validate them before they go live.
+
+== Step 5: Pick a Scenario
+
+The Bootstrap Lab offers four pre-built scenarios.
+Pick the one closest to your domain:
+
+[cols="1,2,2,1"]
+|===
+| Scenario | Domain | What It Monitors | Signals
+
+| *OpenShift Cluster*
+| IT Operations
+| Pod health, node status, cluster events across 8 namespaces. 85 Running pods, 5 CrashLoopBackOff, 3 Pending, 2 ImagePullBackOff. Warning events: BackOff, FailedMount, Unhealthy, OOMKilled.
+| 156
+
+| *Telecom Network*
+| Telecom
+| Cell tower signal quality, packet loss, outage events across 100 towers. 10% showing degradation.
+| 150
+
+| *AAP Jobs*
+| IT Operations
+| Ansible Automation Platform job execution -- playbook failures, timeouts, unreachable hosts, workflow errors. 60 successful, 10 failed, 5 timeout.
+| 100
+
+| *Factory Floor*
+| Manufacturing
+| Vibration drift, thermal increase, surface defect images, and maintenance notes from a bearing failure scenario.
+| 6 (multimodal)
+|===
+
+To load a scenario:
+
+. Click on the scenario card
+. The lab loads sample data from the fixture files
+. You will see a preview of the first few samples
+
+== Step 6: Analyze with Quick Start or Deep Analyze
+
+You have two options:
+
+=== Option A: Quick Start (Profile Apply)
+
+If you picked OpenShift Cluster or AAP Jobs, a pre-built profile is available:
+
+. Click *Apply Profile*
+. The profile loads pre-built nano rules, taxonomy, and prompts
+. No frontier model needed -- instant configuration
+
+Pre-built profiles available:
+
+* `openshift-monitoring` -- Detects CrashLoopBackOff, ImagePullBackOff, NodeNotReady, MemoryPressure, Pending pods, repeated warning events
+* `aap-job-health` -- Detects job failures, timeouts, unreachable hosts, workflow failures
+* `acs-security` -- Detects critical CVEs (CVSS > 9.0), high CVEs (CVSS > 7.0), policy violations, privileged containers
+
+=== Option B: Deep Analyze (Frontier Model)
+
+For any scenario, you can run a frontier model analysis:
+
+. Click *Analyze*
+. Optionally provide hints (e.g., "This is OpenShift pod data" or "These are network metrics")
+. The frontier model (Qwen 3 235B by default) analyzes your sample data
+. It returns:
+** Detected modality and domain
+** Proposed taxonomy (operational states, incident families, action classes)
+** Proposed nano rules with conditions and classification outputs
+** Suggested micro and macro prompts
+. Review the analysis -- you can edit any part before proceeding
+
+== Step 7: Validate -- See the Rubric Matrix
+
+After applying a profile or completing analysis:
+
+. Click *Validate*
+. The system runs all proposed agents against the sample data
+. You see the *rubric matrix*:
+
+[cols="1,2,2"]
+|===
+| Color | Meaning | Action
+
+| *Green*
+| Accuracy >= 75%, FP rate <= 15%
+| Agent is ready for production
+
+| *Yellow*
+| Accuracy >= 60%
+| Agent works but needs more validation data
+
+| *Red*
+| Accuracy < 60%
+| Agent needs reconfiguration -- check the rule conditions
+|===
+
+The matrix shows each agent with:
+
+* Name and tier (draft/candidate/nano/micro/macro)
+* Accuracy, false positive rate, false negative rate
+* Coverage (what percentage of evidence it classifies)
+* Confidence calibration (none/rough/calibrated)
+* Promotion history
+
+== Step 8: Promote Agents
+
+Agents start at the *draft* tier.
+To promote an agent:
+
+. Find the agent in the rubric matrix
+. Check that it meets the promotion requirements:
+** Draft to candidate: 50 samples, 60% accuracy, 30% max FP rate
+** Candidate to nano: 200 samples, 75% accuracy, 15% max FP rate, 20% max FN rate
+** Nano to micro: 500 samples, 85% accuracy, 10% max FP rate, human reviewed
+** Micro to macro: 1,000 samples, 85% accuracy, 5% max FP rate, human reviewed, cross-modal agreement
+. Click *Promote*
+. The agent's tier advances and its rubric status updates
+
+You can also *demote* agents back to draft if they are not performing well.
+
+NOTE: In the lab environment, sample counts may be lower than the promotion thresholds. The system will still show you the rubric status so you can see where each agent stands.
+
+== Step 9: Explore the Pipeline
+
+After validation, you can test the full pipeline:
+
+. Click *Test Pipeline* to run nano classification against the loaded samples
+. See how many classifications are generated
+. See which agents fired and what they classified
+. Check the baseline confidence
+
+You can also explore the API directly:
+
+[cols="1,2"]
+|===
+| Endpoint | What It Does
+
+| `GET /api/v1/bootstrap/scenarios`
+| List available scenarios
+
+| `POST /api/v1/bootstrap/scenarios/{id}/load`
+| Load a scenario's sample data
+
+| `GET /api/v1/bootstrap/profiles`
+| List available pre-built profiles
+
+| `POST /api/v1/bootstrap/profiles/{id}/apply`
+| Apply a pre-built profile
+
+| `POST /api/v1/bootstrap/analyze`
+| Run frontier model analysis on loaded samples
+
+| `POST /api/v1/bootstrap/validate`
+| Run validation and get rubric matrix
+
+| `GET /api/v1/bootstrap/rubric`
+| Get current rubric matrix
+
+| `POST /api/v1/bootstrap/promote/{agent_id}`
+| Promote an agent to the next tier
+
+| `POST /api/v1/bootstrap/test`
+| Run nano pipeline against loaded samples
+|===
+
+== Step 10: Connect Your Own Prometheus
+
+The ultimate goal: connect DeepField to your own data.
+
+If you have a Prometheus endpoint available:
+
+. In the Bootstrap Lab, select *Prometheus* as the connector type
+. Enter your Prometheus URL and any required authentication
+. The connector will sample 200 data points
+. Run the analysis -- the frontier model will identify your metrics, propose taxonomies, and generate classification rules
+. Validate the agents against your real data
+. Promote the ones that pass
+
+If you have a Kubernetes/OpenShift cluster:
+
+. Select *Kubernetes* as the connector type
+. The connector reads pods, events, and node status from the cluster API
+. The analysis proposes rules for your specific cluster's patterns
+
+If you have CSV or log files:
+
+. Select *File* as the connector type
+. Point it at your data file
+. The connector reads and samples from the file
+
+== Closing
+
+You have now:
+
+. Seen the three-tier classification cascade in action
+. Watched it scale to 50 production lines and handle an incident storm
+. Used the Bootstrap Lab to connect a data source and build agents
+. Validated agents with the rubric matrix and promoted them through tiers
+
+The key takeaway: *enterprise AI starts with classification, not generation*.
+98% of the work runs on CPU.
+Frontier models are used once at bootstrap to generate rules, then the system runs deterministically.
+
+To deploy DeepField Multimodal in your own environment, see the xref:deployment.adoc[Deployment Guide].
+
+To connect your own Prometheus, Kubernetes, or file data sources to a running instance, use the Bootstrap Lab API:
+
+....
+POST /api/v1/bootstrap/connect
+{
+  "source_type": "prometheus",
+  "config": {
+    "url": "https://your-prometheus:9090",
+    "query": "up"
+  }
+}
+....

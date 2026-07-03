@@ -1,0 +1,317 @@
+= Architecture
+:toc: left
+:toclevels: 3
+
+== Three-Tier Cascade
+
+DeepField Multimodal processes enterprise signals through a three-tier agent cascade.
+Each tier is progressively more capable and more expensive.
+The architecture ensures that cheap, deterministic agents handle the majority of signals, and only the most complex findings reach reasoning-level agents.
+
+....
+  Historical / Live / Synthetic Sources
+          |
+          v
+    Evidence Normalizer
+          |
+          +-------------------+
+          v                   v
+    Baseline Compiler    Runtime Signal Flow
+          |                   |
+          v                   v
+    Baseline Profiles    Nanoagent Classification (7 agents)
+          |                   |     [deterministic, CPU only]
+          +--------+----------+
+                   v
+          Microagent Inference (5 agents)
+                   |     [rule-backed, CPU, OpenVINO/ONNX extension]
+                   v
+          Macroagent Reasoning (5 agents)
+                   |     [template-based or LLM via LiteLLM]
+                   v
+       Decide -> Act -> Verify -> Learn
+                   |
+                   v
+          Dashboard + API
+....
+
+=== Tier Details
+
+==== Nanoagents (7) -- Deterministic, No LLM
+
+Nanoagents are pure CPU agents.
+They perform threshold checks, pattern matching, and gating decisions.
+No inference endpoint is ever called.
+
+[cols="2,4"]
+|===
+| Agent | What It Does
+
+| `baseline_distance`
+| Compares feature values to baseline thresholds, flags drift beyond normal ranges
+
+| `metric_drift`
+| Slope and z-score checks -- detects gradual trends in metric time series
+
+| `log_pattern`
+| Regex pattern matching for ERROR/WARN/CRIT in log evidence
+
+| `document_heuristic`
+| Keyword analysis for actionable terms in documents and notes
+
+| `image_metadata`
+| Defect score evaluation from image inspection labels
+
+| `audio_energy`
+| Anomaly score evaluation from audio/vibration sensor labels
+
+| `evidence_gate`
+| Decides ignore/retain/escalate for each evidence piece based on modality and severity
+|===
+
+==== Microagents (5) -- Rule-Backed Classifiers
+
+Microagents run entirely on CPU using rule-backed classification.
+When `LITELLM_API_BASE` is configured, they can optionally use LLM inference.
+Extension points exist for OpenVINO and ONNX optimized inference, keeping the pipeline CPU-native.
+
+[cols="2,2,4"]
+|===
+| Agent | Modalities | What It Does
+
+| `text_classifier`
+| text, log
+| Pattern matching against known incident families -- infrastructure, quality, security, capacity
+
+| `document_classifier`
+| document
+| Document type and sensitivity classification by keyword analysis
+
+| `image_classifier`
+| image
+| Defect classification using fixture labels -- extension point for OpenVINO/ONNX
+
+| `audio_classifier`
+| audio
+| Anomaly classification using fixture labels -- extension point for OpenVINO/ONNX
+
+| `embedding_classifier`
+| (placeholder)
+| Extension point for embedding/clustering via vector inference
+|===
+
+==== Macroagents (5) -- Higher-Level Reasoning
+
+Macroagents perform cross-modal correlation and reasoning.
+By default they use template-based reasoning on CPU.
+When `LITELLM_API_BASE` is configured, they use LLM inference for richer reasoning.
+
+[cols="2,4"]
+|===
+| Agent | What It Does
+
+| `incident_timeline`
+| Sequences evidence by timestamp, overlays classifications to build incident narrative
+
+| `root_cause_hypothesis`
+| Counts classification families across modalities to identify most likely root cause
+
+| `action_planner`
+| Proposes safe actions (notify, observe, ticket) -- never destructive without human approval
+
+| `verification_planner`
+| Builds verification plan to check if post-action metrics return to baseline
+
+| `learning_proposal`
+| Proposes threshold/rule updates based on high-confidence findings -- never auto-applied
+|===
+
+== Escalation Logic
+
+Not every signal reaches every tier.
+The cascade uses explicit escalation rules:
+
+=== Nano to Micro
+
+A signal escalates from nano to micro when:
+
+* The evidence modality is `image`, `audio`, or `document` (always escalated -- these require richer analysis)
+* Any nanoagent classified the signal as `actionable` or `escalate`
+* Any nanoagent assigned severity `high` or `critical`
+* A nanoagent's confidence is below 0.8 and the classification is not `normal` or `noise`
+
+Confidence threshold: *0.8*
+
+=== Micro to Macro
+
+Signals escalate from micro to macro when:
+
+* High or critical severity findings span *2 or more modalities* (cross-modal convergence)
+* Any microagent assigned `critical` severity
+
+Modality threshold: *2*
+
+== Agent Promotion Pipeline
+
+Agents are not born trusted.
+They earn their tier through empirical validation.
+
+....
+draft -> candidate -> nano -> micro -> macro
+....
+
+Each promotion requires meeting specific thresholds:
+
+[cols="1,1,1,1,1,1"]
+|===
+| Tier | Min Samples | Min Accuracy | Max FP Rate | Max FN Rate | Additional
+
+| *candidate*
+| 50
+| 60%
+| 30%
+| --
+| --
+
+| *nano*
+| 200
+| 75%
+| 15%
+| 20%
+| --
+
+| *micro*
+| 500
+| 85%
+| 10%
+| --
+| Human reviewed
+
+| *macro*
+| 1,000
+| 85%
+| 5%
+| --
+| Human reviewed + cross-modal agreement
+|===
+
+Ground truth is baseline-derived: evidence within normal ranges counts as normal, evidence outside ranges counts as abnormal.
+No human labeling is required for promotion -- the baseline provides the truth signal.
+
+== Rubric Matrix
+
+Every agent carries a rubric status: *green*, *yellow*, or *red*.
+
+[cols="1,2,2"]
+|===
+| Status | Criteria | Meaning
+
+| *Green*
+| Accuracy >= 75%, FP rate <= 15%
+| Agent is trusted and production-ready
+
+| *Yellow*
+| Accuracy >= 60%
+| Agent is functional but needs more validation
+
+| *Red*
+| Accuracy < 60%
+| Agent is not ready -- needs retraining or reconfiguration
+|===
+
+The overall system rubric is computed from all agents:
+
+* *Green* if 50% or more of agents are green
+* *Yellow* if 30% or more of agents are green or yellow
+* *Red* otherwise
+
+== Evidence-Based Constraint Classification
+
+Constraints require accumulated evidence before triggering -- not a single event, but a pattern of evidence building a case.
+
+Two constraint types:
+
+* *`single_event`* -- Fires on a single evidence match (e.g., `restarts > 3`)
+* *`evidence_based`* -- Requires multiple conditions to be met across classifications and evidence before firing (e.g., both vibration drift AND temperature increase AND image defect must be present)
+
+Confidence for evidence-based constraints is proportional to conditions met: `met_count / total_conditions`.
+
+== Cross-Modal Convergence
+
+For macro-tier promotion and for escalation decisions, the system detects *cross-modal convergence*: when multiple modalities independently agree on a finding.
+
+The algorithm:
+
+. Collect all high-confidence (>= 0.6) classifications with severity `high` or `critical`
+. Group by resource (namespace or evidence ID)
+. If any resource has findings from 2 or more distinct modalities, convergence is detected
+
+Cross-modal convergence is a prerequisite for macro-tier agent promotion.
+It ensures that the most trusted agents are those that have been validated across signal types.
+
+== GPU Economics
+
+The architecture is designed around a key insight: *GPU is expensive and most classification does not need it*.
+
+[cols="1,3"]
+|===
+| Layer | GPU Requirement
+
+| Nanoagents (7)
+| None -- pure deterministic CPU
+
+| Microagents (5)
+| None by default -- rule-backed on CPU. Optional OpenVINO/ONNX for specialized inference (still CPU)
+
+| Macroagents (5)
+| None by default -- template-based CPU. Optional LLM via LiteLLM when configured
+
+| Bootstrap
+| Frontier model (Qwen 235B, Granite, Claude Sonnet) used once to generate initial rules. After bootstrap, the system runs on CPU
+|===
+
+Net result: *98% of classification runs on CPU*.
+Frontier models are used only at bootstrap time.
+The nanoagent compression layer ensures that even when LLM inference is configured, the volume of requests to expensive models is minimized.
+
+== Intel TDX for Secure Bootstrap
+
+When using a frontier model (e.g., Qwen 3 235B on Intel Gaudi) at bootstrap time, the system can leverage Intel Trust Domain Extensions (TDX) to ensure that the bootstrap conversation -- which may contain sensitive enterprise signal patterns -- runs in a hardware-isolated secure enclave.
+
+After bootstrap, the generated rules are deterministic and contain no sensitive data.
+The TDX boundary is only needed for the initial frontier model conversation.
+
+== Connector Architecture
+
+DeepField Multimodal connects to data sources through a pluggable connector interface:
+
+[cols="1,2,2"]
+|===
+| Connector | Source | Capabilities
+
+| *File*
+| CSV files, log files, fixture data
+| `connect()`, `sample(count)`, `stream()`
+
+| *Prometheus*
+| Prometheus/Thanos API
+| Query metrics by PromQL, sample time ranges, stream live data
+
+| *Kubernetes*
+| Kubernetes/OpenShift API
+| Read pods, events, nodes, deployments across namespaces
+|===
+
+All connectors implement the `BaseConnector` interface:
+
+....
+class BaseConnector(ABC):
+    name: str = "base"
+
+    def connect(self, config: dict) -> bool: ...
+    def sample(self, count: int = 200) -> list[dict]: ...
+    def stream(self) -> Iterator[dict]: ...
+    def describe(self) -> dict: ...
+....
+
+Connectors are used both in the Bootstrap Lab (for connecting to live data sources) and in production (for continuous signal ingestion).

@@ -1,0 +1,125 @@
+= DeepField Multimodal
+:page-layout: home
+
+== What is DeepField Multimodal?
+
+DeepField Multimodal is an *Agentic Signal Classification Engine* built on Red Hat OpenShift and optimized for Intel Xeon processors.
+It turns enterprise signals -- metrics, logs, events, images, audio, documents -- into classified, governed, verified action.
+
+The thesis is straightforward:
+
+[quote]
+____
+The first job of enterprise AI is not generation -- it is classification.
+Before you generate a single token, you must know what you are looking at.
+____
+
+Most enterprise signals -- 98% of them -- do not need a large language model.
+They need a fast, deterministic classifier that runs on a CPU.
+DeepField Multimodal proves this by processing the vast majority of signals without ever calling an inference endpoint.
+
+== The Three-Tier Cascade
+
+DeepField uses a three-tier agent cascade that processes signals from cheapest to most expensive:
+
+[cols="1,2,2,2"]
+|===
+| Tier | Agents | Decision Type | Runtime
+
+| *Nano*
+| 7 deterministic agents
+| Threshold checks, pattern matching, evidence gating
+| CPU only -- no inference
+
+| *Micro*
+| 5 rule-backed classifiers
+| Text, document, image, audio, embedding classification
+| CPU (Xeon-optimized), extension points for OpenVINO/ONNX
+
+| *Macro*
+| 5 reasoning agents
+| Incident timeline, root cause hypothesis, action planning, verification, learning
+| CPU (template-based) or LLM via LiteLLM when configured
+|===
+
+The cascade compresses signal volume so only the most important findings reach expensive reasoning tiers.
+Nanoagents handle the blast.
+Microagents refine.
+Macroagents reason about what remains.
+
+== Key Metrics
+
+[cols="1,3"]
+|===
+| Metric | Value
+
+| *Tests*
+| 207 tests across CDD, TDD, BDD, and EDD methodologies
+
+| *Container size*
+| ~210 MB OCI image (multi-stage build: Node 20 frontend + Python 3.11 backend)
+
+| *Time to first demo*
+| 30 seconds from `podman run` to live walkthrough
+
+| *CPU classification*
+| 98% of signals classified without any LLM inference
+
+| *Agent count*
+| 17 agents across 3 tiers (7 nano + 5 micro + 5 macro)
+
+| *Modalities*
+| 10 supported: metric, log, event, text, document, image, video, audio, trace, human_note
+|===
+
+== Core Loop
+
+The system follows a continuous loop:
+
+....
+Signals -> Decide -> Act -> Verify -> Learn
+....
+
+. *Signals* arrive from connectors (file, Prometheus, Kubernetes)
+. *Decide* via the three-tier cascade -- nano, micro, macro
+. *Act* by proposing safe, non-destructive actions (notify, observe, ticket)
+. *Verify* by comparing post-action observations to expected outcomes
+. *Learn* by proposing threshold and rule updates -- never applied silently
+
+== Red Hat + Intel Positioning
+
+DeepField Multimodal demonstrates the value of the Red Hat and Intel partnership for enterprise AI:
+
+* *Red Hat OpenShift* provides the platform -- container orchestration, OAuth-integrated security, Prometheus monitoring, and the operator model that enterprises already run
+* *Intel Xeon* provides the runtime -- deterministic classification at CPU speeds, with Intel TDX for secure bootstrap of frontier models when needed
+* *No GPU required* for 98% of classification work -- frontier models (Qwen 235B, Granite, Claude Sonnet) are used only at bootstrap time to generate initial rules, then the system runs on CPU
+
+The architecture proves that enterprise AI does not start with generation.
+It starts with classification.
+And classification runs on the infrastructure you already have.
+
+== Project Structure
+
+....
+deepfield-multimodal/
++-- app/
+|   +-- domain/models.py          # 10 Pydantic models (CDD contracts)
+|   +-- multimodal/               # Normalizer, feature extractors, storage
+|   +-- baseline/                 # Compiler, profiles, sources
+|   +-- classification/           # Engine, taxonomy, cascade, registry
+|   +-- nanoagents/               # 7 deterministic agents
+|   +-- microagents/              # 5 rule-backed classifiers
+|   +-- macroagents/              # 5 reasoning agents
+|   +-- agent_loop/               # Actions, verification, learning
+|   +-- analysis/evaluator.py     # EDD rubric scoring engine
+|   +-- api/                      # FastAPI routes (7 routers)
+|   +-- inference/client.py       # LiteLLM inference client
+|   +-- bootstrap/                # Scenario loader, promotion, config generator
+|   +-- connectors/               # File, Prometheus, Kubernetes adapters
+|   +-- tests/                    # 207 tests
++-- frontend/                     # React 19, Vite, motion/react
++-- fixtures/                     # Synthetic scenarios
++-- config/                       # Profiles, taxonomies, promotion thresholds
++-- deploy/                       # OpenShift deployment manifest + verify script
++-- Containerfile                 # Multi-stage OCI build
+....

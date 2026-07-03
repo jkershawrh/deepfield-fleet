@@ -1,0 +1,203 @@
+= FAQ & Booth Cheat Sheet
+:toc: left
+:toclevels: 2
+
+Quick answers for booth conversations at Summit Connect.
+Each answer is short enough to say in 30 seconds.
+
+== "Is this using ML?"
+
+Yes, but not the kind you might expect.
+The system uses a three-tier cascade.
+The first tier -- nanoagents -- is purely deterministic: threshold checks, pattern matching, z-score analysis.
+No machine learning at all.
+The second tier -- microagents -- uses rule-backed classifiers with extension points for OpenVINO and ONNX models.
+The third tier -- macroagents -- can use an LLM when configured, but defaults to template-based reasoning.
+
+The key insight: 98% of enterprise signal classification does not need ML.
+It needs fast, deterministic logic running on CPU.
+ML and LLMs are used only where they add value -- for the 2% of cases that require cross-modal reasoning.
+
+== "Does it connect to AAP / ACS / ServiceNow?"
+
+AAP and ACS have pre-built profiles today.
+The AAP profile monitors job execution -- playbook failures, timeouts, unreachable hosts, workflow errors.
+The ACS profile monitors security findings -- critical CVEs, policy violations, privileged containers.
+
+ServiceNow is not built in yet, but the architecture supports it.
+The connector interface has three methods: `connect()`, `sample()`, and `stream()`.
+A ServiceNow connector would query the table API, sample incidents or change requests, and feed them through the same classification cascade.
+The Bootstrap Lab would generate classification rules specific to your ServiceNow data.
+
+For any data source with an API, the pattern is the same: connect, sample, analyze, validate, deploy.
+
+== "What about data security?"
+
+Three layers of security:
+
+. *Evidence sensitivity labels.* Every artifact is tagged with a sensitivity level: public, internal, confidential, or restricted. The system tracks these labels through the entire pipeline.
+
+. *No data leaves the cluster for classification.* Nanoagents and microagents run entirely on CPU within your cluster. No external API calls. Macroagents can optionally use an LLM, but you control the endpoint -- it can be a model running inside your cluster.
+
+. *Intel TDX for bootstrap.* When you use a frontier model (like Qwen 235B) at bootstrap time to generate initial rules, Intel Trust Domain Extensions provide hardware-isolated secure enclaves. The bootstrap conversation -- which may contain sample signal data -- runs inside a TDX boundary. After bootstrap, the generated rules are deterministic and contain no sensitive data.
+
+Bottom line: classification runs locally on CPU. The only time data could leave the cluster is at bootstrap, and TDX protects that.
+
+== "How long to deploy?"
+
+* *Container image pull:* ~210 MB, typically under 30 seconds
+* *OpenShift deployment:* Apply one manifest (`deploy/deployment.yaml`), creates ServiceAccount, ClusterRoleBinding, Deployment, Service, Route. Under 5 minutes end to end.
+* *First demo:* 30 seconds from container start to live walkthrough
+* *Bootstrap Lab:* 10-15 minutes to connect a data source, analyze it, validate agents, and promote them
+* *Verification:* Run `deploy/verify.sh` to get a RED/GREEN rubric of 12 deployment checks
+
+No GPU provisioning. No model training. No data labeling. Connect and classify.
+
+== "Can I use my own models?"
+
+Yes. The system uses an OpenAI-compatible API interface through LiteLLM.
+You can point it at:
+
+* *vLLM* serving your own fine-tuned model
+* *Ollama* running models locally
+* *Granite on Intel Gaudi* for high-throughput CPU/accelerator inference
+* *Any OpenAI-compatible endpoint* -- Azure OpenAI, Amazon Bedrock (via proxy), Anthropic (via proxy)
+
+Set the `LITELLM_API_BASE` environment variable to your endpoint.
+Set `LITELLM_MODEL_MICRO` and `LITELLM_MODEL_MACRO` to your model names.
+
+For bootstrap analysis, you can separately configure `BOOTSTRAP_API_BASE` and `BOOTSTRAP_MODEL` to use a different (typically larger) model.
+
+But remember: 98% of classification runs without any model at all.
+Models are optional, not required.
+
+== "Is this just traditional ML?"
+
+No.
+Traditional ML requires training data, labeled datasets, and a model training pipeline.
+DeepField does not train models.
+
+Instead, it uses a bootstrap approach:
+
+. A frontier model (Qwen 235B, Granite, or Claude) analyzes a sample of your data
+. It generates deterministic classification rules
+. Those rules are validated against your data with a rubric matrix (red/yellow/green)
+. Rules that pass validation are promoted to production
+. The rules run on CPU -- no model inference needed
+
+The frontier model is used once, at bootstrap.
+After that, classification is deterministic.
+This is fundamentally different from traditional ML pipelines.
+
+== "What about GPU?"
+
+You do not need one.
+
+* *Nanoagents (7):* Pure CPU. Deterministic. No inference.
+* *Microagents (5):* Rule-backed on CPU by default. Extension points for OpenVINO/ONNX for specialized tasks (image defect detection, audio anomaly scoring) -- still CPU-native.
+* *Macroagents (5):* Template-based reasoning on CPU by default. Can optionally use an LLM for richer reasoning -- but the LLM itself can run on CPU (Granite 8B, for example).
+* *Bootstrap:* The frontier model for initial rule generation can run on Intel Gaudi (Qwen 235B) or via cloud API. This is a one-time operation.
+
+The economic point: GPU inference costs $3-15 per million input tokens.
+Deterministic nanoagent classification costs nothing per signal.
+The three-tier cascade ensures you only pay for inference when it genuinely adds value.
+
+== "How do agents get promoted?"
+
+Agents earn their trust through empirical validation.
+The promotion pipeline has five tiers:
+
+....
+draft -> candidate -> nano -> micro -> macro
+....
+
+Each promotion requires meeting thresholds:
+
+* *Draft to Candidate:* 50 samples tested, 60% accuracy, 30% max false positive rate
+* *Candidate to Nano:* 200 samples, 75% accuracy, 15% max FP, 20% max FN
+* *Nano to Micro:* 500 samples, 85% accuracy, 10% max FP, human review required
+* *Micro to Macro:* 1,000 samples, 85% accuracy, 5% max FP, human review + cross-modal agreement
+
+Ground truth comes from baseline-derived ranges -- evidence within normal ranges is normal, evidence outside is abnormal.
+No human labeling required.
+The baseline provides the truth signal.
+
+Every agent has a rubric status: green (>= 75% accuracy), yellow (>= 60%), or red (< 60%).
+You can see the rubric matrix in the Bootstrap Lab.
+You can promote or demote agents manually.
+
+== "What's the compression ratio?"
+
+The compression ratio measures how much signal volume the cascade reduces before expensive action.
+
+In the demo walkthrough:
+
+* 6 evidence artifacts in, 1 action proposed. Compression ratio: *6:1*.
+
+At scale:
+
+* 10 lines: ~60 evidence, compression ratio ~60:1
+* 50 lines: ~300 evidence, compression ratio ~300:1 (when failure rate is low)
+* Stress test (15% failure): compression drops as more signals require attention, but the system still handles the volume
+
+The compression ratio is driven by the nanoagent tier.
+Because nanoagents are deterministic and free (no inference cost), they can absorb massive signal volumes.
+Only the signals they cannot resolve -- low confidence, high severity, complex modalities -- escalate to more expensive tiers.
+
+This is the economic argument: the compression layer makes LLM inference affordable at enterprise scale, because the LLM only sees the signals that matter.
+
+== "Can this work air-gapped?"
+
+Yes, with one caveat.
+
+*For classification:* Fully air-gapped. Nanoagents are deterministic. Microagents are rule-backed. Macroagents use template-based reasoning. No external API calls. The container runs standalone.
+
+*For bootstrap:* You need a model for initial rule generation. In an air-gapped environment, you can:
+
+. Use a pre-built profile (OpenShift, AAP, ACS) -- no model needed, profiles are included in the container
+. Run Granite 8B locally with Ollama -- fully air-gapped
+. Run Qwen 235B on Intel Gaudi within your network -- air-gapped but requires hardware
+
+After bootstrap, all generated rules are deterministic.
+The frontier model is no longer needed.
+
+*For data sources:* File connector works with local files.
+Kubernetes connector works with the local cluster API.
+Prometheus connector works with any Prometheus instance reachable from the pod -- which in an air-gapped OpenShift cluster is the built-in monitoring stack.
+
+== Quick Reference Card
+
+[cols="1,2"]
+|===
+| Question | Short Answer
+
+| What is it?
+| Agentic signal classification engine -- classifies enterprise signals and proposes governed action
+
+| How many agents?
+| 17 total: 7 nano (deterministic), 5 micro (rule-backed), 5 macro (reasoning)
+
+| GPU needed?
+| No -- 98% runs on CPU. Frontier models only at bootstrap.
+
+| Time to deploy?
+| Under 5 minutes on OpenShift. 30 seconds to first demo.
+
+| Container size?
+| ~210 MB
+
+| Data sources?
+| File, Prometheus, Kubernetes. Extensible to any API.
+
+| Pre-built profiles?
+| OpenShift cluster monitoring, AAP job health, ACS security findings
+
+| Models supported?
+| Any OpenAI-compatible API: Granite, Qwen, Claude, Llama, Mistral, via LiteLLM
+
+| Air-gapped?
+| Yes for classification. Bootstrap needs a local model or pre-built profile.
+
+| Open source?
+| Built on Red Hat OpenShift, FastAPI, React 19, Pydantic v2
+|===

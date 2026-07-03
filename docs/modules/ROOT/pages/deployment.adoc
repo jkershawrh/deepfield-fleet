@@ -1,0 +1,375 @@
+= Deployment
+:toc: left
+:toclevels: 3
+
+== Container Image
+
+The DeepField Multimodal container image is published to:
+
+....
+quay.io/deepfield-fleet/deepfield-multimodal:latest
+....
+
+The image is built using a multi-stage Containerfile:
+
+* *Stage 1:* Node 20 builds the React frontend (`npm run build`)
+* *Stage 2:* Python 3.11 slim installs the backend, copies the built frontend, fixtures, config, and migrations
+
+Final image size: ~210 MB.
+
+== Quick Start: Podman Local Run
+
+To run DeepField Multimodal locally with Podman:
+
+[source,bash]
+----
+podman run -d \
+  --name deepfield \
+  -p 8000:8000 \
+  quay.io/deepfield-fleet/deepfield-multimodal:latest
+----
+
+The app will be available at http://localhost:8000.
+
+To run with LLM inference enabled:
+
+[source,bash]
+----
+podman run -d \
+  --name deepfield \
+  -p 8000:8000 \
+  -e LITELLM_API_BASE=https://your-litellm-proxy:8080 \
+  -e LITELLM_API_KEY=your-api-key \
+  -e LITELLM_MODEL_MICRO=granite-3-2-8b-instruct-cpu \
+  -e LITELLM_MODEL_MACRO=granite-3-2-8b-instruct-cpu \
+  quay.io/deepfield-fleet/deepfield-multimodal:latest
+----
+
+To run with a frontier model for bootstrap:
+
+[source,bash]
+----
+podman run -d \
+  --name deepfield \
+  -p 8000:8000 \
+  -e LITELLM_API_BASE=https://your-litellm-proxy:8080 \
+  -e LITELLM_API_KEY=your-api-key \
+  -e BOOTSTRAP_API_BASE=https://your-bootstrap-proxy:8080 \
+  -e BOOTSTRAP_API_KEY=your-bootstrap-key \
+  -e BOOTSTRAP_MODEL=qwen3-235b \
+  quay.io/deepfield-fleet/deepfield-multimodal:latest
+----
+
+Health check:
+
+[source,bash]
+----
+curl http://localhost:8000/health
+# {"status":"ok","service":"deepfield-multimodal"}
+----
+
+== Environment Variables
+
+[cols="2,1,3,2"]
+|===
+| Variable | Required | Description | Default
+
+| `LITELLM_API_BASE`
+| No
+| Base URL for the LiteLLM proxy (OpenAI-compatible). When not set, all agents use rule-backed/template-based classification -- no inference calls.
+| (not set -- rule-backed mode)
+
+| `LITELLM_API_KEY`
+| No
+| API key for authenticating with the LiteLLM proxy.
+| (empty)
+
+| `LITELLM_MODEL_MICRO`
+| No
+| Model name for micro-tier inference. Used when `LITELLM_API_BASE` is set.
+| `granite-3-2-8b-instruct-cpu`
+
+| `LITELLM_MODEL_MACRO`
+| No
+| Model name for macro-tier inference. Used when `LITELLM_API_BASE` is set.
+| `granite-3-2-8b-instruct-cpu`
+
+| `BOOTSTRAP_API_BASE`
+| No
+| Base URL for the frontier model used during bootstrap analysis. Falls back to `LITELLM_API_BASE` if not set.
+| (falls back to `LITELLM_API_BASE`)
+
+| `BOOTSTRAP_API_KEY`
+| No
+| API key for the bootstrap frontier model. Falls back to `LITELLM_API_KEY` if not set.
+| (falls back to `LITELLM_API_KEY`)
+
+| `BOOTSTRAP_MODEL`
+| No
+| Model name for bootstrap analysis (e.g., `qwen3-235b`, `claude-sonnet-4-6`).
+| `claude-sonnet-4-6`
+
+| `DATABASE_URL`
+| No
+| PostgreSQL connection string. When not set, the app runs with in-memory storage and graceful degradation.
+| (not set -- in-memory mode)
+|===
+
+NOTE: No environment variables are required. The system runs fully functional with zero configuration -- all agents use rule-backed classification and in-memory storage.
+
+== OpenShift Deployment
+
+=== Namespace Setup
+
+Create the namespace and required secrets:
+
+[source,bash]
+----
+oc new-project deepfield-multimodal
+
+# Create the secrets for LiteLLM and OAuth
+oc create secret generic deepfield-secrets \
+  --from-literal=LITELLM_API_KEY=your-api-key \
+  --from-literal=BOOTSTRAP_API_KEY=your-bootstrap-key
+
+# Create OAuth proxy secrets
+oc create secret generic deepfield-oauth-secret \
+  --from-literal=client-secret=$(openssl rand -hex 32) \
+  --from-literal=session_secret=$(openssl rand -hex 32)
+----
+
+=== Deploy the Manifest
+
+Apply the deployment manifest:
+
+[source,bash]
+----
+oc apply -f deploy/deployment.yaml
+----
+
+The manifest creates:
+
+[cols="1,2"]
+|===
+| Resource | Purpose
+
+| *ServiceAccount* `deepfield-reader`
+| Service account with OAuth redirect annotation for OpenShift authentication
+
+| *ClusterRoleBinding*
+| Binds `cluster-reader` role to the service account for read-only cluster access
+
+| *Deployment*
+| Two containers: the app (port 8000) and OAuth proxy (port 8080)
+
+| *Service*
+| Routes traffic to the OAuth proxy on port 8080
+
+| *Route*
+| TLS-terminated edge route with redirect for insecure traffic
+|===
+
+=== Service Account Roles
+
+The deployment requires these cluster roles:
+
+[cols="1,3"]
+|===
+| Role | Why
+
+| `cluster-reader`
+| Allows the Kubernetes connector to read pods, events, nodes, and deployments across namespaces for signal ingestion
+
+| `cluster-monitoring-view`
+| (Optional) Allows the Prometheus connector to query the cluster's built-in Prometheus instance
+|===
+
+To add the monitoring role:
+
+[source,bash]
+----
+oc adm policy add-cluster-role-to-user cluster-monitoring-view \
+  system:serviceaccount:deepfield-multimodal:deepfield-reader
+----
+
+=== OAuth Proxy
+
+The deployment includes an OpenShift OAuth proxy sidecar that provides single sign-on with OpenShift credentials.
+
+Configuration details:
+
+* Proxy listens on port 8080, forwards to the app on port 8000
+* The `/health` endpoint is excluded from authentication (`-skip-auth-regex=^/health`)
+* Upstream timeout is set to 180 seconds to accommodate LLM inference latency
+* User headers are passed through to the app (`-pass-user-headers=true`)
+
+=== Resource Requests
+
+[cols="1,1,1"]
+|===
+| Container | CPU Request/Limit | Memory Request/Limit
+
+| App
+| 500m / 1 core
+| 256Mi / 512Mi
+
+| OAuth Proxy
+| 100m / 200m
+| 64Mi / 128Mi
+|===
+
+=== Probes
+
+Both containers have readiness and liveness probes:
+
+* App: `GET /health` on port 8000 (readiness: 5s initial, 10s period; liveness: 10s initial, 30s period)
+* OAuth Proxy: `GET /oauth/healthz` on port 8080 (readiness: 5s initial, 5s period; liveness: 10s initial, 10s period)
+
+== Deployment Manifest
+
+The full deployment manifest is at `deploy/deployment.yaml`.
+Key sections:
+
+=== Deployment Environment Variables
+
+[source,yaml]
+----
+env:
+  - name: LITELLM_API_BASE
+    value: "https://litellm.example.com"
+  - name: LITELLM_MODEL_MICRO
+    value: "granite-3-2-8b-instruct-cpu"
+  - name: LITELLM_MODEL_MACRO
+    value: "granite-3-2-8b-instruct-cpu"
+  - name: BOOTSTRAP_API_BASE
+    value: "https://litellm.example.com"
+  - name: BOOTSTRAP_MODEL
+    value: "qwen3-235b"
+envFrom:
+  - secretRef:
+      name: deepfield-secrets
+----
+
+=== Container Image Reference
+
+[source,yaml]
+----
+image: quay.io/deepfield-fleet/deepfield-multimodal:latest
+imagePullPolicy: Always
+----
+
+== Verification Script
+
+The `deploy/verify.sh` script validates a deployment with a RED/GREEN rubric:
+
+[source,bash]
+----
+./deploy/verify.sh
+----
+
+The script checks:
+
+[cols="1,3"]
+|===
+| Category | Checks
+
+| *Infrastructure*
+| Pod running, health check passes, frontend loads, readiness probe passing
+
+| *API Endpoints*
+| Profiles endpoint, infrastructure endpoint, models endpoint, demo state endpoint
+
+| *Bootstrap Lab*
+| Profile apply works, rubric endpoint responds
+
+| *Security*
+| No hardcoded secrets in deployment, secret reference exists
+|===
+
+Output:
+
+....
+==================================================
+  DeepField Multimodal -- Deployment Rubric
+  Route: https://deepfield-multimodal.apps.cluster.example.com
+==================================================
+
+INFRASTRUCTURE
+  + Pod running
+  + Health check
+  + Frontend loads
+  + Readiness passing
+
+API ENDPOINTS
+  + Profiles endpoint
+  + Infrastructure endpoint
+  + Models endpoint
+  + Demo state endpoint
+
+BOOTSTRAP LAB
+  + Profile apply
+  + Rubric endpoint
+
+SECURITY
+  + No hardcoded secrets
+  + Secret ref exists
+
+==================================================
+  Results: 12 passed, 0 failed
+==================================================
+....
+
+== Building the Container Image
+
+To build the image locally:
+
+[source,bash]
+----
+podman build -t deepfield-multimodal:latest -f Containerfile .
+----
+
+The Containerfile uses a two-stage build:
+
+[source,dockerfile]
+----
+# Stage 1: Build frontend
+FROM node:20-slim AS frontend-build
+WORKDIR /build
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --legacy-peer-deps
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Python backend + built frontend
+FROM python:3.11-slim
+WORKDIR /app
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir ".[db]"
+COPY app/ ./app/
+COPY migrations/ ./migrations/
+COPY fixtures/ ./fixtures/
+COPY config/ ./config/
+COPY --from=frontend-build /build/dist ./frontend/dist/
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+----
+
+== Development Setup
+
+For local development without containers:
+
+[source,bash]
+----
+# Backend
+pip install -e ".[dev]"
+pytest app/tests/ -v          # Run tests
+uvicorn app.main:app --reload # Start backend with hot reload
+
+# Frontend
+cd frontend
+npm install --legacy-peer-deps
+npm run dev                    # Start dev server at http://localhost:5173
+
+# Health check
+curl http://localhost:8000/health
+----
