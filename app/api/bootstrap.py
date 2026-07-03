@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.bootstrap.semantic_classifier import SourceAnalysis
-from app.domain.models import AgentMaturity
+from app.domain.models import AgentMaturity, EvidenceArtifact
 
 router = APIRouter(prefix="/api/v1/bootstrap", tags=["bootstrap"])
 
@@ -273,10 +273,20 @@ async def validate_agents():
 
     evidence = []
     for sample in _samples:
-        ev = normalize_raw(
+        features = {}
+        for k, v in sample.items():
+            if _is_numeric(v):
+                features[k] = float(v)
+            else:
+                features[k] = v
+        ev = EvidenceArtifact(
             source="bootstrap_validate",
             modality=modality,
-            content={"values": [float(v) for v in sample.values() if _is_numeric(v)], **sample},
+            artifact_type=sample.get("type", modality),
+            namespace=sample.get("namespace", ""),
+            resource_name=sample.get("name", ""),
+            features=features,
+            content_text=str(sample),
         )
         evidence.append(ev)
 
