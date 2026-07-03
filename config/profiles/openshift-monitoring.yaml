@@ -1,0 +1,45 @@
+name: OpenShift Cluster Monitoring
+domain: it_ops
+modality: mixed
+description: "Monitors pod health, node status, and cluster events via Kubernetes API and Prometheus"
+connectors: [kubernetes, prometheus]
+
+taxonomy:
+  operational_state: [normal, watch, degraded, incident, critical]
+  incident_family: [pod_crash, image_pull, node_pressure, resource_exhaustion, network, scheduling, storage, config_error]
+  action_class: [observe, notify, ticket, restart_pod, scale_deployment, cordon_node]
+
+nano_rules:
+  - name: crashloop_detect
+    modality: event
+    condition: { field: restarts, operator: gt, value: 3 }
+    classification: { taxonomy: incident_family, class_name: pod_crash, severity: high, confidence: 0.9, rationale_template: "Pod restart count {value} exceeds threshold {threshold}" }
+
+  - name: image_pull_failure
+    modality: event
+    condition: { field: reason, operator: contains, value: ImagePullBackOff }
+    classification: { taxonomy: incident_family, class_name: image_pull, severity: high, confidence: 0.85, rationale_template: "Image pull failure: {value}" }
+
+  - name: node_not_ready
+    modality: event
+    condition: { field: ready, operator: eq, value: "False" }
+    classification: { taxonomy: operational_state, class_name: critical, severity: critical, confidence: 0.95, rationale_template: "Node not ready: {value}" }
+
+  - name: memory_pressure
+    modality: event
+    condition: { field: memory_pressure, operator: eq, value: "True" }
+    classification: { taxonomy: incident_family, class_name: node_pressure, severity: high, confidence: 0.9, rationale_template: "Node memory pressure detected" }
+
+  - name: pod_pending
+    modality: event
+    condition: { field: phase, operator: eq, value: Pending }
+    classification: { taxonomy: operational_state, class_name: watch, severity: medium, confidence: 0.7, rationale_template: "Pod stuck in Pending phase" }
+
+  - name: warning_event
+    modality: event
+    condition: { field: count, operator: gt, value: 5 }
+    classification: { taxonomy: signal_quality, class_name: actionable, severity: medium, confidence: 0.7, rationale_template: "Warning event repeated {value} times" }
+
+micro_prompt: "Classify this OpenShift cluster event into one incident family: pod_crash, image_pull, node_pressure, resource_exhaustion, network, scheduling, storage, config_error. Consider the namespace, resource type, and error details. Respond as JSON: {\"family\": \"...\", \"severity\": \"...\", \"rationale\": \"...\"}"
+
+macro_prompt: "Correlate these OpenShift cluster events across namespaces and nodes. Determine if there is a cluster-wide issue (node failure, network partition, storage problem) or an application-specific issue (deployment misconfiguration, resource limits). Build a timeline and propose root cause. Respond as JSON."

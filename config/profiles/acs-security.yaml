@@ -1,0 +1,35 @@
+name: Advanced Cluster Security Findings
+domain: security
+modality: mixed
+description: "Monitors ACS vulnerability findings, policy violations, and runtime alerts"
+connectors: [api]
+
+taxonomy:
+  operational_state: [normal, watch, degraded, incident, critical]
+  incident_family: [vulnerability_critical, vulnerability_high, policy_violation, runtime_alert, image_risk, network_anomaly, compliance_drift, privilege_escalation]
+  action_class: [observe, notify, ticket, quarantine_image, block_deployment, update_policy]
+
+nano_rules:
+  - name: critical_cve
+    modality: event
+    condition: { field: cvss_score, operator: gt, value: 9.0 }
+    classification: { taxonomy: incident_family, class_name: vulnerability_critical, severity: critical, confidence: 0.95, rationale_template: "Critical CVE with CVSS {value}" }
+
+  - name: high_cve
+    modality: event
+    condition: { field: cvss_score, operator: gt, value: 7.0 }
+    classification: { taxonomy: incident_family, class_name: vulnerability_high, severity: high, confidence: 0.9, rationale_template: "High CVE with CVSS {value}" }
+
+  - name: policy_violation
+    modality: event
+    condition: { field: violation_state, operator: eq, value: active }
+    classification: { taxonomy: incident_family, class_name: policy_violation, severity: high, confidence: 0.85, rationale_template: "Active security policy violation" }
+
+  - name: privileged_container
+    modality: event
+    condition: { field: privileged, operator: eq, value: "true" }
+    classification: { taxonomy: incident_family, class_name: privilege_escalation, severity: high, confidence: 0.9, rationale_template: "Privileged container detected" }
+
+micro_prompt: "Classify this ACS security finding into one incident family: vulnerability_critical, vulnerability_high, policy_violation, runtime_alert, image_risk, network_anomaly, compliance_drift, privilege_escalation. Consider the CVSS score, affected images, and deployment context. Respond as JSON."
+
+macro_prompt: "Correlate ACS findings across namespaces, images, and deployments. Determine if there is a supply chain risk (base image vulnerability), a configuration drift (policy violations across multiple deployments), or an active threat (runtime alerts). Build a timeline and assess blast radius. Respond as JSON."

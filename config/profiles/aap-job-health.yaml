@@ -1,0 +1,35 @@
+name: Ansible Automation Platform Job Health
+domain: it_ops
+modality: mixed
+description: "Monitors AAP job execution, workflow failures, and inventory health"
+connectors: [api]
+
+taxonomy:
+  operational_state: [normal, watch, degraded, incident, critical]
+  incident_family: [playbook_failure, workflow_failure, inventory_sync, credential_issue, host_unreachable, timeout, permission_denied, dependency_missing]
+  action_class: [observe, notify, ticket, rerun_job, update_inventory, check_credentials]
+
+nano_rules:
+  - name: job_failed
+    modality: event
+    condition: { field: status, operator: eq, value: failed }
+    classification: { taxonomy: incident_family, class_name: playbook_failure, severity: high, confidence: 0.9, rationale_template: "AAP job failed: {value}" }
+
+  - name: job_timeout
+    modality: metric
+    condition: { field: elapsed, operator: gt, value: 3600 }
+    classification: { taxonomy: incident_family, class_name: timeout, severity: medium, confidence: 0.8, rationale_template: "Job elapsed {value}s exceeds 1 hour threshold" }
+
+  - name: host_unreachable
+    modality: event
+    condition: { field: host_status, operator: eq, value: unreachable }
+    classification: { taxonomy: incident_family, class_name: host_unreachable, severity: high, confidence: 0.85, rationale_template: "Host unreachable during playbook execution" }
+
+  - name: workflow_failed
+    modality: event
+    condition: { field: workflow_status, operator: eq, value: failed }
+    classification: { taxonomy: incident_family, class_name: workflow_failure, severity: critical, confidence: 0.9, rationale_template: "AAP workflow failed" }
+
+micro_prompt: "Classify this Ansible Automation Platform event into one incident family: playbook_failure, workflow_failure, inventory_sync, credential_issue, host_unreachable, timeout, permission_denied, dependency_missing. Consider the job template, error output, and affected hosts. Respond as JSON."
+
+macro_prompt: "Correlate AAP job failures across templates, inventories, and time windows. Determine if failures are isolated (one playbook bug) or systemic (credential rotation, network issue, inventory drift). Build a timeline and propose root cause. Respond as JSON."

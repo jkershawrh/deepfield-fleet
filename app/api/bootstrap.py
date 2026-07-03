@@ -34,6 +34,81 @@ class ApproveRequest(BaseModel):
     edits: dict = {}
 
 
+@router.get("/profiles")
+async def get_profiles():
+    from app.bootstrap.profiles import list_profiles
+    return {"profiles": list_profiles()}
+
+
+@router.post("/profiles/{profile_id}/apply")
+async def apply_profile(profile_id: str):
+    global _analysis, _state, _agents
+    from app.bootstrap.profiles import load_profile
+    from app.bootstrap.semantic_classifier import SourceAnalysis
+
+    profile = load_profile(profile_id)
+    if profile is None:
+        raise HTTPException(404, f"Profile not found: {profile_id}")
+
+    _analysis = SourceAnalysis(
+        modality=profile.get("modality", "mixed"),
+        domain=profile.get("domain", "unknown"),
+        domain_description=profile.get("description", ""),
+        taxonomy=profile.get("taxonomy", {}),
+        nano_rules=profile.get("nano_rules", []),
+        micro_prompt=profile.get("micro_prompt", ""),
+        macro_prompt=profile.get("macro_prompt", ""),
+        confidence=1.0,
+        reasoning=f"Loaded from pre-built profile: {profile.get('name', profile_id)}",
+    )
+
+    _agents = []
+    for rule in _analysis.nano_rules:
+        _agents.append(AgentMaturity(
+            name=rule.get("name", "rule"),
+            tier="draft", source="builtin",
+            config={
+                "name": rule.get("name", "rule"),
+                "modality": rule.get("modality", _analysis.modality),
+                "condition": rule.get("condition", {}),
+                "classification": rule.get("classification", {}),
+            },
+        ))
+
+    _state = {
+        "status": "profile_applied",
+        "profile_id": profile_id,
+        "profile_name": profile.get("name", profile_id),
+        "domain": _analysis.domain,
+        "agents_created": len(_agents),
+        "analysis": {
+            "modality": _analysis.modality,
+            "domain": _analysis.domain,
+            "domain_description": _analysis.domain_description,
+            "confidence": _analysis.confidence,
+            "taxonomy": _analysis.taxonomy,
+            "nano_rules": _analysis.nano_rules,
+        },
+    }
+    return _state
+
+
+@router.get("/models")
+async def get_bootstrap_models():
+    from app.inference.client import get_inference_config
+    config = get_inference_config()
+    return {
+        "bootstrap_available": config.get("bootstrap_available", False),
+        "bootstrap_model": config.get("bootstrap_model", ""),
+        "available_models": [
+            {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "type": "frontier", "provider": "Anthropic"},
+            {"id": "claude-opus-4-6", "name": "Claude Opus 4.6", "type": "frontier", "provider": "Anthropic"},
+            {"id": "claude-haiku-4-5", "name": "Claude Haiku 4.5", "type": "frontier", "provider": "Anthropic"},
+            {"id": "qwen3-235b", "name": "Qwen 3 235B", "type": "open-weight", "provider": "Alibaba/Intel"},
+        ],
+    }
+
+
 @router.post("/connect")
 async def connect_source(req: ConnectRequest):
     global _samples, _state

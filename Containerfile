@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir ".[db]"
 COPY app/ ./app/
 COPY migrations/ ./migrations/
 COPY fixtures/ ./fixtures/
+COPY config/ ./config/
 COPY --from=frontend-build /build/dist ./frontend/dist/
 
 EXPOSE 8000
