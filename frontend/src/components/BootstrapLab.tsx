@@ -364,6 +364,64 @@ export function BootstrapLab({ onExit }: { onExit: () => void }) {
                     </p>
                   </motion.div>
                 </div>
+
+                {/* What just happened + next steps */}
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+                  style={{ marginTop: 24 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>What you just did</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
+                    <div style={{ padding: 12, background: 'var(--surface-1)', borderRadius: 8, textAlign: 'center', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-blue)' }}>1</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>Connected data</div>
+                    </div>
+                    <div style={{ padding: 12, background: 'var(--surface-1)', borderRadius: 8, textAlign: 'center', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-teal)' }}>2</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>Agents proposed</div>
+                    </div>
+                    <div style={{ padding: 12, background: 'var(--surface-1)', borderRadius: 8, textAlign: 'center', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-orange)' }}>3</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>Validated on data</div>
+                    </div>
+                    <div style={{ padding: 12, background: 'var(--surface-1)', borderRadius: 8, textAlign: 'center', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-green)' }}>4</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4 }}>Promoted & deployed</div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>What's next</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                    <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Try another scenario</strong> — each domain generates different agents with different rules and taxonomies
+                    </div>
+                    <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Connect your own Prometheus</strong> — same flow, real signals, 20 minutes to first classification
+                    </div>
+                    <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Run more validation rounds</strong> — agents accumulate samples and earn higher tiers over time
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                    <button onClick={() => { setStep(0); setAnalysis(null); setRubric(null); setConnectStatus('idle'); setAnalyzeStatus('idle'); setValidateStatus('idle'); }}
+                      style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '10px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                      Try Another Scenario
+                    </button>
+                    <button onClick={onExit}
+                      style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', padding: '10px 24px', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}>
+                      Back to Demo
+                    </button>
+                  </div>
+
+                  <div style={{ marginTop: 24, padding: 16, background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--rh-red)40', textAlign: 'center' }}>
+                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7 }}>
+                      You just bootstrapped a classification engine in under 5 minutes.
+                      <br />No ML training. No GPU. No data scientist.
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--text-disabled)', marginTop: 8, fontFamily: 'Red Hat Mono, monospace' }}>
+                      ~210 MB · Intel Xeon 6 · Red Hat OpenShift · Agents earn their tier
+                    </p>
+                  </div>
+                </motion.div>
               </div>
             )}
 
