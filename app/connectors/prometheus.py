@@ -37,8 +37,8 @@ class PrometheusConnector(BaseConnector):
         ])
 
         try:
-            data = self._get("/api/v1/status/config")
-            self._connected = data is not None
+            data = self._get("/api/v1/query", {"query": "up"})
+            self._connected = data is not None and data.get("status") == "success"
             if self._connected:
                 logger.info("Prometheus connected: %s", self._endpoint)
             return self._connected
@@ -91,8 +91,12 @@ class PrometheusConnector(BaseConnector):
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
         try:
+            import ssl
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
             req = Request(url, headers=headers)
-            with urlopen(req, timeout=15) as resp:
+            with urlopen(req, timeout=15, context=ctx) as resp:
                 return json.loads(resp.read())
         except Exception as e:
             logger.debug("Prometheus GET %s: %s", path, str(e)[:100])

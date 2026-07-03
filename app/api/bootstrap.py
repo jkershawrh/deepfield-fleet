@@ -268,11 +268,14 @@ async def validate_agents():
     from app.multimodal.normalizer import normalize_raw
     from app.baseline.compiler import BaselineCompiler
 
+    valid_modalities = {"metric", "log", "event", "text", "document", "image", "audio", "trace", "human_note", "unknown"}
+    modality = _analysis.modality if _analysis.modality in valid_modalities else "event"
+
     evidence = []
     for sample in _samples:
         ev = normalize_raw(
             source="bootstrap_validate",
-            modality=_analysis.modality,
+            modality=modality,
             content={"values": [float(v) for v in sample.values() if _is_numeric(v)], **sample},
         )
         evidence.append(ev)
