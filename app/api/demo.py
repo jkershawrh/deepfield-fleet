@@ -153,11 +153,12 @@ def _make_state(step_index: int, progress: float, paused: bool = False, **extra)
 
 
 def _pause_sleep(seconds: float):
-    """Sleep that blocks while paused and exits early if stopped."""
-    _demo_pause.wait()
-    if _demo_stop.is_set():
-        return
-    _demo_stop.wait(timeout=seconds)
+    """Sleep that respects pause and stop. Blocks while paused, resumes when unpaused."""
+    while not _demo_stop.is_set():
+        if _demo_pause.is_set():
+            _demo_stop.wait(timeout=seconds)
+            return
+        _demo_pause.wait(timeout=0.5)
 
 
 def _auto_pause_between_steps(step_index: int, extras: dict):
