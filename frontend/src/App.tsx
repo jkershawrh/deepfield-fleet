@@ -13,6 +13,7 @@ import { DetailModal, KeyValueTable, ComparisonTable } from './components/Detail
 import { FlowDescription } from './components/FlowDescription';
 import { InfraPanel } from './components/InfraPanel';
 import { BootstrapLab } from './components/BootstrapLab';
+import { MeasuredProofPanel } from './components/MeasuredProofPanel';
 import { api } from './api/client';
 import type { EvidenceArtifact, ClassificationRecord, BaselineProfile, LoopResult, ApiCall } from './api/client';
 
@@ -266,24 +267,21 @@ export default function App() {
         </motion.p>
       </div>
     ),
-    // 3: The proof — compression ratio
+    // 3: The proof — measured compression
     () => (
-      <div style={{ textAlign: 'center' }}>
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
-          <div style={{ fontSize: 120, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1 }}>
-            98%
-          </div>
-        </motion.div>
+      <div style={{ textAlign: 'center', maxWidth: 560 }}>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
           style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 16, lineHeight: 1.5 }}>
-          of signals classified on CPU
-          <br />before anything expensive runs.
+          Exact compression claims come from benchmark reports,
+          <br />not slide copy.
         </motion.p>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
           style={{ fontSize: 16, color: 'var(--text-disabled)', marginTop: 24 }}>
-          Deterministic nanoagents compress the noise. Only what matters reaches inference.
+          Deterministic nanoagents compress the noise. The dashboard shows whether the 98% target is met.
         </motion.p>
+        <div style={{ marginTop: 24 }}>
+          <MeasuredProofPanel compact />
+        </div>
       </div>
     ),
     // 4: How — the three tiers
@@ -296,7 +294,7 @@ export default function App() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {[
             { tier: 'Nanoagents', count: 7, desc: 'Deterministic rules. Z-score checks, pattern matching, gating. Always CPU. Zero inference cost.', color: 'var(--rh-blue)', delay: 0.2 },
-            { tier: 'Microagents', count: 5, desc: 'Rule-backed classifiers. Image defect scoring, audio anomaly, text patterns. CPU with OpenVINO extension points. LLM when configured.', color: 'var(--rh-green)', delay: 0.4 },
+            { tier: 'Microagents', count: 5, desc: 'Rule-backed classifiers. Image/audio are fixture-backed by default, with optional ONNX CPU adapters. LLM when configured.', color: 'var(--rh-green)', delay: 0.4 },
             { tier: 'Macroagents', count: 5, desc: 'Incident reasoning. Timeline building, root cause hypothesis, action planning. Template-based or LLM-backed.', color: 'var(--rh-purple)', delay: 0.6 },
           ].map(t => (
             <motion.div key={t.tier} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: t.delay }}
@@ -456,6 +454,7 @@ export default function App() {
         <div style={{ flex: 1, maxWidth: 900, margin: '0 auto', padding: '24px 24px', width: '100%' }}>
           {/* Infrastructure panel — always available */}
           <InfraPanel />
+          <MeasuredProofPanel />
 
           {/* Step progress */}
           {(isRunning || isPaused) && demoState.step_title && (
@@ -626,14 +625,7 @@ export default function App() {
               {/* Three key messages */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
-                {/* Economics */}
-                <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-green)30', borderRadius: 10 }}>
-                  <div style={{ fontSize: 10, color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>ECONOMICS</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-green)', fontFamily: 'Red Hat Display, sans-serif' }}>98%</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
-                    classified on CPU. GPU only when the rubric proves it's needed. One frontier call at bootstrap. Deterministic at runtime.
-                  </div>
-                </div>
+                <MeasuredProofPanel compact />
                 {/* Security */}
                 <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-blue)30', borderRadius: 10 }}>
                   <div style={{ fontSize: 10, color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>SECURITY</div>
@@ -953,7 +945,7 @@ export default function App() {
                   <StepCard num={4} title="Micro Tier — Rule-Backed Classifiers" status={microStatus} onRun={doMicro} buttonLabel="Run microagents">
                     {microResult && (
                       <div>
-                        <FlowDescription text="Microagents run rule-backed classifiers on CPU. Image defect scores, audio anomaly scores, text pattern matching. Extension points for OpenVINO/ONNX. When LLM is configured, this tier uses live model inference." />
+                        <FlowDescription text="Microagents run rule-backed classifiers on CPU. Image/audio are fixture-backed by default for the demo, with optional ONNX CPU adapters when configured. When LLM is configured, this tier can use live model inference." />
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
                           <MetricCard label="Records" value={microResult.records.length} color="var(--rh-green)" />
                           <MetricCard label="Escalated" value={microResult.escalated_from_nano} color="var(--rh-orange)" detail="from nano" />

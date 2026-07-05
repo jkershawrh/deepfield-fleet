@@ -1,7 +1,8 @@
-"""Microagent: mock-label/fixture-backed anomaly classification for audio."""
+"""Microagent: audio anomaly classification with optional ONNX CPU backend."""
 
 from app.domain.models import ClassificationRecord, EvidenceArtifact
 from app.microagents.base import BaseMicroagent
+from app.multimodal.media_adapter import classify_audio
 
 
 class AudioAnomalyClassifierAgent(BaseMicroagent):
@@ -13,28 +14,29 @@ class AudioAnomalyClassifierAgent(BaseMicroagent):
         for ev in evidence:
             if ev.modality != "audio":
                 continue
-            anomaly_score = ev.labels.get("vibration_anomaly_score", 0.0)
-            anomaly_type = ev.labels.get("anomaly_type", "unknown")
+            result = classify_audio(ev)
+            metrics = dict(result.metrics)
+            if result.fallback_reason:
+                metrics["fallback_reason"] = result.fallback_reason
 
-            if anomaly_score > 0.5:
+            if result.class_name != "unclassified":
                 records.append(ClassificationRecord(
                     target_type="evidence", target_id=ev.evidence_id,
                     agent_tier="micro", agent_name=self.name,
                     taxonomy="incident_family", class_name="quality",
-                    severity="high", confidence=min(anomaly_score, 1.0),
-                    rationale=f"Audio anomaly: {anomaly_type} (score={anomaly_score})",
+                    severity="high", confidence=result.score,
+                    rationale=f"Audio anomaly: {result.label} (score={result.score})",
                     evidence_ids=[ev.evidence_id],
-                    metrics={"model": "fixture_backed", "runtime": "cpu",
-                             "anomaly_type": anomaly_type},
+                    metrics=metrics,
                 ))
             else:
                 records.append(ClassificationRecord(
                     target_type="evidence", target_id=ev.evidence_id,
                     agent_tier="micro", agent_name=self.name,
                     taxonomy="incident_family", class_name="unclassified",
-                    severity="info", confidence=0.5,
+                    severity="info", confidence=result.score,
                     rationale="No anomaly detected or no labels available",
                     evidence_ids=[ev.evidence_id],
-                    metrics={"model": "fixture_backed", "runtime": "cpu"},
+                    metrics=metrics,
                 ))
         return records

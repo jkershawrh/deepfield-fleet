@@ -46,6 +46,21 @@ No config files need to be mounted or edited.
 | Model identifier for bootstrap analysis.
 | `claude-sonnet-4-6`
 
+| `DEEPFIELD_MEDIA_BACKEND`
+| No
+| Media classifier backend. `fixture` keeps the default demo dependency-free; `onnx` enables optional CPU model adapters.
+| `fixture`
+
+| `DEEPFIELD_IMAGE_ONNX_MODEL`
+| No
+| Local image ONNX model path used when `DEEPFIELD_MEDIA_BACKEND=onnx`.
+| (not set)
+
+| `DEEPFIELD_AUDIO_ONNX_MODEL`
+| No
+| Local audio ONNX model path used when `DEEPFIELD_MEDIA_BACKEND=onnx`; WAV PCM input is supported.
+| (not set)
+
 | `DATABASE_URL`
 | No
 | PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/deepfield`). When not set, the app runs with in-memory storage. All features work without a database.

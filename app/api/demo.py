@@ -37,8 +37,9 @@ FLOW_DESCRIPTIONS = {
     "call": (
         "Each artifact is processed through modality-specific feature extractors. "
         "Metrics get min/max/mean/std/slope/z-score. Logs get error/warning/critical counts. "
-        "Documents get keyword analysis. Images and audio use fixture labels as mock classifier outputs. "
-        "All feature extraction runs on CPU — no inference endpoints called."
+        "Documents get keyword analysis. Images and audio are fixture-backed by default, "
+        "or scored by optional ONNX/OpenVINO CPU adapters when configured. "
+        "Default feature extraction runs on CPU — no inference endpoints called."
     ),
     "threshold": (
         "The baseline profile captures the shape of normal: for vibration RMS, the normal range is "
@@ -685,8 +686,8 @@ async def get_infrastructure():
     micro_agents = [
         {"name": "text_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Pattern matching against known incident families — infrastructure, quality, security, capacity"},
         {"name": "document_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Document type and sensitivity classification by keyword analysis"},
-        {"name": "image_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Defect classification using fixture labels — extension point for OpenVINO/ONNX"},
-        {"name": "audio_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Anomaly classification using fixture labels — extension point for OpenVINO/ONNX"},
+        {"name": "image_classifier", "type": "fixture-backed / optional ONNX", "runtime": "CPU (Xeon-optimized)", "description": "Defect classification is fixture-backed by default, with optional OpenVINO/ONNX CPU adapters when configured"},
+        {"name": "audio_classifier", "type": "fixture-backed / optional ONNX", "runtime": "CPU (Xeon-optimized)", "description": "Anomaly classification is fixture-backed by default, with optional OpenVINO/ONNX CPU adapters when configured"},
         {"name": "embedding_classifier", "type": "placeholder", "runtime": "CPU", "description": "Placeholder for embedding/clustering — extension point for vector inference"},
     ]
     macro_agents = [

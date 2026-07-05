@@ -289,17 +289,36 @@ Alternatively, the demo works perfectly without any LLM configured. The walkthro
 . The demo will still complete, just slower
 . Mention to the audience: "We are using live LLM inference here to show the full capability -- in production, the scale tiers would run on CPU rules"
 
-=== Screenshots (Placeholders)
+=== Screenshots
 
-The following screenshots should be captured from a live deployment and added to this guide:
+The following screenshots are captured from a live local build and should be refreshed before major field events:
 
-* `screenshot-title-slide.png` -- Title slide of the presentation
-* `screenshot-evidence-ingestion.png` -- Evidence artifacts being ingested with modality badges
-* `screenshot-nano-classification.png` -- Nanoagent classification results with rationale
-* `screenshot-cascade-complete.png` -- All three tiers completed with funnel visualization
-* `screenshot-action-proposed.png` -- Action card with human approval required
-* `screenshot-learning-proposal.png` -- Learning proposal with before/after values
-* `screenshot-scale-stress.png` -- Stress test with 15% failure rate metrics
-* `screenshot-claim.png` -- Final claim screen with summary statistics
-* `screenshot-bootstrap-lab.png` -- Bootstrap Lab scenario selection
-* `screenshot-rubric-matrix.png` -- Rubric matrix with green/yellow/red agents
+==== Title Slide
+image::screenshot-title-slide.png[Title slide of the presentation]
+
+==== Evidence Ingestion
+image::screenshot-evidence-ingestion.png[Evidence artifacts being ingested with modality badges]
+
+==== Nano Classification
+image::screenshot-nano-classification.png[Nanoagent classification results with rationale]
+
+==== Cascade Complete
+image::screenshot-cascade-complete.png[All three tiers completed with funnel visualization]
+
+==== Action Proposed
+image::screenshot-action-proposed.png[Action card with human approval required]
+
+==== Learning Proposal
+image::screenshot-learning-proposal.png[Learning proposal with before/after values]
+
+==== Scale Stress
+image::screenshot-scale-stress.png[Stress test with 15% failure rate metrics]
+
+==== Final Claim
+image::screenshot-claim.png[Final claim screen with measured proof panel and summary statistics]
+
+==== Bootstrap Lab
+image::screenshot-bootstrap-lab.png[Bootstrap Lab scenario selection]
+
+==== Rubric Matrix
+image::screenshot-rubric-matrix.png[Rubric matrix with green/yellow/red agents]

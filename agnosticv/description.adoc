@@ -22,7 +22,7 @@ Classify enterprise signals before you react to them. Three-tier agent cascade â
 
 * 98% of signals classified on CPU before anything expensive runs
 * 17 agents across 3 tiers (7 nano, 5 micro, 5 macro)
-* 207 tests, ~210 MB container, 30 seconds to first demo
+* 217 backend tests plus frontend validation, ~210 MB container, 30 seconds to first demo
 * Agent promotion pipeline: agents earn their tier through rubric-scored validation
 
 == Powered by

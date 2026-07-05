@@ -14,7 +14,7 @@ No machine learning at all.
 The second tier -- microagents -- uses rule-backed classifiers with extension points for OpenVINO and ONNX models.
 The third tier -- macroagents -- can use an LLM when configured, but defaults to template-based reasoning.
 
-The key insight: 98% of enterprise signal classification does not need ML.
+The key insight: most enterprise signal classification should be handled before expensive ML is called.
 It needs fast, deterministic logic running on CPU.
 ML and LLMs are used only where they add value -- for the 2% of cases that require cross-modal reasoning.
 
@@ -68,7 +68,7 @@ Set `LITELLM_MODEL_MICRO` and `LITELLM_MODEL_MACRO` to your model names.
 
 For bootstrap analysis, you can separately configure `BOOTSTRAP_API_BASE` and `BOOTSTRAP_MODEL` to use a different (typically larger) model.
 
-But remember: 98% of classification runs without any model at all.
+But remember: the benchmark report shows how much classification ran before any model call.
 Models are optional, not required.
 
 == "Is this just traditional ML?"
@@ -178,7 +178,7 @@ Prometheus connector works with any Prometheus instance reachable from the pod -
 | 17 total: 7 nano (deterministic), 5 micro (rule-backed), 5 macro (reasoning)
 
 | GPU needed?
-| No -- 98% runs on CPU. Frontier models only at bootstrap.
+| No for the default path -- the benchmark panel reports the measured CPU pre-expensive ratio. Frontier models are optional.
 
 | Time to deploy?
 | Under 5 minutes on OpenShift. 30 seconds to first demo.

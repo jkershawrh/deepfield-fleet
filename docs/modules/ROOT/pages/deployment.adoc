@@ -277,7 +277,7 @@ The script checks:
 | Pod running, health check passes, frontend loads, readiness probe passing
 
 | *API Endpoints*
-| Profiles endpoint, infrastructure endpoint, models endpoint, demo state endpoint
+| Profiles endpoint, infrastructure endpoint, models endpoint, demo state endpoint, benchmark endpoint
 
 | *Bootstrap Lab*
 | Profile apply works, rubric endpoint responds
@@ -305,6 +305,7 @@ API ENDPOINTS
   + Infrastructure endpoint
   + Models endpoint
   + Demo state endpoint
+  + Benchmark endpoint
 
 BOOTSTRAP LAB
   + Profile apply
@@ -315,7 +316,7 @@ SECURITY
   + Secret ref exists
 
 ==================================================
-  Results: 12 passed, 0 failed
+  Results: 13 passed, 0 failed
 ==================================================
 ....
 
@@ -368,7 +369,12 @@ uvicorn app.main:app --reload # Start backend with hot reload
 # Frontend
 cd frontend
 npm install --legacy-peer-deps
-npm run dev                    # Start dev server at http://localhost:5173
+npm test
+npm run build
+npm run dev                    # Start dev server at http://localhost:3000
+
+# Benchmark + whole-project validation
+python -m app.benchmark --profile enterprise-signal-volume --iterations 5 --include-project-tests
 
 # Health check
 curl http://localhost:8000/health

@@ -47,6 +47,8 @@ Historical / Live / Synthetic Sources
 - **Microagents** (5) — Rule-backed classifiers on CPU. Text, document, image defect, audio anomaly, embedding clustering. Optional LLM via Granite 3.2 8B. Extension points for Intel OpenVINO/ONNX.
 - **Macroagents** (5) — Higher-level reasoning. Incident timeline, root cause hypothesis, action planning, verification planning, learning proposals. Template-based on CPU, or LLM-backed via Gaudi/Xeon.
 
+Image/audio microagents are fixture-backed by default for a dependency-free demo. Set `DEEPFIELD_MEDIA_BACKEND=onnx` with `DEEPFIELD_IMAGE_ONNX_MODEL` or `DEEPFIELD_AUDIO_ONNX_MODEL` to enable optional CPU media adapters.
+
 **Agent Promotion Pipeline:**
 
 - Agents start as **draft** and earn their tier through empirical validation
@@ -65,7 +67,7 @@ Historical / Live / Synthetic Sources
 ```bash
 # Backend
 pip install -e ".[dev]"
-pytest app/tests/ -v          # 207 tests
+pytest app/tests/ -v          # 217 backend tests
 uvicorn app.main:app --reload
 
 # Frontend
@@ -79,6 +81,9 @@ podman run -p 8000:8000 quay.io/deepfield-fleet/deepfield-multimodal:v1.0.1
 # CLI demo (no server needed)
 python3 -m app.demo
 
+# Measured proof report
+python3 -m app.benchmark --profile enterprise-signal-volume --iterations 5 --include-project-tests --out benchmark-results/latest.json
+
 # Health check
 curl http://localhost:8000/health
 ```
@@ -87,7 +92,7 @@ curl http://localhost:8000/health
 
 | Section | Duration | What happens |
 |---------|----------|-------------|
-| **Presentation** | ~5 min | 7 click-through slides — business case, 98% compression, three tiers |
+| **Presentation** | ~5 min | 7 click-through slides — business case, measured CPU compression, three tiers |
 | **Walkthrough** | ~10 min | 6 manual acts — ingest, baseline, nano/micro/macro cascade, act, learn |
 | **Scale Run** | ~5 min | 13 auto steps — 10→50 lines, stress test, recovery, the claim |
 | **Bootstrap Lab** | ~20 min | Pick scenario → analyze → validate → rubric matrix → promote agents |
@@ -100,12 +105,12 @@ Four synthetic scenarios for self-paced labs:
 |----------|--------|---------|---------|
 | OpenShift Cluster Health | IT Ops | 156 (pods, events, nodes) | openshift-monitoring |
 | Factory Floor Monitoring | Manufacturing | 6 (vibration, temp, logs, image, audio) | — |
-| Telecom Network Operations | Telecom | 150 (signal strength, events, logs) | — (uses Qwen 235B) |
+| Telecom Network Operations | Telecom | 150 (signal strength, events, logs) | — (frontier model optional) |
 | AAP Job Failures | IT Ops | 100 (jobs, workflows) | aap-job-health |
 
 Two analysis paths:
 - **Quick Start** — pre-built profile, instant, no LLM needed
-- **Deep Analyze** — Qwen 3 235B semantic analysis (~10s), generates domain-specific rules
+- **Deep Analyze** — frontier-model semantic analysis when configured, generates domain-specific rules
 
 ## Model Architecture
 
@@ -116,7 +121,7 @@ Two analysis paths:
 | Macro (runtime) | Granite 3.2 8B (optional) | Intel Xeon 6 / Gaudi 3 | Cross-modal correlation |
 | Bootstrap (one-time) | Qwen 3 235B | Intel Gaudi / MaaS | Initial data analysis |
 
-98% of signals classified on CPU before anything expensive runs.
+The benchmark panel reports whether the current runtime meets the 98% CPU pre-expensive target before anything costly runs.
 
 ## API Endpoints
 
@@ -126,7 +131,10 @@ Two analysis paths:
 | **Demo** | |
 | `POST /api/v1/demo/start` | Start auto-run demo |
 | `GET /api/v1/demo/state` | Poll demo state (SSE at `/api/v1/stream`) |
-| `POST /api/v1/demo/infrastructure` | Runtime + agent inventory |
+| `GET /api/v1/demo/infrastructure` | Runtime + agent inventory |
+| **Benchmark** | |
+| `GET /api/v1/benchmark/latest` | Latest measured CPU-compression report |
+| `POST /api/v1/benchmark/run` | Run benchmark profile and optionally save report; pass `include_project_tests: true` for backend/frontend validation |
 | **Bootstrap** | |
 | `GET /api/v1/bootstrap/scenarios` | List lab scenarios |
 | `POST /api/v1/bootstrap/scenarios/{id}/load` | Load scenario data |
@@ -149,7 +157,7 @@ Two analysis paths:
 # OpenShift with OAuth proxy
 oc apply -f deploy/deployment.yaml
 
-# Verify (12 checks)
+# Verify (13 checks)
 bash deploy/verify.sh
 ```
 
@@ -175,7 +183,7 @@ Requires: `cluster-reader` + `cluster-monitoring-view` ClusterRoles on ServiceAc
 3. **BDD** — Given/When/Then scenario tests for end-to-end flows
 4. **EDD** — Rubric scoring (healthy/warning/failing) across quality dimensions
 
-**207 tests. 9 EDD rubric dimensions. All green.**
+**217 backend tests plus frontend component tests and production build validation. 9 EDD rubric dimensions. All green.**
 
 ## Project Structure
 
@@ -193,15 +201,16 @@ deepfield-multimodal/
 │   ├── bootstrap/                # Semantic classifier, promotion, constraints, scenarios
 │   ├── connectors/               # File, Prometheus, Kubernetes
 │   ├── inference/                # LiteLLM client (runtime + bootstrap)
+│   ├── benchmark.py              # Measured CPU-compression benchmark CLI/API engine
 │   ├── analysis/evaluator.py     # EDD rubric scoring engine
 │   ├── api/                      # 7 FastAPI routers + SSE streaming
-│   └── tests/                    # 207 tests (CDD/TDD/BDD/EDD)
+│   └── tests/                    # 217 backend tests (CDD/TDD/BDD/EDD)
 ├── frontend/                     # React 19, motion/react, inline styles
 ├── fixtures/                     # Factory scenario + 4 lab scenarios
 ├── config/                       # YAML configs (taxonomies, profiles, promotion thresholds)
 ├── deploy/                       # OpenShift manifests + verify.sh
 ├── agnosticv/                    # RHDP catalog config
-├── docs/                         # Antora documentation (8 pages, 2336 lines)
+├── docs/                         # Antora documentation and presenter/lab guides
 └── migrations/                   # PostgreSQL schema (optional)
 ```
 

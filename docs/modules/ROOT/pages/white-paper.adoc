@@ -1,0 +1,241 @@
+= DeepField Multimodal White Paper
+:toc: left
+:toclevels: 3
+
+== Executive Summary
+
+Enterprise AI is often introduced as a generation problem: ask a model a question, receive a fluent answer, and let people decide what to do next.
+That framing misses the first operational problem.
+Before an enterprise system can generate a useful response, it must classify what is happening.
+
+DeepField Multimodal is an agentic signal classification engine for enterprise operations.
+It turns metrics, logs, events, documents, images, audio, and human notes into governed decisions and safe action proposals.
+The system is designed for Red Hat OpenShift and Intel CPU-first environments, with optional LLM and ONNX/OpenVINO acceleration only where evidence justifies the extra cost.
+
+The core thesis is simple:
+
+[quote]
+____
+Classify first. Escalate only when evidence demands it. Act only when governance allows it.
+____
+
+DeepField does not try to send every signal to a large model.
+It uses a three-tier cascade that performs cheap deterministic classification first, then escalates only the smaller set of evidence that needs richer analysis or reasoning.
+The measured proof panel and benchmark report show the actual CPU pre-expensive ratio for each environment, rather than relying on a static marketing percentage.
+
+== The Problem: Signal Volume Before Intelligence
+
+Modern enterprises already collect the raw material for AI-driven operations:
+
+* Metrics from Prometheus, OpenShift, and application platforms
+* Logs from services, automation jobs, and infrastructure
+* Kubernetes and OpenShift events
+* Documents, maintenance notes, tickets, and runbooks
+* Images and audio from industrial, edge, and inspection workflows
+
+The challenge is not a lack of data.
+The challenge is that most data arrives unclassified.
+Operators need to know whether a signal is normal, noisy, actionable, degraded, critical, or part of a larger incident pattern.
+
+Using a frontier model for every event is usually the wrong first move.
+It adds cost, latency, operational fragility, and governance burden.
+For many enterprise signals, the useful first answer is deterministic:
+
+* Is the metric outside the baseline?
+* Did the log contain a critical pattern?
+* Did a Kubernetes pod enter CrashLoopBackOff?
+* Did multiple modalities agree on the same incident family?
+* Is the proposed action non-destructive and reviewable?
+
+DeepField is built around this ordering.
+It classifies reality before asking a model to reason about it.
+
+== Architecture: The Three-Tier Cascade
+
+DeepField processes evidence through three tiers: nano, micro, and macro.
+Each tier is more capable and more expensive than the one before it.
+
+[cols="1,2,2,2"]
+|===
+| Tier | Purpose | Default Runtime | Escalation Role
+
+| Nano
+| Deterministic filtering, baseline checks, pattern matching, evidence gates
+| CPU only
+| Compresses signal volume before expensive paths
+
+| Micro
+| Domain-specific classification for text, documents, images, audio, and embeddings
+| Rule-backed CPU classifiers; fixture-backed media by default; optional ONNX/OpenVINO CPU adapters
+| Refines escalated evidence
+
+| Macro
+| Cross-modal incident reasoning, root cause hypotheses, action planning, verification planning, learning proposals
+| Template-based CPU reasoning by default; optional LLM via LiteLLM
+| Converts classifications into governed decisions
+|===
+
+The cascade keeps the expensive path narrow.
+Most evidence should be handled by deterministic or rule-backed agents.
+Only evidence that crosses a confidence, severity, modality, or convergence threshold reaches higher tiers.
+
+== Measured Proof, Not Static Claims
+
+DeepField includes a benchmark runner that measures the runtime behavior of the classification cascade.
+The benchmark report answers a practical question:
+
+[quote]
+____
+How much evidence was classified before any LLM call or media-model call occurred?
+____
+
+The CPU pre-expensive ratio is defined as:
+
+....
+(total_evidence - evidence_sent_to_llm_or_media_model) / total_evidence
+....
+
+The benchmark report includes:
+
+* CPU model, OS, Python version, and hardware target
+* Benchmark profile and iteration count
+* Evidence and classification totals
+* Records by tier
+* LLM calls
+* ONNX/OpenVINO media calls
+* p50 and p95 elapsed time
+* Whether the measured run met the 98% CPU pre-expensive target
+* Optional whole-project validation results
+
+Run the measured proof benchmark:
+
+[source,bash]
+----
+python -m app.benchmark \
+  --profile enterprise-signal-volume \
+  --iterations 5 \
+  --include-project-tests \
+  --out benchmark-results/latest.json
+----
+
+When `--include-project-tests` is set, the report also records:
+
+* Backend pytest results
+* Frontend Vitest results
+* Frontend TypeScript/Vite production build result
+
+The user interface reads the latest benchmark report and shows the measured value.
+If there is no report, the dashboard asks the user to run one.
+If the run does not meet the target, the dashboard shows the actual measured value instead of claiming success.
+
+== Governance: From Classification To Safe Action
+
+DeepField is not an autonomous remediation engine.
+It is a governed classification and action-proposal engine.
+
+The loop is:
+
+....
+Signals -> Decide -> Act -> Verify -> Learn
+....
+
+The action model is intentionally conservative.
+The system proposes non-destructive actions such as:
+
+* Notify a team
+* Create a ticket
+* Observe a metric window
+* Request review
+
+Destructive or high-impact actions require human approval.
+Learning proposals are also review-gated.
+The system can recommend a threshold adjustment or a rule update, but it does not silently apply the change.
+
+This is the key distinction between a field-safe demo and a risky autonomy claim:
+
+* The system classifies and explains.
+* The system proposes and verifies.
+* Humans approve consequential change.
+
+== Agent Promotion: Trust Is Earned
+
+Agents are not treated as trusted merely because they exist.
+DeepField models agent maturity explicitly:
+
+....
+draft -> candidate -> nano -> micro -> macro
+....
+
+Promotion is based on empirical validation.
+Agents are scored for samples tested, accuracy, false positive rate, false negative rate, coverage, human review, and cross-modal agreement where required.
+
+This matters because enterprise AI systems need operational trust.
+A rule that performs well on a demo fixture is not automatically a production macroagent.
+It must earn its tier by passing validation.
+
+The Bootstrap Lab exposes this model directly.
+Users can load a scenario, apply a profile or analyze samples, validate proposed agents, inspect the rubric matrix, and promote agents through the lifecycle.
+
+== Multimodal Strategy
+
+DeepField treats multimodal evidence as a normal part of operations, not as a separate AI product.
+
+Metrics, logs, events, documents, images, and audio are normalized into evidence artifacts.
+The default demo remains dependency-free and reliable:
+
+* Image and audio microagents are fixture-backed by default.
+* Optional ONNX/OpenVINO CPU adapters can be enabled through environment variables.
+* LLM inference is optional through LiteLLM.
+* The system falls back to deterministic or fixture-backed behavior if optional adapters are unavailable.
+
+This keeps the demonstration stable while preserving a clear upgrade path for real media inference.
+
+== Deployment Model
+
+DeepField is packaged as a FastAPI backend with a React/Vite frontend.
+It can run locally, in a container, or on OpenShift.
+
+The OpenShift deployment includes:
+
+* Application container
+* OAuth proxy sidecar
+* Read-only service account model
+* Optional LiteLLM and bootstrap model configuration
+* Verification script for health, API, bootstrap, benchmark, and security checks
+
+No external model endpoint is required for the default runtime.
+That default is important.
+It makes the demo reliable, the lab self-contained, and the architecture honest about where expensive inference is optional rather than assumed.
+
+== Why This Matters
+
+DeepField reframes enterprise AI around operational reality.
+The goal is not to replace every rule with a model.
+The goal is to route each signal to the cheapest layer that can classify it responsibly.
+
+That creates several advantages:
+
+* Lower latency for common signals
+* Lower inference cost
+* Better explainability
+* Cleaner failure modes when model endpoints are unavailable
+* Stronger governance through action and learning gates
+* A practical Red Hat and Intel story: OpenShift for platform, Intel CPUs for runtime classification, optional acceleration only when the measured evidence supports it
+
+== Conclusion
+
+The first job of enterprise AI is classification.
+Generation and reasoning are valuable, but they should be downstream of evidence, baselines, thresholds, confidence, and governance.
+
+DeepField Multimodal demonstrates that architecture:
+
+* Normalize enterprise evidence.
+* Classify cheaply first.
+* Escalate selectively.
+* Propose safe action.
+* Verify outcomes.
+* Learn under review.
+* Prove claims with benchmarks.
+
+That is the concept at the heart of DeepField:
+an enterprise AI system that earns its intelligence through measured classification, not unbounded generation.
