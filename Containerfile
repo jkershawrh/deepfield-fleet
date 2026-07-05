@@ -13,13 +13,13 @@ WORKDIR /app
 ARG PYTHON_EXTRAS=db
 
 COPY pyproject.toml ./
-COPY app/ ./app/
 RUN if [ -n "$PYTHON_EXTRAS" ]; then \
       pip install --no-cache-dir ".[${PYTHON_EXTRAS}]"; \
     else \
       pip install --no-cache-dir .; \
     fi
 
+COPY app/ ./app/
 COPY migrations/ ./migrations/
 COPY fixtures/ ./fixtures/
 COPY config/ ./config/
