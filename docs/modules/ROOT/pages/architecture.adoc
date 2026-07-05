@@ -89,11 +89,11 @@ Extension points exist for Intel OpenVINO and ONNX optimized inference, keeping 
 
 | `image_classifier`
 | image
-| Defect classification using fixture labels -- extension point for OpenVINO/ONNX
+| Defect classification is fixture-backed by default, with optional OpenVINO/ONNX CPU adapters when configured
 
 | `audio_classifier`
 | audio
-| Anomaly classification using fixture labels -- extension point for OpenVINO/ONNX
+| Anomaly classification is fixture-backed by default, with optional OpenVINO/ONNX CPU adapters when configured
 
 | `embedding_classifier`
 | (placeholder)
@@ -270,9 +270,9 @@ The architecture is designed around a key insight: *GPU is expensive and most cl
 | Frontier model (Qwen 235B, Granite, Claude Sonnet) used once to generate initial rules. After bootstrap, the system runs on CPU
 |===
 
-Net result: *98% of classification runs on CPU*.
-Frontier models are used only at bootstrap time.
-The nanoagent compression layer ensures that even when LLM inference is configured, the volume of requests to expensive models is minimized.
+Net result: the benchmark report measures the CPU pre-expensive ratio for each environment.
+Frontier models are used only when configured.
+The nanoagent compression layer ensures that even when LLM inference or ONNX media adapters are configured, the volume of requests to expensive paths is minimized.
 
 == Intel TDX for Secure Bootstrap
 

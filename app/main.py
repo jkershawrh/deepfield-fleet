@@ -47,6 +47,7 @@ from app.api.agent_loop import router as agent_loop_router
 from app.api.demo import router as demo_router
 from app.api.sse import router as sse_router
 from app.api.bootstrap import router as bootstrap_router
+from app.api.benchmark import router as benchmark_router
 
 app.include_router(multimodal_router)
 app.include_router(baseline_router)
@@ -55,6 +56,7 @@ app.include_router(agent_loop_router)
 app.include_router(demo_router)
 app.include_router(sse_router)
 app.include_router(bootstrap_router)
+app.include_router(benchmark_router)
 
 
 @app.get("/health")

@@ -101,7 +101,7 @@ This proves the architecture handles real-world volume.
 After the scale run completes, navigate to the *Bootstrap Lab* section.
 
 The Bootstrap Lab is where you connect your own data and build classification agents from scratch.
-A frontier model (Qwen 3 235B, Granite, or Claude Sonnet) analyzes your data, proposes classification rules, and you validate them before they go live.
+A frontier model can analyze your data when configured, propose classification rules, and let you validate them before they go live.
 
 == Step 5: Pick a Scenario
 
@@ -163,7 +163,7 @@ For any scenario, you can run a frontier model analysis:
 
 . Click *Analyze*
 . Optionally provide hints (e.g., "This is OpenShift pod data" or "These are network metrics")
-. The frontier model (Qwen 3 235B by default) analyzes your sample data
+. The configured frontier model analyzes your sample data
 . It returns:
 ** Detected modality and domain
 ** Proposed taxonomy (operational states, incident families, action classes)
@@ -300,7 +300,7 @@ You have now:
 . Validated agents with the rubric matrix and promoted them through tiers
 
 The key takeaway: *enterprise AI starts with classification, not generation*.
-98% of the work runs on CPU.
+The measured proof panel shows whether the current runtime met the 98% CPU pre-expensive target.
 Frontier models are used once at bootstrap to generate rules, then the system runs deterministically.
 
 To deploy DeepField Multimodal in your own environment, see the xref:deployment.adoc[Deployment Guide].

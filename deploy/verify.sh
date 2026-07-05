@@ -47,6 +47,7 @@ check "Profiles endpoint" "curl -sfk $URL/api/v1/bootstrap/profiles | grep -q op
 check "Infrastructure endpoint" "curl -sfk $URL/api/v1/demo/infrastructure | grep -q agents"
 check "Models endpoint" "curl -sfk $URL/api/v1/bootstrap/models | grep -q qwen"
 check "Demo state endpoint" "curl -sfk $URL/api/v1/demo/state"
+check "Benchmark endpoint" "curl -sfk $URL/api/v1/benchmark/latest | grep -q status"
 
 echo ""
 echo "BOOTSTRAP LAB"

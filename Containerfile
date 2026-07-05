@@ -10,8 +10,14 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 
+ARG PYTHON_EXTRAS=db
+
 COPY pyproject.toml ./
-RUN pip install --no-cache-dir ".[db]"
+RUN if [ -n "$PYTHON_EXTRAS" ]; then \
+      pip install --no-cache-dir ".[${PYTHON_EXTRAS}]"; \
+    else \
+      pip install --no-cache-dir .; \
+    fi
 
 COPY app/ ./app/
 COPY migrations/ ./migrations/

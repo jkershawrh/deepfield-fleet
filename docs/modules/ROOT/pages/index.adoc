@@ -14,7 +14,7 @@ The first job of enterprise AI is not generation -- it is classification.
 Before you generate a single token, you must know what you are looking at.
 ____
 
-Most enterprise signals -- 98% of them -- do not need a large language model.
+Most enterprise signals should be classified before any large language model is called.
 They need a fast, deterministic classifier that runs on a CPU.
 DeepField Multimodal proves this by processing the vast majority of signals without ever calling an inference endpoint.
 
@@ -54,7 +54,7 @@ Macroagents reason about what remains.
 | Metric | Value
 
 | *Tests*
-| 207 tests across CDD, TDD, BDD, and EDD methodologies
+| 217 backend tests across CDD, TDD, BDD, and EDD, plus frontend component tests and production build validation
 
 | *Container size*
 | ~210 MB OCI image (multi-stage build: Node 20 frontend + Python 3.11 backend)
@@ -63,7 +63,7 @@ Macroagents reason about what remains.
 | 30 seconds from `podman run` to live walkthrough
 
 | *CPU classification*
-| 98% of signals classified without any LLM inference
+| Measured CPU pre-expensive compression target surfaced by the benchmark panel
 
 | *Agent count*
 | 17 agents across 3 tiers (7 nano + 5 micro + 5 macro)
@@ -92,7 +92,7 @@ DeepField Multimodal demonstrates the value of the Red Hat and Intel partnership
 
 * *Red Hat OpenShift* provides the platform -- container orchestration, OAuth-integrated security, Prometheus monitoring, and the operator model that enterprises already run
 * *Intel Xeon* provides the runtime -- deterministic classification at CPU speeds, with Intel TDX for secure bootstrap of frontier models when needed
-* *No GPU required* for 98% of classification work -- frontier models (Qwen 235B, Granite, Claude Sonnet) are used only at bootstrap time to generate initial rules, then the system runs on CPU
+* *No GPU required* for the default runtime path -- frontier models can be used at bootstrap time to generate initial rules, then the system runs on CPU
 
 The architecture proves that enterprise AI does not start with generation.
 It starts with classification.
@@ -116,7 +116,7 @@ deepfield-multimodal/
 |   +-- inference/client.py       # LiteLLM inference client
 |   +-- bootstrap/                # Scenario loader, promotion, config generator
 |   +-- connectors/               # File, Prometheus, Kubernetes adapters
-|   +-- tests/                    # 207 tests
+|   +-- tests/                    # 217 backend tests
 +-- frontend/                     # React 19, Vite, motion/react
 +-- fixtures/                     # Synthetic scenarios
 +-- config/                       # Profiles, taxonomies, promotion thresholds

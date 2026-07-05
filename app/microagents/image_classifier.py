@@ -1,7 +1,8 @@
-"""Microagent: mock-label/fixture-backed defect classification for images."""
+"""Microagent: image defect classification with optional ONNX CPU backend."""
 
 from app.domain.models import ClassificationRecord, EvidenceArtifact
 from app.microagents.base import BaseMicroagent
+from app.multimodal.media_adapter import classify_image
 
 
 class ImageDefectClassifierAgent(BaseMicroagent):
@@ -13,28 +14,29 @@ class ImageDefectClassifierAgent(BaseMicroagent):
         for ev in evidence:
             if ev.modality != "image":
                 continue
-            defect_score = ev.labels.get("surface_defect_score", 0.0)
-            defect_type = ev.labels.get("defect_type", "unknown")
+            result = classify_image(ev)
+            metrics = dict(result.metrics)
+            if result.fallback_reason:
+                metrics["fallback_reason"] = result.fallback_reason
 
-            if defect_score > 0.5:
+            if result.class_name != "unclassified":
                 records.append(ClassificationRecord(
                     target_type="evidence", target_id=ev.evidence_id,
                     agent_tier="micro", agent_name=self.name,
                     taxonomy="incident_family", class_name="quality",
-                    severity="high", confidence=min(defect_score, 1.0),
-                    rationale=f"Image defect: {defect_type} (score={defect_score})",
+                    severity="high", confidence=result.score,
+                    rationale=f"Image defect: {result.label} (score={result.score})",
                     evidence_ids=[ev.evidence_id],
-                    metrics={"model": "fixture_backed", "runtime": "cpu",
-                             "defect_type": defect_type},
+                    metrics=metrics,
                 ))
             else:
                 records.append(ClassificationRecord(
                     target_type="evidence", target_id=ev.evidence_id,
                     agent_tier="micro", agent_name=self.name,
                     taxonomy="incident_family", class_name="unclassified",
-                    severity="info", confidence=0.5,
+                    severity="info", confidence=result.score,
                     rationale="No defect detected or no labels available",
                     evidence_ids=[ev.evidence_id],
-                    metrics={"model": "fixture_backed", "runtime": "cpu"},
+                    metrics=metrics,
                 ))
         return records
