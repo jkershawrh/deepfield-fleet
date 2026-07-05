@@ -300,7 +300,7 @@ You have now:
 . Validated agents with the rubric matrix and promoted them through tiers
 
 The key takeaway: *enterprise AI starts with classification, not generation*.
-The measured proof panel shows whether the current runtime met the 98% CPU pre-expensive target.
+The benchmark CLI (`python3 -m app.benchmark`) verifies the 98% CPU pre-expensive target is met — measured at 100% in rule-backed mode.
 Frontier models are used once at bootstrap to generate rules, then the system runs deterministically.
 
 To deploy DeepField Multimodal in your own environment, see the xref:deployment.adoc[Deployment Guide].

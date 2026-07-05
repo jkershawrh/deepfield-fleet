@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Backend — run from repo root
 pip install -e ".[dev]"
-python3 -m pytest app/tests/ -v          # 207 tests
+python3 -m pytest app/tests/ -v          # 217 tests
 python3 -m pytest app/tests/test_contracts.py  # single test file
 uvicorn app.main:app --reload            # dev server on :8000
 python3 -m app.demo                      # CLI demo (no server needed)

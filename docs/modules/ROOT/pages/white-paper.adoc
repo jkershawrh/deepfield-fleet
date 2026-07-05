@@ -21,7 +21,7 @@ ____
 
 DeepField does not try to send every signal to a large model.
 It uses a three-tier cascade that performs cheap deterministic classification first, then escalates only the smaller set of evidence that needs richer analysis or reasoning.
-The measured proof panel and benchmark report show the actual CPU pre-expensive ratio for each environment, rather than relying on a static marketing percentage.
+The benchmark CLI (`python3 -m app.benchmark`) measures the actual CPU pre-expensive ratio for each environment, providing verified proof rather than a static marketing percentage.
 
 == The Problem: Signal Volume Before Intelligence
 
@@ -124,9 +124,9 @@ When `--include-project-tests` is set, the report also records:
 * Frontend Vitest results
 * Frontend TypeScript/Vite production build result
 
-The user interface reads the latest benchmark report and shows the measured value.
-If there is no report, the dashboard asks the user to run one.
-If the run does not meet the target, the dashboard shows the actual measured value instead of claiming success.
+The benchmark CLI generates a JSON report with measured values.
+The API endpoint (`GET /api/v1/benchmark/latest`) serves the report for programmatic verification.
+If the run does not meet the target, the report shows the actual measured value instead of claiming success.
 
 == Governance: From Classification To Safe Action
 

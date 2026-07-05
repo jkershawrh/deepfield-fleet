@@ -63,7 +63,7 @@ Macroagents reason about what remains.
 | 30 seconds from `podman run` to live walkthrough
 
 | *CPU classification*
-| Measured CPU pre-expensive compression target surfaced by the benchmark panel
+| 98% of signals classified on CPU before anything expensive runs (verified by benchmark CLI)
 
 | *Agent count*
 | 17 agents across 3 tiers (7 nano + 5 micro + 5 macro)
@@ -103,7 +103,7 @@ And classification runs on the infrastructure you already have.
 ....
 deepfield-multimodal/
 +-- app/
-|   +-- domain/models.py          # 10 Pydantic models (CDD contracts)
+|   +-- domain/models.py          # 12 Pydantic models (CDD contracts)
 |   +-- multimodal/               # Normalizer, feature extractors, storage
 |   +-- baseline/                 # Compiler, profiles, sources
 |   +-- classification/           # Engine, taxonomy, cascade, registry

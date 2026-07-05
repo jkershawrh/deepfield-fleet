@@ -270,7 +270,7 @@ The architecture is designed around a key insight: *GPU is expensive and most cl
 | Frontier model (Qwen 235B, Granite, Claude Sonnet) used once to generate initial rules. After bootstrap, the system runs on CPU
 |===
 
-Net result: the benchmark report measures the CPU pre-expensive ratio for each environment.
+Net result: the benchmark CLI (`python3 -m app.benchmark`) measures the CPU pre-expensive ratio for each environment.
 Frontier models are used only when configured.
 The nanoagent compression layer ensures that even when LLM inference or ONNX media adapters are configured, the volume of requests to expensive paths is minimized.
 

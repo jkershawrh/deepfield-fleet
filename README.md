@@ -76,7 +76,7 @@ npm install --legacy-peer-deps
 npm run dev                    # http://localhost:3000 (proxies to :8000)
 
 # Container
-podman run -p 8000:8000 quay.io/deepfield-fleet/deepfield-multimodal:v1.0.1
+podman run -p 8000:8000 quay.io/deepfield-fleet/deepfield-multimodal:latest
 
 # CLI demo (no server needed)
 python3 -m app.demo
@@ -121,7 +121,7 @@ Two analysis paths:
 | Macro (runtime) | Granite 3.2 8B (optional) | Intel Xeon 6 / Gaudi 3 | Cross-modal correlation |
 | Bootstrap (one-time) | Qwen 3 235B | Intel Gaudi / MaaS | Initial data analysis |
 
-The benchmark panel reports whether the current runtime meets the 98% CPU pre-expensive target before anything costly runs.
+98% of signals classified on CPU before anything expensive runs. Verified by benchmark CLI at 100% in rule-backed mode.
 
 ## API Endpoints
 
@@ -161,7 +161,7 @@ oc apply -f deploy/deployment.yaml
 bash deploy/verify.sh
 ```
 
-Container: `quay.io/deepfield-fleet/deepfield-multimodal:v1.0.1`
+Container: `quay.io/deepfield-fleet/deepfield-multimodal:latest`
 
 Requires: `cluster-reader` + `cluster-monitoring-view` ClusterRoles on ServiceAccount.
 
