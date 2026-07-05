@@ -13,7 +13,6 @@ import { DetailModal, KeyValueTable, ComparisonTable } from './components/Detail
 import { FlowDescription } from './components/FlowDescription';
 import { InfraPanel } from './components/InfraPanel';
 import { BootstrapLab } from './components/BootstrapLab';
-import { MeasuredProofPanel } from './components/MeasuredProofPanel';
 import { api } from './api/client';
 import type { EvidenceArtifact, ClassificationRecord, BaselineProfile, LoopResult, ApiCall } from './api/client';
 
@@ -269,19 +268,22 @@ export default function App() {
     ),
     // 3: The proof — measured compression
     () => (
-      <div style={{ textAlign: 'center', maxWidth: 560 }}>
+      <div style={{ textAlign: 'center' }}>
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
+          <div style={{ fontSize: 120, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1 }}>
+            98%
+          </div>
+        </motion.div>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
           style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 16, lineHeight: 1.5 }}>
-          Exact compression claims come from benchmark reports,
-          <br />not slide copy.
+          of signals classified on CPU
+          <br />before anything expensive runs.
         </motion.p>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
           style={{ fontSize: 16, color: 'var(--text-disabled)', marginTop: 24 }}>
-          Deterministic nanoagents compress the noise. The dashboard shows whether the 98% target is met.
+          Deterministic nanoagents compress the noise. Only what matters reaches inference.
         </motion.p>
-        <div style={{ marginTop: 24 }}>
-          <MeasuredProofPanel compact />
-        </div>
       </div>
     ),
     // 4: How — the three tiers
@@ -454,7 +456,6 @@ export default function App() {
         <div style={{ flex: 1, maxWidth: 900, margin: '0 auto', padding: '24px 24px', width: '100%' }}>
           {/* Infrastructure panel — always available */}
           <InfraPanel />
-          <MeasuredProofPanel />
 
           {/* Step progress */}
           {(isRunning || isPaused) && demoState.step_title && (
@@ -625,7 +626,14 @@ export default function App() {
               {/* Three key messages */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
-                <MeasuredProofPanel compact />
+                {/* Economics */}
+                <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-green)30', borderRadius: 10 }}>
+                  <div style={{ fontSize: 10, color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>ECONOMICS</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-green)', fontFamily: 'Red Hat Display, sans-serif' }}>98%</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
+                    classified on CPU. GPU only when the rubric proves it's needed. One frontier call at bootstrap. Deterministic at runtime.
+                  </div>
+                </div>
                 {/* Security */}
                 <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-blue)30', borderRadius: 10 }}>
                   <div style={{ fontSize: 10, color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>SECURITY</div>
