@@ -96,7 +96,7 @@ quickstart_deploy_via_make_uninstall_params:
 # --- Showroom ---
 ocp4_workload_showroom_content_url: https://github.com/rhpds/deepfield-multimodal
 ocp4_workload_showroom_content_ref: main
-ocp4_workload_showroom_content_dir: content
+ocp4_workload_showroom_content_dir: docs
 ocp4_workload_showroom_user: "user-{{ guid }}"
 ocp4_workload_showroom_user_password: "{{ common_password }}"
 ocp4_workload_showroom_passthrough_user_data: true
