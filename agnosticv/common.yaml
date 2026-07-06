@@ -83,16 +83,30 @@ ai_model_requirements:
       expected_total_users: 100
 
 # --- Application deployment ---
-quickstart_deploy_via_make_repo_url: https://github.com/deepfield-fleet/deepfield-multimodal
+quickstart_deploy_via_make_repo_url: https://github.com/rhpds/deepfield-multimodal
 quickstart_deploy_via_make_scm_ref: main
 quickstart_deploy_via_make_directory: deploy
 quickstart_deploy_via_make_params:
   NAMESPACE: "user-{{ guid }}-deepfield-multimodal"
+  LITELLM_API_BASE: "https://litellm.example.com"
+  LITELLM_API_KEY: "{{ ocp4_workload_litellm_virtual_keys_key }}"
 quickstart_deploy_via_make_uninstall_params:
   NAMESPACE: "user-{{ guid }}-deepfield-multimodal"
 
 # --- Showroom ---
+ocp4_workload_showroom_content_url: https://github.com/rhpds/deepfield-multimodal
+ocp4_workload_showroom_content_ref: main
+ocp4_workload_showroom_content_dir: content
+ocp4_workload_showroom_user: "user-{{ guid }}"
+ocp4_workload_showroom_user_password: "{{ common_password }}"
 ocp4_workload_showroom_passthrough_user_data: true
+ocp4_workload_showroom_user_data:
+  user: "user-{{ guid }}"
+  password: "{{ common_password }}"
+  openshift_api_url: "{{ sandbox_openshift_api_url }}"
+  openshift_console_url: "{{ sandbox_openshift_console_url }}"
+  openshift_cluster_ingress_domain: "{{ sandbox_openshift_ingress_domain }}"
+  deepfield_url: "https://deepfield-multimodal-user-{{ guid }}-deepfield-multimodal.{{ sandbox_openshift_ingress_domain }}"
 
 # --- Platform ---
 requester_email: "rhdp-{{ guid }}@demo.redhat.com"
@@ -105,6 +119,7 @@ __meta__:
   access_control:
     allow_groups:
       - lab-access-group
+      - email-domain.example.com
   asset_uuid: 00000000-0000-0000-0000-000000000000
   owners:
     maintainer:
