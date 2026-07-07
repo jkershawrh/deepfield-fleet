@@ -1,10 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { StepCard } from './components/StepCard';
 import { MetricCard } from './components/MetricCard';
-import { CascadeDiagram } from './components/CascadeDiagram';
-import { JsonViewer } from './components/JsonViewer';
+import { AgentCascadeFlow } from './components/AgentCascadeFlow';
 import { PipelineFunnel } from './components/PipelineFunnel';
 import { LiveAgentFeed } from './components/LiveAgentFeed';
 import type { AgentEvent } from './components/LiveAgentFeed';
@@ -14,7 +13,10 @@ import { FlowDescription } from './components/FlowDescription';
 import { InfraPanel } from './components/InfraPanel';
 import { BootstrapLab } from './components/BootstrapLab';
 import { api } from './api/client';
-import type { EvidenceArtifact, ClassificationRecord, BaselineProfile, LoopResult, ApiCall } from './api/client';
+import type { ApiCall } from './api/client';
+import { useDemoStore } from './stores/useDemoStore';
+import { useDataStore } from './stores/useDataStore';
+import type { DemoState } from './stores/useDataStore';
 
 /*
  * Joseph Campbell's Hero's Journey — DeepField Multimodal
@@ -41,76 +43,22 @@ const ACT_LABELS = [
   'Reward', 'Return', '10x', '50x', 'Stress', 'Recovery', 'Claim',
 ];
 
-interface DemoState {
-  status: string;
-  current_step?: number;
-  step_id?: string;
-  step_title?: string;
-  step_subtitle?: string;
-  step_progress?: number;
-  total_steps?: number;
-  narrative?: string;
-  funnel?: Record<string, number>;
-  agent_events?: Array<{
-    agent_name: string; modality: string; class_name: string;
-    taxonomy: string; severity: string; confidence: number; tier: string; timestamp: string;
-  }>;
-  live_agent?: { name: string; status: string; tier?: string; modality?: string; artifact_type?: string };
-  baseline_metrics?: Record<string, number>;
-  evidence?: EvidenceArtifact[];
-  baseline?: BaselineProfile;
-  nano_records?: ClassificationRecord[];
-  micro_records?: ClassificationRecord[];
-  macro_records?: ClassificationRecord[];
-  action?: Record<string, unknown>;
-  verification?: Record<string, unknown>;
-  learning_proposal?: Record<string, unknown>;
-  journey_summary?: Record<string, unknown>;
-  flow_description?: string;
-  scale_metrics?: Record<string, unknown>;
-  cumulative?: Record<string, unknown>;
-  claim?: Record<string, unknown>;
-  evidence_detail?: Record<string, unknown>;
-  inference_mode?: string;
-  inference_stats?: { total_calls: number; total_tokens_out: number; avg_latency_ms: number; avg_tokens_per_sec: number; errors: number } | null;
-  waiting_for_next?: boolean;
-}
-
 export default function App() {
-  const [mode, setMode] = useState<'slides' | 'manual' | 'auto' | 'lab'>('slides');
-  const [actIndex, setActIndex] = useState(0);
-  const [demoState, setDemoState] = useState<DemoState>({ status: 'idle' });
+  const { mode, setMode, slide, setSlide, actIndex, setActIndex,
+    ingestStatus, baselineStatus, nanoStatus, microStatus, macroStatus, loopStatus,
+    setStepStatus, detail, openDetail, closeDetail } = useDemoStore();
+
+  const { demoState, setDemoState, evidence, setEvidence, baseline, setBaseline,
+    classifications, setClassifications, loopResult, setLoopResult,
+    nanoResult, setNanoResult, microResult, setMicroResult, macroResult, setMacroResult,
+    addApiCall } = useDataStore();
+
   const eventSourceRef = useRef<EventSource | null>(null);
-
-  // Manual mode state
-  const [evidence, setEvidence] = useState<EvidenceArtifact[]>([]);
-  const [baseline, setBaseline] = useState<BaselineProfile | null>(null);
-  const [classifications, setClassifications] = useState<ClassificationRecord[]>([]);
-  const [loopResult, setLoopResult] = useState<LoopResult | null>(null);
-  const [ingestStatus, setIngestStatus] = useState<'idle' | 'running' | 'done'>('idle');
-  const [baselineStatus, setBaselineStatus] = useState<'idle' | 'running' | 'done'>('idle');
-  const [nanoStatus, setNanoStatus] = useState<'idle' | 'running' | 'done'>('idle');
-  const [microStatus, setMicroStatus] = useState<'idle' | 'running' | 'done'>('idle');
-  const [macroStatus, setMacroStatus] = useState<'idle' | 'running' | 'done'>('idle');
-  const [nanoResult, setNanoResult] = useState<{ records: ClassificationRecord[]; elapsed_ms: number; decision_type: string; runtime: string } | null>(null);
-  const [microResult, setMicroResult] = useState<{ records: ClassificationRecord[]; elapsed_ms: number; escalated_from_nano: number; decision_type: string; runtime: string } | null>(null);
-  const [macroResult, setMacroResult] = useState<{ records: ClassificationRecord[]; elapsed_ms: number; decision_type: string; runtime: string } | null>(null);
-  const [cascadeStatus, setCascadeStatus] = useState<'idle' | 'running' | 'done'>('idle');
-  const [loopStatus, setLoopStatus] = useState<'idle' | 'running' | 'done'>('idle');
-  const [apiCalls, setApiCalls] = useState<ApiCall<unknown>[]>([]);
-  const addCall = (call: ApiCall<unknown>) => setApiCalls(prev => [...prev, call]);
-
-  // Detail modal state — single object to avoid stale renders
-  const [detail, setDetail] = useState<{ open: boolean; title: string; content: Record<string, unknown> | null; type: 'agent' | 'evidence' | 'baseline' | 'action' | 'learning' }>({ open: false, title: '', content: null, type: 'agent' });
 
   const detailOpen = detail.open;
   const detailTitle = detail.title;
   const detailContent = detail.content;
   const detailType = detail.type;
-
-  const openDetail = (title: string, content: Record<string, unknown>, type: typeof detailType) => {
-    setDetail({ open: true, title, content, type });
-  };
 
   const onAgentEventClick = (event: AgentEvent) => {
     openDetail(`Agent: ${event.agent_name}`, {
@@ -124,6 +72,18 @@ export default function App() {
       runtime: 'CPU — no GPU, no LLM API',
     }, 'agent');
   };
+
+  const onCascadeAgentClick = useCallback((agentName: string, tier: string) => {
+    const record = classifications.find(r => r.agent_name === agentName && r.agent_tier === tier);
+    if (record) {
+      openDetail(`Agent: ${agentName}`, {
+        tier, taxonomy: record.taxonomy, class_name: record.class_name,
+        severity: record.severity, confidence: record.confidence, rationale: record.rationale,
+        decision_type: tier === 'nano' ? 'Deterministic (no LLM)' : tier === 'micro' ? 'Rule-backed (CPU)' : 'Template-based (CPU)',
+        runtime: 'CPU',
+      }, 'agent');
+    }
+  }, [classifications, openDetail]);
 
   // SSE connection for auto mode
   useEffect(() => {
@@ -139,12 +99,12 @@ export default function App() {
       }
     });
     return () => { es.close(); eventSourceRef.current = null; };
-  }, [mode]);
+  }, [mode, setDemoState, setActIndex]);
 
   const startAuto = useCallback(async () => {
     await fetch('/api/v1/demo/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     setMode('auto');
-  }, []);
+  }, [setMode]);
 
   const pauseAuto = useCallback(async () => {
     await fetch('/api/v1/demo/pause', { method: 'POST' });
@@ -157,64 +117,61 @@ export default function App() {
   const stopAuto = useCallback(async () => {
     await fetch('/api/v1/demo/stop', { method: 'POST' });
     setDemoState({ status: 'stopped' });
-  }, []);
+  }, [setDemoState]);
 
   // Manual callbacks
   const doIngest = useCallback(async () => {
-    setIngestStatus('running');
+    setStepStatus('ingest', 'running');
     const call = await api.ingestFixture();
-    addCall(call as ApiCall<unknown>);
+    addApiCall(call as ApiCall<unknown>);
     setEvidence(call.response.data);
-    setIngestStatus('done');
-  }, []);
+    setStepStatus('ingest', 'done');
+  }, [setStepStatus, addApiCall, setEvidence]);
   const doBaseline = useCallback(async () => {
-    setBaselineStatus('running');
+    setStepStatus('baseline', 'running');
     const call = await api.buildBaseline();
-    addCall(call as ApiCall<unknown>);
+    addApiCall(call as ApiCall<unknown>);
     setBaseline(call.response.data);
-    setBaselineStatus('done');
-  }, []);
+    setStepStatus('baseline', 'done');
+  }, [setStepStatus, addApiCall, setBaseline]);
   const doNano = useCallback(async () => {
-    setNanoStatus('running');
+    setStepStatus('nano', 'running');
     const call = await api.classifyNano();
-    addCall(call as ApiCall<unknown>);
+    addApiCall(call as ApiCall<unknown>);
     setNanoResult(call.response.data);
     setClassifications(prev => [...prev, ...call.response.data.records]);
-    setNanoStatus('done');
-  }, []);
+    setStepStatus('nano', 'done');
+  }, [setStepStatus, addApiCall, setNanoResult, setClassifications]);
   const doMicro = useCallback(async () => {
-    setMicroStatus('running');
+    setStepStatus('micro', 'running');
     const call = await api.classifyMicro();
-    addCall(call as ApiCall<unknown>);
+    addApiCall(call as ApiCall<unknown>);
     setMicroResult(call.response.data);
     setClassifications(prev => [...prev, ...call.response.data.records]);
-    setMicroStatus('done');
-  }, []);
+    setStepStatus('micro', 'done');
+  }, [setStepStatus, addApiCall, setMicroResult, setClassifications]);
   const doMacro = useCallback(async () => {
-    setMacroStatus('running');
+    setStepStatus('macro', 'running');
     const call = await api.classifyMacro();
-    addCall(call as ApiCall<unknown>);
+    addApiCall(call as ApiCall<unknown>);
     setMacroResult(call.response.data);
     setClassifications(prev => [...prev, ...call.response.data.records]);
-    setMacroStatus('done');
-  }, []);
+    setStepStatus('macro', 'done');
+  }, [setStepStatus, addApiCall, setMacroResult, setClassifications]);
   const doCascade = useCallback(async () => {
-    setCascadeStatus('running');
+    setStepStatus('cascade', 'running');
     const call = await api.runCascade();
-    addCall(call as ApiCall<unknown>);
+    addApiCall(call as ApiCall<unknown>);
     setClassifications(call.response.data);
-    setCascadeStatus('done');
-  }, []);
+    setStepStatus('cascade', 'done');
+  }, [setStepStatus, addApiCall, setClassifications]);
   const doLoop = useCallback(async () => {
-    setLoopStatus('running');
+    setStepStatus('loop', 'running');
     const call = await api.runLoop();
-    addCall(call as ApiCall<unknown>);
+    addApiCall(call as ApiCall<unknown>);
     setLoopResult(call.response.data);
-    setLoopStatus('done');
-  }, []);
-
-  // --- Presentation slides ---
-  const [slide, setSlide] = useState(0);
+    setStepStatus('loop', 'done');
+  }, [setStepStatus, addApiCall, setLoopResult]);
 
   const SLIDES = [
     // 0: Title
@@ -568,8 +525,9 @@ export default function App() {
 
           {/* Cascade diagram when we have records */}
           {allRecords.length > 0 && (
-            <CascadeDiagram records={allRecords}
-              activeStage={demoState.step_id === 'ordeal_nano' ? 'nano' : demoState.step_id === 'ordeal_micro' ? 'micro' : demoState.step_id === 'ordeal_macro' ? 'macro' : 'all'} />
+            <AgentCascadeFlow records={allRecords}
+              activeStage={demoState.step_id === 'ordeal_nano' ? 'nano' : demoState.step_id === 'ordeal_micro' ? 'micro' : demoState.step_id === 'ordeal_macro' ? 'macro' : 'all'}
+              onAgentClick={onCascadeAgentClick} />
           )}
 
           {/* The Claim — final metrics + use cases */}
@@ -797,7 +755,7 @@ export default function App() {
         </div>
 
         {/* Detail modal — slides in when user clicks an agent event */}
-        <DetailModal open={detailOpen} title={detailTitle} onClose={() => setDetail(d => ({ ...d, open: false }))}>
+        <DetailModal open={detailOpen} title={detailTitle} onClose={closeDetail}>
           {detailContent && detailType === 'agent' && (
             <div>
               <div style={{ fontSize: 12, color: 'var(--rh-teal)', marginBottom: 12, fontWeight: 700 }}>
@@ -956,7 +914,7 @@ export default function App() {
                         <FlowDescription text="Microagents run rule-backed classifiers on CPU. Image/audio are fixture-backed by default for the demo, with optional ONNX CPU adapters when configured. When LLM is configured, this tier can use live model inference." />
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
                           <MetricCard label="Records" value={microResult.records.length} color="var(--rh-green)" />
-                          <MetricCard label="Escalated" value={microResult.escalated_from_nano} color="var(--rh-orange)" detail="from nano" />
+                          <MetricCard label="Escalated" value={microResult.escalated_from_nano ?? 0} color="var(--rh-orange)" detail="from nano" />
                           <MetricCard label="Time" value={`${microResult.elapsed_ms}ms`} color="var(--rh-teal)" />
                           <MetricCard label="Runtime" value={microResult.runtime} color="var(--rh-green)" detail={microResult.decision_type} />
                         </div>

@@ -10,6 +10,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from '../App';
+import { resetDemoStore } from '../stores/useDemoStore';
+import { resetDataStore } from '../stores/useDataStore';
 
 // --- Mock API responses matching real backend output ---
 
@@ -132,6 +134,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  resetDemoStore();
+  resetDataStore();
 });
 
 // =========================================================================
