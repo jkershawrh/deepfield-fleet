@@ -1,15 +1,34 @@
-# DeepField Multimodal
+# DeepField Fleet
 
-**Agentic Signal Classification Engine on Intel Xeon 6**
+**Predictive Intelligence Layer for fleet-llm-d Inference Orchestration**
 
-Three-tier agent cascade that classifies enterprise signals into governed, verified action. Deterministic nanoagents compress on CPU. LLM reasoning when you need it. Agents earn their tier through empirical validation.
+Composable predictive brain that sits above fleet-llm-d (deterministic actuator) and the ARE Immutable Ledger (shared audit spine). Classifies fleet signals, forecasts SLO breaches, emits typed intents, and produces verifiable prediction→action→outcome chains.
 
-> "The first job of enterprise AI is not generation. It is classifying reality well enough to know what should happen next."
+Forked from [deepfield-multimodal](https://github.com/deepfield-fleet/deepfield-multimodal) — the agentic signal classification engine on Intel Xeon 6.
+
+## Three-Layer Architecture
+
+```
+deepfield-fleet (this repo)              fleet-llm-d
+┌──────────────────────────┐              ┌─────────────────────┐
+│ Nano: slo_drift,         │   intents    │ POST /api/v1/intents│
+│   capacity, queue,       │─────────────▶│ Evaluate policy     │
+│   event_calendar         │              │ Execute or refuse   │
+│ Micro: slo_forecaster    │              │ Record to ledger    │
+│ Macro: consequence_scoper│              └─────────────────────┘
+│ A/B: toggle on/off       │                       │
+│ Profiles: YAML           │                       ▼
+│ DB: intents, runs        │              ┌──────────────────┐
+└──────────────────────────┘              │  ARE Ledger      │
+         │                                │  predict→act→out │
+         └───────────────────────────────▶│                  │
+                                          └──────────────────┘
+```
 
 ## Core Loop
 
 ```
-Signals → Decide → Act → Verify → Learn
+Signals → Classify → Predict → Decide → Act → Verify → Learn
 ```
 
 ## Architecture
@@ -183,37 +202,85 @@ Requires: `cluster-reader` + `cluster-monitoring-view` ClusterRoles on ServiceAc
 3. **BDD** — Given/When/Then scenario tests for end-to-end flows
 4. **EDD** — Rubric scoring (healthy/warning/failing) across quality dimensions
 
-**217 backend tests plus frontend component tests and production build validation. 9 EDD rubric dimensions. All green.**
+**288 tests (278 unit + 10 integration), zero failures. 9 EDD rubric dimensions. All green.**
+
+## Fleet-Specific Components
+
+| Component | Purpose | Tests |
+|-----------|---------|-------|
+| **FleetIntent types** | PreWarm, Scale, ShedLoad, Alert — typed recommendations to fleet-llm-d | 8 |
+| **IntentEmitter** | POST intents to fleet-llm-d, record predictions to ARE Ledger | integrated |
+| **slo_drift** nanoagent | Detects P95/P99 trending toward SLO threshold | 5 |
+| **capacity_pressure** nanoagent | CPU utilization approaching saturation | 3 |
+| **queue_depth** nanoagent | Inference queue growing beyond capacity | 2 |
+| **event_calendar** nanoagent | Scheduled event approaching — triggers pre-warm | 3 |
+| **SLO forecaster** microagent | Linear regression on P95, predicts breach T+N minutes | 9 |
+| **consequence_scoper** macroagent | Blast radius: affected models × users × severity | 8 |
+| **FleetPredictor** | A/B toggle (predictive vs reactive), event profiles | 7 |
+| **Event profiles** | YAML-driven calendar pre-warming (Summit Connect) | 8 |
+| **Persistence** | fleet_intents, ab_runs, prediction_outcomes tables | 7 |
+| **Integration tests** | End-to-end against live fleet-llm-d on dev-cluster-1 | 10 |
+
+## Integration Benchmarks
+
+Tested against fleet-llm-d on dev-cluster-1 (Intel Xeon, Red Hat OpenShift 4.19):
+
+| Test | Result | What it proves |
+|------|--------|---------------|
+| PreWarm intent → executed | PASS | Valid intent accepted by policy evaluator |
+| Low confidence → deferred | PASS | Confidence threshold gate works (< 0.5) |
+| Excessive replicas → refused | PASS | Replica limit enforced (max 8) |
+| Critical alert → human gate | PASS | Critical actions require human approval |
+| Latency ramp → SLO forecast → ScaleIntent | PASS | Full pipeline: classify → forecast → intent |
+| Event profile → PreWarm per model | PASS | Calendar-driven pre-warming works |
+| Consequence scoper → blast radius | PASS | Affected models, users, severity score computed |
 
 ## Project Structure
 
 ```
-deepfield-multimodal/
+deepfield-fleet/
 ├── app/
-│   ├── domain/models.py          # 12 Pydantic models (CDD contracts)
-│   ├── multimodal/               # Normalizer, feature extractors, storage, scale generator
-│   ├── baseline/                 # Compiler, profiles, sources
-│   ├── classification/           # Engine, taxonomy, cascade, registry
-│   ├── nanoagents/               # 7 deterministic agents + pipeline
-│   ├── microagents/              # 5 rule-backed + 1 configurable (LLM)
-│   ├── macroagents/              # 5 reasoning agents
-│   ├── agent_loop/               # Actions, verification, learning, orchestrator
-│   ├── bootstrap/                # Semantic classifier, promotion, constraints, scenarios
-│   ├── connectors/               # File, Prometheus, Kubernetes
-│   ├── inference/                # LiteLLM client (runtime + bootstrap)
-│   ├── benchmark.py              # Measured CPU-compression benchmark CLI/API engine
-│   ├── analysis/evaluator.py     # EDD rubric scoring engine
-│   ├── api/                      # 7 FastAPI routers + SSE streaming
-│   └── tests/                    # 217 backend tests (CDD/TDD/BDD/EDD)
-├── frontend/                     # React 19, motion/react, inline styles
-├── fixtures/                     # Factory scenario + 4 lab scenarios
-├── config/                       # YAML configs (taxonomies, profiles, promotion thresholds)
-├── deploy/                       # OpenShift manifests + verify.sh
-├── agnosticv/                    # RHDP catalog config
-├── docs/                         # Antora documentation and presenter/lab guides
-└── migrations/                   # PostgreSQL schema (optional)
+│   ├── domain/
+│   │   ├── models.py              # 12 Pydantic models (inherited)
+│   │   ├── fleet_intents.py       # FleetIntent, PreWarm, Scale, ShedLoad, Alert
+│   │   └── event_profile.py       # EventProfile, LoadProfile, SLOTargets
+│   ├── nanoagents/                # 11 agents (7 inherited + 4 fleet-specific)
+│   ├── microagents/               # 6 agents (5 inherited + slo_forecaster)
+│   ├── macroagents/               # 6 agents (5 inherited + consequence_scoper)
+│   ├── intents/                   # Emitter, predictor, scheduler, persistence, ledger verifier
+│   ├── agent_loop/                # Decide → Act → Verify → Learn (+ Predict)
+│   ├── classification/            # Engine, cascade, taxonomy
+│   ├── baseline/                  # Compiler, profiles
+│   ├── connectors/                # File, Prometheus, Kubernetes
+│   ├── bootstrap/                 # Semantic classifier, promotion, rule engine
+│   ├── api/                       # FastAPI routers + SSE
+│   └── tests/                     # 288 tests (CDD/TDD/BDD/EDD/CBT)
+├── config/
+│   └── defaults/
+│       └── event_profiles/        # Summit Connect, daily enterprise (YAML)
+├── migrations/                    # 001_initial + 002_fleet_intents
+├── frontend/                      # React 19
+└── deploy/                        # OpenShift manifests
+```
+
+## Quick Start
+
+```bash
+# Run with fleet-llm-d (predictive mode)
+FLEET_URL=http://fleet-controller:8080 \
+FLEET_TOKEN=<token> \
+python3 -m uvicorn app.api.main:app --host 0.0.0.0 --port 8090
+
+# Run standalone (classification only, no intent emission)
+python3 -m uvicorn app.api.main:app --host 0.0.0.0 --port 8090
+
+# Run tests
+python3 -m pytest app/tests/ -v
+
+# Run integration tests (requires live fleet-llm-d)
+FLEET_URL=http://localhost:8080 FLEET_TOKEN=<token> python3 -m pytest app/tests/test_integration_fleet.py -v
 ```
 
 ## Powered By
 
-Red Hat OpenShift · Intel Xeon 6 · Intel Gaudi 3 · Intel TDX
+Red Hat OpenShift · Intel Xeon 6 · Intel Gaudi 3 · fleet-llm-d · ARE Immutable Ledger
