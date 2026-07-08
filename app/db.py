@@ -28,6 +28,9 @@ _ALLOWED_TABLES = frozenset({
     "agent_actions",
     "verification_records",
     "learning_proposals",
+    "fleet_intents",
+    "ab_runs",
+    "prediction_outcomes",
 })
 
 

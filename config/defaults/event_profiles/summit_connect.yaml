@@ -1,0 +1,26 @@
+name: summit-connect
+description: Red Hat Summit Connect lab session with CPU inference
+schedule:
+  pre_warm_minutes: 30
+  session_duration_minutes: 90
+  cool_down_minutes: 15
+load_profile:
+  concurrent_users: 50
+  requests_per_user_per_minute: 2
+  peak_burst_multiplier: 4
+  models:
+    - granite-350m
+    - granite-2b-int8
+    - granite-4.1-3b
+    - phi3-mini-cpu
+    - qwen25-3b-cpu
+slo_targets:
+  p50_latency_ms: 2000
+  p95_latency_ms: 5000
+  error_rate_percent: 1.0
+pre_warm_action:
+  replicas: 4
+  models:
+    - granite-350m
+    - granite-2b-int8
+    - granite-4.1-3b

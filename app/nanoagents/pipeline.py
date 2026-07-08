@@ -16,6 +16,11 @@ _DEFAULT_MODULES = [
     "app.nanoagents.image_metadata",
     "app.nanoagents.audio_energy",
     "app.nanoagents.evidence_gate",
+    # Fleet-specific agents
+    "app.nanoagents.slo_drift",
+    "app.nanoagents.capacity_pressure",
+    "app.nanoagents.queue_depth",
+    "app.nanoagents.event_calendar",
 ]
 
 AGENT_MODULES = list(_DEFAULT_MODULES)
