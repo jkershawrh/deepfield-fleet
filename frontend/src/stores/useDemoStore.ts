@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 
-type Mode = 'slides' | 'manual' | 'auto' | 'lab';
+type Mode = 'slides' | 'manual' | 'auto' | 'lab' | 'dashboard';
 type StepStatus = 'idle' | 'running' | 'done';
 
 interface DemoStore {
   mode: Mode;
   slide: number;
   actIndex: number;
+  dashPage: string;
 
   ingestStatus: StepStatus;
   baselineStatus: StepStatus;
@@ -35,6 +36,7 @@ interface DemoStore {
   setMode: (mode: Mode) => void;
   setSlide: (slide: number | ((prev: number) => number)) => void;
   setActIndex: (index: number) => void;
+  setDashPage: (page: string) => void;
   setStepStatus: (step: string, status: StepStatus) => void;
   openDetail: (title: string, content: Record<string, unknown>, type: DemoStore['detail']['type']) => void;
   closeDetail: () => void;
@@ -44,6 +46,7 @@ const initialState = {
   mode: 'slides' as const,
   slide: 0,
   actIndex: 0,
+  dashPage: 'overview',
   ingestStatus: 'idle' as const,
   baselineStatus: 'idle' as const,
   nanoStatus: 'idle' as const,
@@ -65,6 +68,7 @@ export const useDemoStore = create<DemoStore>((set) => ({
   mode: 'slides',
   slide: 0,
   actIndex: 0,
+  dashPage: 'overview',
 
   ingestStatus: 'idle',
   baselineStatus: 'idle',
@@ -84,6 +88,7 @@ export const useDemoStore = create<DemoStore>((set) => ({
   detail: { open: false, title: '', content: null, type: 'agent' },
 
   setMode: (mode) => set({ mode }),
+  setDashPage: (dashPage) => set({ dashPage }),
   setSlide: (slide) => set((state) => ({
     slide: typeof slide === 'function' ? slide(state.slide) : slide,
   })),

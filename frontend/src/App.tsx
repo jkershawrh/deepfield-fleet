@@ -15,6 +15,7 @@ import { FleetArchitectureFlow } from './components/FleetArchitectureFlow';
 import { ReplicaTimeline } from './components/ReplicaTimeline';
 import { LedgerChainView } from './components/LedgerChainView';
 import { TestMatrixCompact } from './components/TestMatrixCompact';
+import { FleetDashboard } from './components/FleetDashboard';
 import { api } from './api/client';
 import type { ApiCall } from './api/client';
 import { useDemoStore } from './stores/useDemoStore';
@@ -367,6 +368,12 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  /* ───────────────────────── DASHBOARD MODE ───────────────────────── */
+
+  if (mode === 'dashboard') {
+    return <FleetDashboard onExit={() => setMode('slides')} />;
   }
 
   /* ───────────────────────── AUTO MODE ───────────────────────── */

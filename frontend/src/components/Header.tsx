@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { useDemoStore } from '../stores/useDemoStore';
 
 export function Header() {
   const [healthy, setHealthy] = useState<boolean | null>(null);
+  const { mode, setMode } = useDemoStore();
 
   useEffect(() => {
     fetch('/health').then(r => r.json()).then(() => setHealthy(true)).catch(() => setHealthy(false));
@@ -22,7 +24,22 @@ export function Header() {
       <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', letterSpacing: -0.5 }}>
         fleet-llm-d<span style={{ color: 'var(--rh-red)' }}> Fleet Orchestration</span>
       </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {mode !== 'dashboard' && (
+          <button
+            onClick={() => setMode('dashboard')}
+            style={{
+              background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)',
+              padding: '4px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+              fontFamily: 'Red Hat Text, sans-serif', fontWeight: 600,
+              transition: 'border-color 0.2s, color 0.2s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--rh-red)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+          >
+            Dashboard
+          </button>
+        )}
         <motion.div
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ repeat: Infinity, duration: 2 }}
