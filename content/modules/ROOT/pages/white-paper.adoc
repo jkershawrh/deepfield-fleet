@@ -1,241 +1,208 @@
-= DeepField Multimodal White Paper
+= Fleet Inference Orchestration White Paper
 :toc: left
 :toclevels: 3
 
 == Executive Summary
 
-Enterprise AI is often introduced as a generation problem: ask a model a question, receive a fluent answer, and let people decide what to do next.
-That framing misses the first operational problem.
-Before an enterprise system can generate a useful response, it must classify what is happening.
+Enterprise AI inference is typically deployed cluster by cluster, model by model, team by team.
+Each cluster runs its own models with no coordination.
+GPU hardware costs $32 per hour per H100 and is chronically scarce.
+Scaling is reactive -- by the time you see the spike, users are already waiting.
+There is no multi-tenant governance, no cost allocation, no audit trail.
 
-DeepField Multimodal is an agentic signal classification engine for enterprise operations.
-It turns metrics, logs, events, documents, images, audio, and human notes into governed decisions and safe action proposals.
-The system is designed for Red Hat OpenShift and Intel CPU-first environments, with optional LLM and ONNX/OpenVINO acceleration only where evidence justifies the extra cost.
-
-The core thesis is simple:
-
-[quote]
-____
-Classify first. Escalate only when evidence demands it. Act only when governance allows it.
-____
-
-DeepField does not try to send every signal to a large model.
-It uses a three-tier cascade that performs cheap deterministic classification first, then escalates only the smaller set of evidence that needs richer analysis or reasoning.
-The benchmark CLI (`python3 -m app.benchmark`) measures the actual CPU pre-expensive ratio for each environment, providing verified proof rather than a static marketing percentage.
-
-== The Problem: Signal Volume Before Intelligence
-
-Modern enterprises already collect the raw material for AI-driven operations:
-
-* Metrics from Prometheus, OpenShift, and application platforms
-* Logs from services, automation jobs, and infrastructure
-* Kubernetes and OpenShift events
-* Documents, maintenance notes, tickets, and runbooks
-* Images and audio from industrial, edge, and inspection workflows
-
-The challenge is not a lack of data.
-The challenge is that most data arrives unclassified.
-Operators need to know whether a signal is normal, noisy, actionable, degraded, critical, or part of a larger incident pattern.
-
-Using a frontier model for every event is usually the wrong first move.
-It adds cost, latency, operational fragility, and governance burden.
-For many enterprise signals, the useful first answer is deterministic:
-
-* Is the metric outside the baseline?
-* Did the log contain a critical pattern?
-* Did a Kubernetes pod enter CrashLoopBackOff?
-* Did multiple modalities agree on the same incident family?
-* Is the proposed action non-destructive and reviewable?
-
-DeepField is built around this ordering.
-It classifies reality before asking a model to reason about it.
-
-== Architecture: The Three-Tier Cascade
-
-DeepField processes evidence through three tiers: nano, micro, and macro.
-Each tier is more capable and more expensive than the one before it.
-
-[cols="1,2,2,2"]
-|===
-| Tier | Purpose | Default Runtime | Escalation Role
-
-| Nano
-| Deterministic filtering, baseline checks, pattern matching, evidence gates
-| CPU only
-| Compresses signal volume before expensive paths
-
-| Micro
-| Domain-specific classification for text, documents, images, audio, and embeddings
-| Rule-backed CPU classifiers; fixture-backed media by default; optional ONNX/OpenVINO CPU adapters
-| Refines escalated evidence
-
-| Macro
-| Cross-modal incident reasoning, root cause hypotheses, action planning, verification planning, learning proposals
-| Template-based CPU reasoning by default; optional LLM via LiteLLM
-| Converts classifications into governed decisions
-|===
-
-The cascade keeps the expensive path narrow.
-Most evidence should be handled by deterministic or rule-backed agents.
-Only evidence that crosses a confidence, severity, modality, or convergence threshold reaches higher tiers.
-
-== Measured Proof, Not Static Claims
-
-DeepField includes a benchmark runner that measures the runtime behavior of the classification cascade.
-The benchmark report answers a practical question:
+fleet-llm-d solves this with fleet-level inference orchestration.
+Seven Kubernetes CRDs define the fleet's desired state.
+A Go control plane reconciles continuously.
+A Rust data plane routes traffic across clusters.
+Intel Xeon 6 with OVMS C++ serves the same models at 53x lower cost than GPU.
+And every decision -- every placement, every scaling event, every routing change -- is recorded in the ARE Immutable Ledger.
 
 [quote]
 ____
-How much evidence was classified before any LLM call or media-model call occurred?
+Fleet-level, not cluster-level.
+Predictive, not reactive.
+Governed, not ad-hoc.
+53x cheaper on Intel Xeon.
 ____
 
-The CPU pre-expensive ratio is defined as:
+== The Problem: GPU Scarcity and Cluster Sprawl
 
-....
-(total_evidence - evidence_sent_to_llm_or_media_model) / total_evidence
-....
+Modern enterprises face four compounding challenges with AI inference:
 
-The benchmark report includes:
+*GPU scarcity.* H100 and H200 GPUs have multi-month lead times.
+Teams wait weeks for allocation.
+When hardware arrives, it is siloed within a single cluster.
 
-* CPU model, OS, Python version, and hardware target
-* Benchmark profile and iteration count
-* Evidence and classification totals
-* Records by tier
-* LLM calls
-* ONNX/OpenVINO media calls
-* p50 and p95 elapsed time
-* Whether the measured run met the 98% CPU pre-expensive target
-* Optional whole-project validation results
+*No multi-cluster orchestration.* Each cluster runs its own model servers independently.
+There is no fleet-wide view of capacity, no cross-cluster routing, no coordinated placement.
+The same model may be deployed redundantly across clusters with no load balancing.
 
-Run the measured proof benchmark:
+*Reactive scaling.* Kubernetes HPA scales after the spike hits.
+By the time replicas come online, users have already experienced latency breaches and 503 errors.
+There is no way to pre-warm for known events.
 
-[source,bash]
-----
-python -m app.benchmark \
-  --profile enterprise-signal-volume \
-  --iterations 5 \
-  --include-project-tests \
-  --out benchmark-results/latest.json
-----
+*No governance.* There is no multi-tenant fairness, no cost chargeback, no audit trail.
+Every team runs their own inference with no visibility into who is consuming what at what cost.
 
-When `--include-project-tests` is set, the report also records:
+== The Solution: fleet-llm-d
 
-* Backend pytest results
-* Frontend Vitest results
-* Frontend TypeScript/Vite production build result
+fleet-llm-d is a fleet-level inference orchestration platform built on llm-d.
+It does not serve models -- it orchestrates the fleet of model servers.
 
-The benchmark CLI generates a JSON report with measured values.
-The API endpoint (`GET /api/v1/benchmark/latest`) serves the report for programmatic verification.
-If the run does not meet the target, the report shows the actual measured value instead of claiming success.
+=== 7 CRDs
 
-== Governance: From Classification To Safe Action
+The fleet's desired state is defined declaratively through 7 Kubernetes CRDs:
 
-DeepField is not an autonomous remediation engine.
-It is a governed classification and action-proposal engine.
+* *FleetInferencePool* -- what to serve (model, version, replicas, hardware)
+* *PlacementPolicy* -- where to run (regulatory constraints, hardware affinity, cost optimization)
+* *FleetRoutingPolicy* -- how traffic flows (weighted, geographic, failover)
+* *FleetScalingPolicy* -- when to scale (GPU utilization, latency, queue depth)
+* *TenantProfile* -- who gets what (token quotas, GPU budgets, rate limits)
+* *KVCacheTransferPolicy* -- cross-cluster KV cache migration
+* *ModelLifecycle* -- canary rollouts with SLO gates and automatic rollback
 
-The loop is:
+=== Control Plane + Data Plane
 
-....
-Signals -> Decide -> Act -> Verify -> Learn
-....
+The Go control plane exposes 31 API endpoints covering fleet management, inference proxying, placement, scaling, routing, cost/chargeback, and governance.
+It runs as a Kubernetes operator that reconciles CRDs continuously.
 
-The action model is intentionally conservative.
-The system proposes non-destructive actions such as:
+The Rust data plane handles cross-cluster traffic routing, load balancing, connection pooling, load shedding, and SSE streaming.
+Built on tokio, tonic, and axum, it handles the hot path with minimal latency overhead.
 
-* Notify a team
-* Create a ticket
-* Observe a metric window
-* Request review
+== CPU Inference: 53x Cost Savings
 
-Destructive or high-impact actions require human approval.
-Learning proposals are also review-gated.
-The system can recommend a threshold adjustment or a rule update, but it does not silently apply the change.
+The cost story is measured, not estimated.
 
-This is the key distinction between a field-safe demo and a risky autonomy claim:
+[cols="1,1,1,1"]
+|===
+| Hardware | Cost/hr | Runtime | Quantization
 
-* The system classifies and explains.
-* The system proposes and verifies.
-* Humans approve consequential change.
+| H100 GPU
+| $32.00
+| vLLM
+| FP16
 
-== Agent Promotion: Trust Is Earned
+| Intel Xeon 6
+| $0.60
+| OVMS C++
+| INT8 (AMX)
+|===
 
-Agents are not treated as trusted merely because they exist.
-DeepField models agent maturity explicitly:
+Intel Xeon 6 Granite Rapids processors provide 256 cores with AMX (Advanced Matrix Extensions) -- the same matrix acceleration that GPUs use, built into the CPU.
+OVMS (OpenVINO Model Server) serves INT8 quantized models in C++.
+Neural Compressor handles the FP32-to-INT8 quantization.
 
-....
-draft -> candidate -> nano -> micro -> macro
-....
+The result: Granite models (350M through 8B parameters) serve on CPU at P95 latency under 5 seconds, at 53x lower cost than GPU.
+This is not a theoretical claim -- it is measured on production clusters with OVMS C++.
 
-Promotion is based on empirical validation.
-Agents are scored for samples tested, accuracy, false positive rate, false negative rate, coverage, human review, and cross-modal agreement where required.
+For workloads that require GPU (large models, high throughput, low-latency requirements), fleet-llm-d manages GPU clusters alongside CPU clusters.
+The cost engine calculates chargeback across H200, B200, H100, A100, MI300X, L40, and Xeon CPU.
 
-This matters because enterprise AI systems need operational trust.
-A rule that performs well on a demo fixture is not automatically a production macroagent.
-It must earn its tier by passing validation.
+== Predictive Intelligence: deepfield-fleet
 
-The Bootstrap Lab exposes this model directly.
-Users can load a scenario, apply a profile or analyze samples, validate proposed agents, inspect the rubric matrix, and promote agents through the lifecycle.
+On top of the fleet-llm-d actuator sits deepfield-fleet -- a predictive intelligence layer.
 
-== Multimodal Strategy
+=== Four Fleet Nanoagents
 
-DeepField treats multimodal evidence as a normal part of operations, not as a separate AI product.
+* *slo_drift* -- monitors P95 latency trends, detects upward drift before SLO breach
+* *capacity_pressure* -- watches GPU/CPU utilization and queue depth
+* *queue_depth* -- tracks inference request queue length, detects backlog buildup
+* *event_calendar* -- reads YAML event profiles and fires pre-warming before scheduled events
 
-Metrics, logs, events, documents, images, and audio are normalized into evidence artifacts.
-The default demo remains dependency-free and reliable:
+=== SLO Forecaster
 
-* Image and audio microagents are fixture-backed by default.
-* Optional ONNX/OpenVINO CPU adapters can be enabled through environment variables.
-* LLM inference is optional through LiteLLM.
-* The system falls back to deterministic or fixture-backed behavior if optional adapters are unavailable.
+A microagent runs linear regression on P95 latency time series.
+It calculates time-to-breach and confidence interval.
+Example output: "At +80ms/min, P95 breaches the 5000ms SLO in 22 minutes (confidence: 0.82)."
 
-This keeps the demonstration stable while preserving a clear upgrade path for real media inference.
+=== Consequence Scoper
 
-== Deployment Model
+A macroagent calculates blast radius: affected models times affected users times severity weight.
+When the severity score crosses a threshold, the system requires human approval before acting.
 
-DeepField is packaged as a FastAPI backend with a React/Vite frontend.
-It can run locally, in a container, or on OpenShift.
+=== Intent-Driven Scaling
 
-The OpenShift deployment includes:
+The brain emits typed intents to fleet-llm-d: PreWarm, Scale, ShedLoad, Alert.
+fleet-llm-d evaluates each intent against policy -- confidence gates, replica limits, budget constraints -- before executing.
+This is predictive scaling with safety gates, not autonomous scaling without guardrails.
 
-* Application container
-* OAuth proxy sidecar
-* Read-only service account model
-* Optional LiteLLM and bootstrap model configuration
-* Verification script for health, API, bootstrap, benchmark, and security checks
+== Measured Proof
 
-No external model endpoint is required for the default runtime.
-That default is important.
-It makes the demo reliable, the lab self-contained, and the architecture honest about where expensive inference is optional rather than assumed.
+fleet-llm-d is validated by 360 tests across 12 suites:
 
-== Why This Matters
+[cols="1,3"]
+|===
+| Suite | Coverage
 
-DeepField reframes enterprise AI around operational reality.
-The goal is not to replace every rule with a model.
-The goal is to route each signal to the cheapest layer that can classify it responsibly.
+| Unit tests
+| Go packages, Rust crates, TypeScript components
 
-That creates several advantages:
+| Integration tests
+| Control plane + data plane interaction
 
-* Lower latency for common signals
-* Lower inference cost
-* Better explainability
-* Cleaner failure modes when model endpoints are unavailable
-* Stronger governance through action and learning gates
-* A practical Red Hat and Intel story: OpenShift for platform, Intel CPUs for runtime classification, optional acceleration only when the measured evidence supports it
+| BDD scenarios
+| Feature files for fleet operations
+
+| Contract tests
+| Proto and CRD schema validation
+
+| End-to-end tests
+| Multi-cluster deployment on Kind
+
+| Chaos tests
+| Node failure, network partition, pod eviction
+
+| Performance tests
+| Latency benchmarks, throughput measurement
+
+| Security tests
+| Auth, RBAC, secret handling, TLS
+|===
+
+Key measured results:
+
+* *P95 latency*: under 5 seconds for Granite models on CPU
+* *HPA scaling*: 1 to 4 replicas with predictive pre-warming
+* *Zero downtime*: during scaling events
+* *SLO compliance*: measured across 5 CPU models
+
+== ARE Immutable Ledger
+
+The ARE Ledger is independent shared infrastructure -- not a fleet-llm-d component.
+fleet-llm-d is one of many writers; other platforms (MaaS, RHACM, agentic frameworks) can write to the same instance.
+
+=== 5 Chain Types
+
+* *Placement* -- model placement decisions (which cluster, why, cost delta)
+* *Scaling* -- replica changes (trigger reason, SLO state, intent ID)
+* *Routing* -- traffic weight changes (failover events, geographic shifts)
+* *Lifecycle* -- canary rollouts (promotions, rollbacks, SLO gate results)
+* *Tenant* -- governance events (quota changes, rate limit adjustments, budget alerts)
+
+=== Hash Linking
+
+Each entry contains a SHA-256 hash of the previous entry in its chain.
+Tampering with any entry breaks the chain.
+Proof receipts are portable and can be verified independently by auditors.
+
+=== Compliance Value
+
+For regulated industries (finance, healthcare, government), the ledger provides:
+
+* Tamper-proof evidence of every infrastructure decision
+* Chain verification independent of fleet-llm-d
+* Portable proof receipts for external auditors
+* Time-stamped record of who requested what, what policy was evaluated, and what action was taken
 
 == Conclusion
 
-The first job of enterprise AI is classification.
-Generation and reasoning are valuable, but they should be downstream of evidence, baselines, thresholds, confidence, and governance.
+Fleet-level inference orchestration addresses the core operational challenges of enterprise AI:
 
-DeepField Multimodal demonstrates that architecture:
+* *Cost*: 53x savings on Intel Xeon CPU vs GPU
+* *Scale*: Multi-cluster coordination with cross-cluster routing
+* *Governance*: Multi-tenant quotas, rate limits, budget alerts
+* *Predictability*: SLO forecasting and event-driven pre-warming
+* *Auditability*: Every decision in an immutable ledger
 
-* Normalize enterprise evidence.
-* Classify cheaply first.
-* Escalate selectively.
-* Propose safe action.
-* Verify outcomes.
-* Learn under review.
-* Prove claims with benchmarks.
-
-That is the concept at the heart of DeepField:
-an enterprise AI system that earns its intelligence through measured classification, not unbounded generation.
+fleet-llm-d makes inference governable, affordable, and predictable.
+It starts with the hardware you already own, scales across the fleet you already operate, and proves every decision with an audit trail you can verify.

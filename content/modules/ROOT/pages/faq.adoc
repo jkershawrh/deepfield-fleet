@@ -1,203 +1,193 @@
-= FAQ & Booth Cheat Sheet
+= FAQ
 :toc: left
 :toclevels: 2
 
-Quick answers for booth conversations at Summit Connect.
-Each answer is short enough to say in 30 seconds.
+Common questions about fleet-llm-d and deepfield-fleet.
 
-== "Is this using ML?"
+== "Is this a model server?"
 
-Yes, but not the kind you might expect.
-The system uses a three-tier cascade.
-The first tier -- nanoagents -- is purely deterministic: threshold checks, pattern matching, z-score analysis.
-No machine learning at all.
-The second tier -- microagents -- uses rule-backed classifiers with extension points for OpenVINO and ONNX models.
-The third tier -- macroagents -- can use an LLM when configured, but defaults to template-based reasoning.
+No.
+fleet-llm-d does not serve models.
+It orchestrates the fleet of model servers -- OVMS, vLLM, TGI, or any OpenAI-compatible backend.
 
-The key insight: most enterprise signal classification should be handled before expensive ML is called.
-It needs fast, deterministic logic running on CPU.
-ML and LLMs are used only where they add value -- for the 2% of cases that require cross-modal reasoning.
+fleet-llm-d decides *where* models run (PlacementPolicy), *how* traffic routes (FleetRoutingPolicy), *when* to scale (FleetScalingPolicy), *who* gets what quota (TenantProfile), and records every decision in the ARE Immutable Ledger.
 
-== "Does it connect to AAP / ACS / ServiceNow?"
+The model servers do the inference.
+fleet-llm-d makes sure the right model serves the right request on the right hardware at the right cost.
 
-AAP and ACS have pre-built profiles today.
-The AAP profile monitors job execution -- playbook failures, timeouts, unreachable hosts, workflow errors.
-The ACS profile monitors security findings -- critical CVEs, policy violations, privileged containers.
+== "Why not just use HPA?"
 
-ServiceNow is not built in yet, but the architecture supports it.
-The connector interface has three methods: `connect()`, `sample()`, and `stream()`.
-A ServiceNow connector would query the table API, sample incidents or change requests, and feed them through the same classification cascade.
-The Bootstrap Lab would generate classification rules specific to your ServiceNow data.
+HPA is reactive -- it scales after the spike hits.
+By the time new replicas are ready, users have already experienced latency breaches and 503 errors.
 
-For any data source with an API, the pattern is the same: connect, sample, analyze, validate, deploy.
+fleet-llm-d adds predictive scaling on top of HPA:
 
-== "What about data security?"
+* *Event profiles*: YAML files that define scheduled events (e.g., Summit Connect, product launch). The `event_calendar` nanoagent pre-warms replicas before the event starts.
+* *SLO forecasting*: Linear regression on P95 latency trends predicts breaches before they happen. "P95 will breach 5s SLO in 22 minutes."
+* *Intent-driven scaling*: The predictive brain emits typed intents (PreWarm, Scale, ShedLoad) that fleet-llm-d evaluates against policy before executing.
 
-Three layers of security:
+HPA is still there as the safety net.
+fleet-llm-d's brain acts before HPA needs to.
 
-. *Evidence sensitivity labels.* Every artifact is tagged with a sensitivity level: public, internal, confidential, or restricted. The system tracks these labels through the entire pipeline.
+== "Does it work with GPUs?"
 
-. *No data leaves the cluster for classification.* Nanoagents and microagents run entirely on CPU within your cluster. No external API calls. Macroagents can optionally use an LLM, but you control the endpoint -- it can be a model running inside your cluster.
+Yes.
+fleet-llm-d manages GPU clusters, CPU clusters, or mixed fleets.
 
-. *Intel TDX for bootstrap.* When you use a frontier model (like Qwen 235B) at bootstrap time to generate initial rules, Intel Trust Domain Extensions provide hardware-isolated secure enclaves. The bootstrap conversation -- which may contain sample signal data -- runs inside a TDX boundary. After bootstrap, the generated rules are deterministic and contain no sensitive data.
+The cost engine calculates chargeback across hardware tiers:
 
-Bottom line: classification runs locally on CPU. The only time data could leave the cluster is at bootstrap, and TDX protects that.
+[cols="1,1"]
+|===
+| Hardware | Cost/hr
+
+| H200
+| $45.00
+
+| B200
+| $40.00
+
+| H100
+| $32.00
+
+| A100
+| $12.00
+
+| MI300X
+| $10.00
+
+| L40
+| $4.00
+
+| Intel Xeon 6
+| $0.60
+|===
+
+CPU inference is the cost optimization story for models that fit on CPU (Granite 350M through 8B with INT8 quantization).
+GPU inference is still the right choice for large models, high throughput, or ultra-low-latency requirements.
+fleet-llm-d manages both and routes traffic to the most cost-effective hardware.
+
+== "What about multi-cluster?"
+
+Multi-cluster is fleet-llm-d's core design, not an add-on.
+
+* *Rust gateway*: Routes inference requests across clusters with latency-aware load balancing
+* *PlacementPolicy*: Spreads models geographically based on regulatory constraints and cost
+* *KVCacheTransferPolicy*: Migrates hot KV caches between clusters for session continuity during failover
+* *Fleet controller*: Federates metrics across all registered clusters for fleet-wide visibility
+* *Cross-cluster routing*: The data plane handles HTTP/2 multiplexed connections with connection pooling
+
+== "What if the brain is wrong?"
+
+The policy evaluator is the safety gate between prediction and action.
+Every intent from the predictive brain is evaluated before execution:
+
+* *Confidence gate*: Intent confidence below threshold? Deferred. No action taken.
+* *Replica limits*: Requested replicas exceed maximum? Refused. Capped at limit.
+* *Budget constraints*: Action would exceed tenant budget? Refused.
+* *Human approval*: Severity score above threshold? Requires human sign-off before executing.
+
+And every prediction-action-outcome chain is recorded in the ARE Ledger.
+Over time, you can measure prediction accuracy by comparing forecasts to actual outcomes.
+
+== "What is the ARE Ledger?"
+
+The ARE (Audit, Replay, Evidence) Immutable Ledger is independent shared infrastructure -- not a fleet-llm-d component.
+
+It provides a tamper-proof audit trail using 5 chain types:
+
+* *Placement* -- where models were placed and why
+* *Scaling* -- when replicas changed and what triggered it
+* *Routing* -- how traffic weights shifted
+* *Lifecycle* -- canary rollout decisions and SLO gate results
+* *Tenant* -- quota changes, rate limit adjustments, budget alerts
+
+Each entry contains a SHA-256 hash of the previous entry in its chain.
+Tamper with one entry, the chain breaks.
+Proof receipts are portable -- auditors can verify independently.
+
+fleet-llm-d is one of many writers.
+Other platforms (MaaS, RHACM, agentic frameworks, CI/CD) can write to the same ledger instance.
+
+== "How do I add a new model?"
+
+Create a FleetInferencePool CRD:
+
+[source,bash,role=execute]
+----
+cat <<'EOF' | oc apply -f -
+apiVersion: fleet.llm-d.io/v1alpha1
+kind: FleetInferencePool
+metadata:
+  name: my-model
+  namespace: fleet-llm-d
+spec:
+  modelName: my-model
+  modelVersion: "1.0"
+  replicas: 1
+  hardware:
+    type: cpu
+    accelerator: amx
+  serving:
+    runtime: ovms
+    quantization: int8
+    format: openvino-ir
+EOF
+----
+
+The fleet controller reconciles the CRD and deploys the model to the best cluster based on PlacementPolicy.
 
 == "How long to deploy?"
 
-* *Container image pull:* ~210 MB, typically under 30 seconds
-* *OpenShift deployment:* Apply one manifest (`deploy/deployment.yaml`), creates ServiceAccount, ClusterRoleBinding, Deployment, Service, Route. Under 5 minutes end to end.
-* *First demo:* 30 seconds from container start to live walkthrough
-* *Bootstrap Lab:* 10-15 minutes to connect a data source, analyze it, validate agents, and promote them
-* *Verification:* Run `deploy/verify.sh` to get a RED/GREEN rubric of 12 deployment checks
+* *Helm install*: Under 2 minutes for fleet-llm-d on an existing cluster
+* *First health check*: 30 seconds after pods are running
+* *deepfield-fleet dashboard*: 1 minute (single container)
+* *First inference*: Under 5 minutes from `helm install` to chat completion
+* *Full production setup*: 15-30 minutes (Helm + backends + Grafana + ledger)
 
-No GPU provisioning. No model training. No data labeling. Connect and classify.
+== "Can this run air-gapped?"
 
-== "Can I use my own models?"
+Yes.
 
-Yes. The system uses an OpenAI-compatible API interface through LiteLLM.
-You can point it at:
+* *fleet-llm-d*: Runs entirely within the cluster. No external API calls. The Go control plane and Rust data plane are self-contained.
+* *Model servers*: OVMS and vLLM run locally. Models are loaded from local storage or an internal registry.
+* *deepfield-fleet*: Runs as a local container. Connects to fleet-llm-d within the cluster network.
+* *ARE Ledger*: Runs on its own infrastructure within your network.
 
-* *vLLM* serving your own fine-tuned model
-* *Ollama* running models locally
-* *Granite on Intel Gaudi* for high-throughput CPU/accelerator inference
-* *Any OpenAI-compatible endpoint* -- Azure OpenAI, Amazon Bedrock (via proxy), Anthropic (via proxy)
+The only external dependency is pulling container images, which can be mirrored to an internal registry.
 
-Set the `LITELLM_API_BASE` environment variable to your endpoint.
-Set `LITELLM_MODEL_MICRO` and `LITELLM_MODEL_MACRO` to your model names.
-
-For bootstrap analysis, you can separately configure `BOOTSTRAP_API_BASE` and `BOOTSTRAP_MODEL` to use a different (typically larger) model.
-
-But remember: the benchmark CLI verifies how much classification ran before any model call.
-Models are optional, not required.
-
-== "Is this just traditional ML?"
-
-No.
-Traditional ML requires training data, labeled datasets, and a model training pipeline.
-DeepField does not train models.
-
-Instead, it uses a bootstrap approach:
-
-. A frontier model (Qwen 235B, Granite, or Claude) analyzes a sample of your data
-. It generates deterministic classification rules
-. Those rules are validated against your data with a rubric matrix (red/yellow/green)
-. Rules that pass validation are promoted to production
-. The rules run on CPU -- no model inference needed
-
-The frontier model is used once, at bootstrap.
-After that, classification is deterministic.
-This is fundamentally different from traditional ML pipelines.
-
-== "What about GPU?"
-
-You do not need one.
-
-* *Nanoagents (7):* Pure CPU. Deterministic. No inference.
-* *Microagents (5):* Rule-backed on CPU by default. Extension points for OpenVINO/ONNX for specialized tasks (image defect detection, audio anomaly scoring) -- still CPU-native.
-* *Macroagents (5):* Template-based reasoning on CPU by default. Can optionally use an LLM for richer reasoning -- but the LLM itself can run on CPU (Granite 8B, for example).
-* *Bootstrap:* The frontier model for initial rule generation can run on Intel Gaudi (Qwen 235B) or via cloud API. This is a one-time operation.
-
-The economic point: GPU inference costs $3-15 per million input tokens.
-Deterministic nanoagent classification costs nothing per signal.
-The three-tier cascade ensures you only pay for inference when it genuinely adds value.
-
-== "How do agents get promoted?"
-
-Agents earn their trust through empirical validation.
-The promotion pipeline has five tiers:
-
-....
-draft -> candidate -> nano -> micro -> macro
-....
-
-Each promotion requires meeting thresholds:
-
-* *Draft to Candidate:* 50 samples tested, 60% accuracy, 30% max false positive rate
-* *Candidate to Nano:* 200 samples, 75% accuracy, 15% max FP, 20% max FN
-* *Nano to Micro:* 500 samples, 85% accuracy, 10% max FP, human review required
-* *Micro to Macro:* 1,000 samples, 85% accuracy, 5% max FP, human review + cross-modal agreement
-
-Ground truth comes from baseline-derived ranges -- evidence within normal ranges is normal, evidence outside is abnormal.
-No human labeling required.
-The baseline provides the truth signal.
-
-Every agent has a rubric status: green (>= 75% accuracy), yellow (>= 60%), or red (< 60%).
-You can see the rubric matrix in the Bootstrap Lab.
-You can promote or demote agents manually.
-
-== "What's the compression ratio?"
-
-The compression ratio measures how much signal volume the cascade reduces before expensive action.
-
-In the demo walkthrough:
-
-* 6 evidence artifacts in, 1 action proposed. Compression ratio: *6:1*.
-
-At scale:
-
-* 10 lines: ~60 evidence, compression ratio ~60:1
-* 50 lines: ~300 evidence, compression ratio ~300:1 (when failure rate is low)
-* Stress test (15% failure): compression drops as more signals require attention, but the system still handles the volume
-
-The compression ratio is driven by the nanoagent tier.
-Because nanoagents are deterministic and free (no inference cost), they can absorb massive signal volumes.
-Only the signals they cannot resolve -- low confidence, high severity, complex modalities -- escalate to more expensive tiers.
-
-This is the economic argument: the compression layer makes LLM inference affordable at enterprise scale, because the LLM only sees the signals that matter.
-
-== "Can this work air-gapped?"
-
-Yes, with one caveat.
-
-*For classification:* Fully air-gapped. Nanoagents are deterministic. Microagents are rule-backed. Macroagents use template-based reasoning. No external API calls. The container runs standalone.
-
-*For bootstrap:* You need a model for initial rule generation. In an air-gapped environment, you can:
-
-. Use a pre-built profile (OpenShift, AAP, ACS) -- no model needed, profiles are included in the container
-. Run Granite 8B locally with Ollama -- fully air-gapped
-. Run Qwen 235B on Intel Gaudi within your network -- air-gapped but requires hardware
-
-After bootstrap, all generated rules are deterministic.
-The frontier model is no longer needed.
-
-*For data sources:* File connector works with local files.
-Kubernetes connector works with the local cluster API.
-Prometheus connector works with any Prometheus instance reachable from the pod -- which in an air-gapped OpenShift cluster is the built-in monitoring stack.
-
-== Quick Reference Card
+== Quick Reference
 
 [cols="1,2"]
 |===
 | Question | Short Answer
 
 | What is it?
-| Agentic signal classification engine -- classifies enterprise signals and proposes governed action
+| Fleet-level inference orchestration -- manages where models run, how traffic routes, when to scale, who gets what quota
 
-| How many agents?
-| 17 total: 7 nano (deterministic), 5 micro (rule-backed), 5 macro (reasoning)
+| CRDs
+| 7: FleetInferencePool, PlacementPolicy, FleetRoutingPolicy, FleetScalingPolicy, TenantProfile, KVCacheTransferPolicy, ModelLifecycle
 
-| GPU needed?
-| No for the default path -- the benchmark CLI verifies the measured CPU pre-expensive ratio. Frontier models are optional.
+| API endpoints
+| 31 across fleet management, inference proxy, cost/chargeback, and governance
 
-| Time to deploy?
-| Under 5 minutes on OpenShift. 30 seconds to first demo.
+| Tests
+| 360 across 12 suites
 
-| Container size?
-| ~210 MB
+| GPU required?
+| No for CPU inference path. Manages GPU clusters too.
 
-| Data sources?
-| File, Prometheus, Kubernetes. Extensible to any API.
+| Cost savings
+| 53x: $0.60/hr CPU vs $32/hr GPU (Intel Xeon 6 + OVMS C++)
 
-| Pre-built profiles?
-| OpenShift cluster monitoring, AAP job health, ACS security findings
+| Multi-cluster?
+| Core design. Rust gateway for cross-cluster routing.
 
-| Models supported?
-| Any OpenAI-compatible API: Granite, Qwen, Claude, Llama, Mistral, via LiteLLM
+| Multi-tenant?
+| TenantProfile CRD with token quotas, rate limits, budget alerts
+
+| Audit trail?
+| ARE Immutable Ledger: 5 chains, SHA-256 hash linking, proof receipts
 
 | Air-gapped?
-| Yes for classification. Bootstrap needs a local model or pre-built profile.
-
-| Open source?
-| Built on Red Hat OpenShift, FastAPI, React 19, Pydantic v2
+| Yes. Everything runs within the cluster.
 |===

@@ -1,319 +1,513 @@
-= Lab Guide
+= fleet-llm-d Hands-On Lab
 :toc: left
 :toclevels: 3
 
-This is a self-paced lab for Summit Connect attendees.
-You will walk through a guided presentation, watch a live classification walkthrough, observe a scale test, and then use the Bootstrap Lab to connect your own data source and build classification agents.
+Self-paced lab for learning fleet-llm-d inference orchestration.
+5 modules, approximately 60 minutes.
 
 == Prerequisites
 
-* A modern web browser (Chrome, Firefox, Edge, Safari)
-* The DeepField Multimodal URL provided by your lab instructor
-* No local software installation required -- everything runs in the browser
+* An OpenShift cluster with fleet-llm-d deployed
+* Terminal access (via showroom or local)
+* A modern web browser (Chrome, Firefox, Edge)
+* The following variables are provided by your lab environment:
+** `{fleet_url}` -- fleet-llm-d API endpoint
+** `{fleet_token}` -- authentication token
+** `{openshift_api_url}` -- OpenShift API URL
+** `{user}` / `{password}` -- OpenShift credentials
 
-== Step 1: Click Through the Presentation
+== Module 1: Deploy fleet-llm-d (15 min)
 
-When you open the DeepField Multimodal URL, you will see a presentation view.
+=== 1.1 Inspect the Helm Chart
 
-. Click the *right arrow* or *Next* button to advance through 7 slides
-. The slides explain:
-** What DeepField Multimodal is -- an agentic signal classification engine
-** Why classification matters more than generation for enterprise AI
-** The three-tier cascade: nano (deterministic CPU), micro (rule-backed), macro (reasoning)
-** The continuous loop: Signals, Decide, Act, Verify, Learn
-** The Red Hat + Intel partnership: CPU-native, no GPU required
-. Take your time -- each slide has key points about the architecture
+Start by examining the fleet-llm-d Helm chart to understand the deployment configuration.
 
-After the final slide, you will see a *Start Walkthrough* button.
+[source,bash,role=execute]
+----
+cat charts/fleet-llm-d/values.yaml
+----
 
-== Step 2: Step Through the Walkthrough
+Review the key sections: `mode`, `auth`, `rateLimit`, `loadShedding`, and `backends`.
 
-Click *Start Walkthrough* to begin the auto-orchestrated demo.
+=== 1.2 Deploy fleet-llm-d
 
-The walkthrough tells the story of a factory bearing failure through 8 acts.
-Each act runs automatically, then pauses so you can read the results before clicking *Next*.
+Install fleet-llm-d using the Helm chart with authentication enabled:
 
-=== What to watch for in each act:
+[source,bash,role=execute]
+----
+helm install fleet-llm-d charts/fleet-llm-d/ \
+  --set mode=all \
+  --set auth.enabled=true \
+  --set auth.secretName=fleet-auth
+----
+
+The `mode=all` flag deploys the fleet controller, inference proxy, and cost engine together.
+
+=== 1.3 Verify the Deployment
+
+Check that fleet-llm-d is healthy:
+
+[source,bash,role=execute]
+----
+curl {fleet_url}/healthz
+----
+
+Expected response: `{"status":"ok"}`.
+
+=== 1.4 Register a Cluster
+
+Register your lab cluster with fleet-llm-d:
+
+[source,bash,role=execute]
+----
+curl -X POST {fleet_url}/api/v1/clusters \
+  -H "Authorization: Bearer {fleet_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "lab-cluster",
+    "region": "us-east",
+    "hardware": "intel-xeon-6",
+    "capabilities": ["cpu-inference", "amx"]
+  }'
+----
+
+=== 1.5 Explore the CRDs
+
+List the fleet-llm-d CRDs installed on your cluster:
+
+[source,bash,role=execute]
+----
+oc get crd | grep fleet
+----
+
+You should see 7 CRDs:
+
+* `fleetinferencepools.fleet.llm-d.io`
+* `placementpolicies.fleet.llm-d.io`
+* `fleetroutingpolicies.fleet.llm-d.io`
+* `fleetscalingpolicies.fleet.llm-d.io`
+* `tenantprofiles.fleet.llm-d.io`
+* `kvcachetransferpolicies.fleet.llm-d.io`
+* `modellifecycles.fleet.llm-d.io`
+
+=== Checkpoint
+
+[%interactive]
+* [ ] `curl {fleet_url}/healthz` returns 200
+* [ ] Cluster registered successfully
+* [ ] 7 CRDs visible in `oc get crd`
+
+== Module 2: Serve a Model on CPU (10 min)
+
+=== 2.1 Create a FleetInferencePool
+
+Deploy a Granite 350M model on CPU by creating a FleetInferencePool CRD:
+
+[source,bash,role=execute]
+----
+cat <<'EOF' | oc apply -f -
+apiVersion: fleet.llm-d.io/v1alpha1
+kind: FleetInferencePool
+metadata:
+  name: granite-350m
+  namespace: fleet-llm-d
+spec:
+  modelName: granite-350m
+  modelVersion: "1.0"
+  replicas: 1
+  hardware:
+    type: cpu
+    accelerator: amx
+  serving:
+    runtime: ovms
+    quantization: int8
+    format: openvino-ir
+  resources:
+    requests:
+      cpu: "4"
+      memory: "8Gi"
+    limits:
+      cpu: "8"
+      memory: "16Gi"
+EOF
+----
+
+Verify the pool is ready:
+
+[source,bash,role=execute]
+----
+oc get fleetinferencepool granite-350m -n fleet-llm-d
+----
+
+=== 2.2 Send an Inference Request
+
+Send a chat completion request through the fleet-llm-d proxy:
+
+[source,bash,role=execute]
+----
+curl -s {fleet_url}/v1/chat/completions \
+  -H "Authorization: Bearer {fleet_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "granite-350m",
+    "messages": [
+      {"role": "user", "content": "Hello, what can you help me with?"}
+    ],
+    "max_tokens": 50
+  }' | jq .
+----
+
+=== 2.3 Check Routing Headers
+
+Send a request with verbose headers to see where it was routed:
+
+[source,bash,role=execute]
+----
+curl -sv {fleet_url}/v1/chat/completions \
+  -H "Authorization: Bearer {fleet_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "granite-350m",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 10
+  }' 2>&1 | grep -i "x-fleet"
+----
+
+Look for:
+
+* `X-Fleet-Routed-To` -- the cluster that served the request
+* `X-Fleet-Routing-Reason` -- why that cluster was chosen (e.g., "least-latency", "cost-optimal")
+
+=== 2.4 View Cost Savings
+
+Check the cost comparison between GPU and CPU inference:
+
+[source,bash,role=execute]
+----
+curl -s "{fleet_url}/api/v1/cost/savings?model=granite-350m&duration=1h" \
+  -H "Authorization: Bearer {fleet_token}" | jq .
+----
+
+=== Checkpoint
+
+[%interactive]
+* [ ] FleetInferencePool `granite-350m` shows `Ready`
+* [ ] Chat completion returns a response
+* [ ] `X-Fleet-Routed-To` header present in response
+* [ ] Cost savings API returns GPU vs CPU comparison
+
+== Module 3: Multi-Tenant Governance (10 min)
+
+=== 3.1 Create a TenantProfile
+
+Define a tenant with token quotas and rate limits:
+
+[source,bash,role=execute]
+----
+cat <<'EOF' | oc apply -f -
+apiVersion: fleet.llm-d.io/v1alpha1
+kind: TenantProfile
+metadata:
+  name: tenant-a
+  namespace: fleet-llm-d
+spec:
+  displayName: "Team Alpha"
+  quotas:
+    tokensPerMinute: 1000
+    tokensPerDay: 100000
+    maxConcurrent: 5
+  rateLimit:
+    requestsPerMinute: 10
+    burstSize: 15
+  budget:
+    dailyLimit: "50.00"
+    alertThreshold: "40.00"
+    currency: "USD"
+  allowedModels:
+    - "granite-350m"
+    - "granite-3b"
+EOF
+----
+
+=== 3.2 Send a Request with Fairness Header
+
+Send an inference request tagged with the tenant's fairness ID:
+
+[source,bash,role=execute]
+----
+curl -s {fleet_url}/v1/chat/completions \
+  -H "Authorization: Bearer {fleet_token}" \
+  -H "x-llm-d-inference-fairness-id: tenant-a" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "granite-350m",
+    "messages": [{"role": "user", "content": "Summarize the benefits of CPU inference."}],
+    "max_tokens": 100
+  }' | jq .
+----
+
+=== 3.3 Exceed the Rate Limit
+
+Send rapid requests to trigger the rate limit (10 requests/minute):
+
+[source,bash,role=execute]
+----
+for i in $(seq 1 12); do
+  echo "Request $i:"
+  curl -s -o /dev/null -w "%{http_code}" \
+    {fleet_url}/v1/chat/completions \
+    -H "Authorization: Bearer {fleet_token}" \
+    -H "x-llm-d-inference-fairness-id: tenant-a" \
+    -H "Content-Type: application/json" \
+    -d '{"model":"granite-350m","messages":[{"role":"user","content":"test"}],"max_tokens":5}'
+  echo ""
+done
+----
+
+After 10 requests, you should see HTTP 429 (Too Many Requests) responses.
+
+=== 3.4 Check Budget Alerts
+
+View budget alert status for the tenant:
+
+[source,bash,role=execute]
+----
+curl -s {fleet_url}/api/v1/cost/alerts \
+  -H "Authorization: Bearer {fleet_token}" | jq .
+----
+
+=== Checkpoint
+
+[%interactive]
+* [ ] TenantProfile `tenant-a` created
+* [ ] Requests with `x-llm-d-inference-fairness-id` header succeed
+* [ ] Rate limit triggers 429 after exceeding threshold
+* [ ] Budget alerts API returns tenant cost data
+
+== Module 4: Predictive Scaling (15 min)
+
+=== 4.1 Open the deepfield-fleet Dashboard
+
+Open the deepfield-fleet dashboard in your browser:
+
+....
+https://deepfield-fleet.{openshift_api_url}/
+....
+
+The dashboard shows the fleet overview with cluster status, model deployments, and cost metrics.
+
+=== 4.2 Walk Through the Presentation
+
+Click through the 7-slide presentation to understand the platform architecture:
+
+. *Title* -- fleet-llm-d overview
+. *The Problem* -- GPU cost and scarcity
+. *The Platform* -- 7 CRDs, 31 endpoints
+. *CPU + Intel* -- 53x cost savings
+. *The Brain* -- predictive intelligence
+. *The Proof* -- 360 tests, measured results
+. *CTA* -- transition to live walkthrough
+
+Click *Start Walkthrough* on the final slide.
+
+=== 4.3 Step Through the 8 Acts
+
+The walkthrough tells the story of predictive fleet orchestration:
 
 [cols="1,3"]
 |===
-| Act | What to Notice
+| Act | What to Watch
 
-| *The Ordinary World*
-| Normal factory metrics: vibration 0.22 RMS, temperature 38.2C. This is the baseline.
+| *Act 1: Cost of Inference*
+| GPU $32/hr vs CPU $0.60/hr cost bars
 
-| *The Call to Adventure*
-| Evidence artifacts arriving one by one. Watch the modality badges -- metric, log, document, image, audio. All feature extraction happens on CPU.
+| *Act 2: Event Arrives*
+| Load an event profile -- Summit Connect, 200 users, 5 models
 
-| *Crossing the Threshold*
-| The baseline compiler computes normal ranges. Vibration normal: 0.18-0.26. Temperature normal: 37.8-38.5. These become the detection boundaries.
+| *Act 3: Fleet Deploys*
+| Architecture diagram with clusters and model servers
 
-| *Nano Tier*
-| Seven deterministic agents classify in sequence. Watch for baseline_distance detecting vibration drift, metric_drift flagging z-scores, log_pattern finding ERROR entries. No LLM. No GPU. Pure CPU.
+| *Act 4: The Platform*
+| 7 CRD cards showing fleet desired state
 
-| *Micro Tier*
-| Only escalated evidence reaches here. Image classifier evaluates surface defects. Audio classifier evaluates anomaly scores. Rule-backed, CPU-native.
+| *Act 5: Brain Predicts*
+| SLO forecast: P95 breach in 22 minutes. Blast radius: severity 1000
 
-| *Macro Tier*
-| Cross-modal convergence: vibration + temperature + image + audio all pointing to bearing failure. Incident timeline, root cause hypothesis, action plan.
+| *Act 6: The Intent*
+| PreWarmIntent emitted and evaluated against policy
 
-| *The Reward*
-| A safe action is proposed: notify maintenance. Requires human approval. Non-destructive by design.
+| *Act 7: The Proof*
+| 360 tests green, 5 ledger chains verified
 
-| *The Return*
-| A learning proposal: tighten vibration thresholds for earlier detection. Not applied silently -- requires review.
+| *Act 8: The Return*
+| Replica timeline 1->2->4, event profile updated
 |===
 
-At each pause, click *Next* to advance.
+Click *Next* between each act to advance.
 
-== Step 3: Watch the Scale Run
+=== 4.4 Manual Operations (Optional)
 
-After the walkthrough, the scale run begins automatically.
-This proves the architecture handles real-world volume.
+If you want to drive the operations manually instead of using the walkthrough:
 
-[cols="1,2,2"]
-|===
-| Scale Act | What Happens | What to Notice
+Load an event profile:
 
-| *10 Lines*
-| 10 factory lines, ~60 evidence artifacts
-| The nanoagent pipeline scales linearly. Watch the compression ratio and elapsed time.
+[source,bash,role=execute]
+----
+curl -X POST {fleet_url}/api/v1/events/load \
+  -H "Authorization: Bearer {fleet_token}" \
+  -H "Content-Type: application/json" \
+  -d '{"profile": "summit_connect"}'
+----
 
-| *50 Lines*
-| 50 factory lines, ~300 artifacts
-| Thousands of classifications. Still all on CPU. Watch the compression ratio grow.
+Run the SLO forecast:
 
-| *Stress Test*
-| 50 lines at 15% failure rate
-| An incident storm. The nano filter absorbs the blast. Macro tier activates for critical findings.
+[source,bash,role=execute]
+----
+curl -s {fleet_url}/api/v1/forecast/slo \
+  -H "Authorization: Bearer {fleet_token}" | jq .
+----
 
-| *Recovery*
-| Failure rate drops to 2%
-| System stabilizes. Learning proposals capture what was learned from the storm.
+Scope the blast radius:
 
-| *The Claim*
-| Summary statistics
-| Total evidence processed, total classifications, peak lines, zero GPU.
-|===
+[source,bash,role=execute]
+----
+curl -s {fleet_url}/api/v1/forecast/blast-radius \
+  -H "Authorization: Bearer {fleet_token}" | jq .
+----
 
-== Step 4: Enter the Bootstrap Lab
+Emit a pre-warm intent:
 
-After the scale run completes, navigate to the *Bootstrap Lab* section.
+[source,bash,role=execute]
+----
+curl -X POST {fleet_url}/api/v1/intents \
+  -H "Authorization: Bearer {fleet_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "PreWarmIntent",
+    "model": "granite-4.1-3b",
+    "target_replicas": 4,
+    "confidence": 0.85,
+    "reason": "summit_connect event in 30 minutes"
+  }' | jq .
+----
 
-The Bootstrap Lab is where you connect your own data and build classification agents from scratch.
-A frontier model can analyze your data when configured, propose classification rules, and let you validate them before they go live.
+=== 4.5 Verify Ledger Chains
 
-== Step 5: Pick a Scenario
+Confirm that all decisions are recorded in the ARE Ledger:
 
-The Bootstrap Lab offers four pre-built scenarios.
-Pick the one closest to your domain:
+[source,bash,role=execute]
+----
+curl -s {fleet_url}/api/v1/verify/chains \
+  -H "Authorization: Bearer {fleet_token}" | jq .
+----
 
-[cols="1,2,2,1"]
-|===
-| Scenario | Domain | What It Monitors | Signals
+You should see 5 chains verified: placement, scaling, routing, lifecycle, tenant.
 
-| *OpenShift Cluster*
-| IT Operations
-| Pod health, node status, cluster events across 8 namespaces. 85 Running pods, 5 CrashLoopBackOff, 3 Pending, 2 ImagePullBackOff. Warning events: BackOff, FailedMount, Unhealthy, OOMKilled.
-| 156
+=== Checkpoint
 
-| *Telecom Network*
-| Telecom
-| Cell tower signal quality, packet loss, outage events across 100 towers. 10% showing degradation.
-| 150
+[%interactive]
+* [ ] Dashboard loads and displays fleet overview
+* [ ] Walkthrough completes through all 8 acts
+* [ ] SLO forecast shows time-to-breach prediction
+* [ ] PreWarm intent emitted and evaluated
+* [ ] 5 ledger chains verified
 
-| *AAP Jobs*
-| IT Operations
-| Ansible Automation Platform job execution -- playbook failures, timeouts, unreachable hosts, workflow errors. 60 successful, 10 failed, 5 timeout.
-| 100
+== Module 5: Observe and Prove (10 min)
 
-| *Factory Floor*
-| Manufacturing
-| Vibration drift, thermal increase, surface defect images, and maintenance notes from a bearing failure scenario.
-| 6 (multimodal)
-|===
+=== 5.1 Open Grafana
 
-To load a scenario:
-
-. Click on the scenario card
-. The lab loads sample data from the fixture files
-. You will see a preview of the first few samples
-
-== Step 6: Analyze with Quick Start or Deep Analyze
-
-You have two options:
-
-=== Option A: Quick Start (Profile Apply)
-
-If you picked OpenShift Cluster or AAP Jobs, a pre-built profile is available:
-
-. Click *Apply Profile*
-. The profile loads pre-built nano rules, taxonomy, and prompts
-. No frontier model needed -- instant configuration
-
-Pre-built profiles available:
-
-* `openshift-monitoring` -- Detects CrashLoopBackOff, ImagePullBackOff, NodeNotReady, MemoryPressure, Pending pods, repeated warning events
-* `aap-job-health` -- Detects job failures, timeouts, unreachable hosts, workflow failures
-* `acs-security` -- Detects critical CVEs (CVSS > 9.0), high CVEs (CVSS > 7.0), policy violations, privileged containers
-
-=== Option B: Deep Analyze (Frontier Model)
-
-For any scenario, you can run a frontier model analysis:
-
-. Click *Analyze*
-. Optionally provide hints (e.g., "This is OpenShift pod data" or "These are network metrics")
-. The configured frontier model analyzes your sample data
-. It returns:
-** Detected modality and domain
-** Proposed taxonomy (operational states, incident families, action classes)
-** Proposed nano rules with conditions and classification outputs
-** Suggested micro and macro prompts
-. Review the analysis -- you can edit any part before proceeding
-
-== Step 7: Validate -- See the Rubric Matrix
-
-After applying a profile or completing analysis:
-
-. Click *Validate*
-. The system runs all proposed agents against the sample data
-. You see the *rubric matrix*:
-
-[cols="1,2,2"]
-|===
-| Color | Meaning | Action
-
-| *Green*
-| Accuracy >= 75%, FP rate <= 15%
-| Agent is ready for production
-
-| *Yellow*
-| Accuracy >= 60%
-| Agent works but needs more validation data
-
-| *Red*
-| Accuracy < 60%
-| Agent needs reconfiguration -- check the rule conditions
-|===
-
-The matrix shows each agent with:
-
-* Name and tier (draft/candidate/nano/micro/macro)
-* Accuracy, false positive rate, false negative rate
-* Coverage (what percentage of evidence it classifies)
-* Confidence calibration (none/rough/calibrated)
-* Promotion history
-
-== Step 8: Promote Agents
-
-Agents start at the *draft* tier.
-To promote an agent:
-
-. Find the agent in the rubric matrix
-. Check that it meets the promotion requirements:
-** Draft to candidate: 50 samples, 60% accuracy, 30% max FP rate
-** Candidate to nano: 200 samples, 75% accuracy, 15% max FP rate, 20% max FN rate
-** Nano to micro: 500 samples, 85% accuracy, 10% max FP rate, human reviewed
-** Micro to macro: 1,000 samples, 85% accuracy, 5% max FP rate, human reviewed, cross-modal agreement
-. Click *Promote*
-. The agent's tier advances and its rubric status updates
-
-You can also *demote* agents back to draft if they are not performing well.
-
-NOTE: In the lab environment, sample counts may be lower than the promotion thresholds. The system will still show you the rubric status so you can see where each agent stands.
-
-== Step 9: Explore the Pipeline
-
-After validation, you can test the full pipeline:
-
-. Click *Test Pipeline* to run nano classification against the loaded samples
-. See how many classifications are generated
-. See which agents fired and what they classified
-. Check the baseline confidence
-
-You can also explore the API directly:
-
-[cols="1,2"]
-|===
-| Endpoint | What It Does
-
-| `GET /api/v1/bootstrap/scenarios`
-| List available scenarios
-
-| `POST /api/v1/bootstrap/scenarios/{id}/load`
-| Load a scenario's sample data
-
-| `GET /api/v1/bootstrap/profiles`
-| List available pre-built profiles
-
-| `POST /api/v1/bootstrap/profiles/{id}/apply`
-| Apply a pre-built profile
-
-| `POST /api/v1/bootstrap/analyze`
-| Run frontier model analysis on loaded samples
-
-| `POST /api/v1/bootstrap/validate`
-| Run validation and get rubric matrix
-
-| `GET /api/v1/bootstrap/rubric`
-| Get current rubric matrix
-
-| `POST /api/v1/bootstrap/promote/{agent_id}`
-| Promote an agent to the next tier
-
-| `POST /api/v1/bootstrap/test`
-| Run nano pipeline against loaded samples
-|===
-
-== Step 10: Connect Your Own Prometheus
-
-The ultimate goal: connect DeepField to your own data.
-
-If you have a Prometheus endpoint available:
-
-. In the Bootstrap Lab, select *Prometheus* as the connector type
-. Enter your Prometheus URL and any required authentication
-. The connector will sample 200 data points
-. Run the analysis -- the frontier model will identify your metrics, propose taxonomies, and generate classification rules
-. Validate the agents against your real data
-. Promote the ones that pass
-
-If you have a Kubernetes/OpenShift cluster:
-
-. Select *Kubernetes* as the connector type
-. The connector reads pods, events, and node status from the cluster API
-. The analysis proposes rules for your specific cluster's patterns
-
-If you have CSV or log files:
-
-. Select *File* as the connector type
-. Point it at your data file
-. The connector reads and samples from the file
-
-== Closing
-
-You have now:
-
-. Seen the three-tier classification cascade in action
-. Watched it scale to 50 production lines and handle an incident storm
-. Used the Bootstrap Lab to connect a data source and build agents
-. Validated agents with the rubric matrix and promoted them through tiers
-
-The key takeaway: *enterprise AI starts with classification, not generation*.
-The benchmark CLI (`python3 -m app.benchmark`) verifies the 98% CPU pre-expensive target is met — measured at 100% in rule-backed mode.
-Frontier models are used once at bootstrap to generate rules, then the system runs deterministically.
-
-To deploy DeepField Multimodal in your own environment, see the xref:deployment.adoc[Deployment Guide].
-
-To connect your own Prometheus, Kubernetes, or file data sources to a running instance, use the Bootstrap Lab API:
+Open the fleet Grafana dashboard:
 
 ....
-POST /api/v1/bootstrap/connect
-{
-  "source_type": "prometheus",
-  "config": {
-    "url": "https://your-prometheus:9090",
-    "query": "up"
-  }
-}
+https://fleet-grafana.{openshift_api_url}/
 ....
+
+Log in with `{user}` / `{password}`.
+
+=== 5.2 View the Fleet Overview Dashboard
+
+Navigate to *Dashboards -> Fleet Overview*. This dashboard shows:
+
+* *Cluster Health* -- status of all registered clusters
+* *Model Serving Metrics* -- request rate, latency P50/P95/P99, error rate per model
+* *Cost Metrics* -- GPU vs CPU spend, savings ratio, per-tenant chargeback
+* *Scaling Events* -- replica timeline, intent history, SLO compliance
+* *Governance* -- tenant quota utilization, rate limit triggers, budget alerts
+
+=== 5.3 Run the Smoke Test Harness
+
+Run the fleet test harness to validate end-to-end functionality:
+
+[source,bash,role=execute]
+----
+oc run fleet-harness \
+  --image=quay.io/deepfield-fleet/fleet-harness:latest \
+  --restart=Never \
+  --env="FLEET_URL={fleet_url}" \
+  --env="FLEET_TOKEN={fleet_token}" \
+  -- --suite=smoke
+----
+
+Watch the test output:
+
+[source,bash,role=execute]
+----
+oc logs -f fleet-harness
+----
+
+The smoke suite verifies:
+
+* Health endpoint responds
+* Inference proxy serves completions
+* Tenant governance enforces quotas
+* Cost engine calculates savings
+* Ledger chains are valid
+
+=== 5.4 Verify ARE Ledger Chains
+
+Run a final verification of all ledger chains:
+
+[source,bash,role=execute]
+----
+curl -s {fleet_url}/api/v1/verify/chains \
+  -H "Authorization: Bearer {fleet_token}" | jq .
+----
+
+Each chain should show:
+
+* `chain_type` -- placement, scaling, routing, lifecycle, or tenant
+* `entries` -- count of recorded decisions
+* `valid` -- true (hash chain intact)
+* `last_hash` -- SHA-256 hash of the latest entry
+
+=== 5.5 Clean Up
+
+Remove the test pod:
+
+[source,bash,role=execute]
+----
+oc delete pod fleet-harness
+----
+
+=== Checkpoint
+
+[%interactive]
+* [ ] Grafana dashboard shows fleet metrics
+* [ ] Smoke test suite passes
+* [ ] All 5 ledger chains verified with valid hashes
+* [ ] Test pod cleaned up
+
+== Summary
+
+You have completed the fleet-llm-d hands-on lab. You have:
+
+. *Deployed* fleet-llm-d with Helm and registered a cluster
+. *Served* a Granite model on CPU via FleetInferencePool
+. *Configured* multi-tenant governance with quotas and rate limits
+. *Observed* predictive scaling with SLO forecasting and intent emission
+. *Proved* every decision is recorded in the ARE Immutable Ledger
+
+The key takeaway: *fleet-llm-d makes inference governable, affordable, and predictable* -- 53x cost savings on CPU, predictive scaling before spikes hit, multi-tenant fairness, and an immutable audit trail for every decision.
+
+To deploy fleet-llm-d in your own environment, see the xref:deployment.adoc[Deployment Guide].
+For configuration details, see the xref:configuration.adoc[Configuration Reference].

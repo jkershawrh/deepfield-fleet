@@ -2,316 +2,255 @@
 :toc: left
 :toclevels: 3
 
-== Three-Tier Cascade
+== Three-Layer Architecture
 
-DeepField Multimodal processes enterprise signals through a three-tier agent cascade.
-Each tier is progressively more capable and more expensive.
-The architecture ensures that cheap, deterministic agents handle the majority of signals, and only the most complex findings reach reasoning-level agents.
+The platform is built in three independently deployable layers: the fleet-llm-d actuator, the deepfield-fleet predictive brain, and the ARE Immutable Ledger.
 
 ....
-  Historical / Live / Synthetic Sources
-          |
-          v
-    Evidence Normalizer
-          |
-          +-------------------+
-          v                   v
-    Baseline Compiler    Runtime Signal Flow
-          |                   |
-          v                   v
-    Baseline Profiles    Nanoagent Classification (7 agents)
-          |                   |     [deterministic, CPU only]
-          +--------+----------+
-                   v
-          Microagent Inference (5 agents)
-                   |     [rule-backed, CPU, OpenVINO/ONNX extension]
-                   v
-          Macroagent Reasoning (5 agents)
-                   |     [template-based or LLM via LiteLLM]
-                   v
-       Decide -> Act -> Verify -> Learn
-                   |
-                   v
-          Dashboard + API
+                    Event Profiles / Prometheus Metrics
+                              |
+                              v
+                   +---------------------+
+                   | deepfield-fleet     |
+                   | (Predictive Brain)  |
+                   |                     |
+                   | 4 nanoagents        |
+                   | SLO forecaster      |
+                   | consequence scoper  |
+                   | intent emitter      |
+                   +----------+----------+
+                              |
+                         Typed Intents
+                   (PreWarm / Scale / ShedLoad / Alert)
+                              |
+                              v
+                   +---------------------+
+                   | fleet-llm-d         |
+                   | (Actuator)          |
+                   |                     |
+                   | Go control plane    |
+                   |   31 endpoints      |
+                   |   7 CRDs            |
+                   |   policy engine     |
+                   |   cost/chargeback   |
+                   |                     |
+                   | Rust data plane     |
+                   |   cross-cluster gw  |
+                   |   load balancing    |
+                   |   SSE streaming     |
+                   +----+----------+-----+
+                        |          |
+                    CRD reconcile  gRPC
+                        |          |
+              +---------+    +-----+--------+
+              v              v              v
+         +--------+   +--------+   +-----------+
+         |Cluster1|   |Cluster2|   |ARE Ledger |
+         |OVMS C++|   |vLLM GPU|   |5 chains   |
+         |Xeon CPU|   |H100    |   |SHA-256    |
+         +--------+   +--------+   +-----------+
 ....
 
-=== Tier Details
+== Layer 1: fleet-llm-d (Actuator)
 
-==== Nanoagents (7) -- Deterministic, No LLM
+fleet-llm-d is the orchestration core, built in Go (control plane) and Rust (data plane).
 
-Nanoagents are pure CPU agents running on Intel Xeon 6.
-They perform threshold checks, pattern matching, and gating decisions.
-No inference endpoint is ever called — zero GPU cost.
+=== Go Control Plane
+
+The control plane runs as a Kubernetes operator and exposes 31 API endpoints:
+
+[cols="2,4"]
+|===
+| Subsystem | Capabilities
+
+| *Fleet Management*
+| Cluster registration, model deployment, health monitoring, fleet-wide status
+
+| *Inference Proxy*
+| OpenAI-compatible `/v1/chat/completions`, connection pooling, load shedding, SSE streaming
+
+| *Placement Engine*
+| GPU/CPU affinity, regulatory constraints, cost optimization, ModelPack OCI resolution
+
+| *Scaling Engine*
+| SLO-gated scaling, predictive pre-warming, intent evaluation, HPA coordination
+
+| *Routing Engine*
+| Weighted routing, geographic routing, failover, cross-cluster traffic management
+
+| *Cost Engine*
+| GPU/CPU chargeback, tier comparison (H200, B200, H100, A100, MI300X, L40, Xeon), savings calculation
+
+| *Governance*
+| Multi-tenant quotas, rate limiting, budget alerts, fairness scheduling
+|===
+
+=== 7 CRDs
+
+[cols="2,4"]
+|===
+| CRD | Purpose
+
+| `FleetInferencePool`
+| Defines what to serve -- model name, version, replica count, hardware requirements
+
+| `PlacementPolicy`
+| Defines where models run -- regulatory constraints, hardware affinity, cost optimization
+
+| `FleetRoutingPolicy`
+| Defines how traffic flows -- weighted, geographic, failover routing
+
+| `FleetScalingPolicy`
+| Defines when to scale -- GPU utilization, latency, queue depth thresholds
+
+| `TenantProfile`
+| Defines who gets what -- token quotas, GPU budgets, rate limits per tenant
+
+| `KVCacheTransferPolicy`
+| Handles cross-cluster KV cache migration for session continuity
+
+| `ModelLifecycle`
+| Manages canary rollouts with SLO gates and automatic rollback
+|===
+
+=== Rust Data Plane
+
+The Rust data plane handles the hot path:
+
+* *Cross-cluster gateway* -- routes inference requests across clusters using tokio async runtime
+* *Load balancing* -- weighted round-robin, least-connections, latency-aware routing
+* *Connection pooling* -- reuses HTTP/2 connections to model servers
+* *Load shedding* -- drops requests under overload with backpressure signals
+* *SSE streaming* -- proxies Server-Sent Events for streaming inference responses
+* *KV cache transfer* -- moves hot KV caches between clusters via gRPC
+
+== Layer 2: deepfield-fleet (Predictive Brain)
+
+deepfield-fleet is the predictive intelligence layer that sits on top of fleet-llm-d.
+It predicts problems before they happen and emits typed intents to the actuator.
+
+=== Fleet Nanoagents (4)
 
 [cols="2,4"]
 |===
 | Agent | What It Does
 
-| `baseline_distance`
-| Compares feature values to baseline thresholds, flags drift beyond normal ranges
+| `slo_drift`
+| Monitors P95 latency trends across the fleet, detects upward drift before SLO breach
 
-| `metric_drift`
-| Slope and z-score checks -- detects gradual trends in metric time series
+| `capacity_pressure`
+| Watches GPU/CPU utilization and queue depth across clusters
 
-| `log_pattern`
-| Regex pattern matching for ERROR/WARN/CRIT in log evidence
+| `queue_depth`
+| Tracks inference request queue length, detects backlog buildup
 
-| `document_heuristic`
-| Keyword analysis for actionable terms in documents and notes
-
-| `image_metadata`
-| Defect score evaluation from image inspection labels
-
-| `audio_energy`
-| Anomaly score evaluation from audio/vibration sensor labels
-
-| `evidence_gate`
-| Decides ignore/retain/escalate for each evidence piece based on modality and severity
+| `event_calendar`
+| Reads YAML event profiles (e.g., summit_connect.yaml) and fires pre-warming before scheduled events
 |===
 
-==== Microagents (5) -- Rule-Backed Classifiers
+=== SLO Forecaster (Microagent)
 
-Microagents run entirely on Intel Xeon 6 using rule-backed classification.
-When `LITELLM_API_BASE` is configured, they can optionally use LLM inference via Granite 3.2 8B on Xeon.
-Extension points exist for Intel OpenVINO and ONNX optimized inference, keeping the pipeline CPU-native on Intel hardware.
+Runs linear regression on P95 latency time series.
+Calculates time-to-breach and confidence interval.
+Example: "At +80ms/min, P95 breaches 5000ms SLO in 22 minutes (confidence: 0.82)."
 
-[cols="2,2,4"]
-|===
-| Agent | Modalities | What It Does
+=== Consequence Scoper (Macroagent)
 
-| `text_classifier`
-| text, log
-| Pattern matching against known incident families -- infrastructure, quality, security, capacity
+Calculates blast radius of a predicted breach:
 
-| `document_classifier`
-| document
-| Document type and sensitivity classification by keyword analysis
+....
+severity_score = affected_models * affected_users * severity_weight
+....
 
-| `image_classifier`
-| image
-| Defect classification is fixture-backed by default, with optional OpenVINO/ONNX CPU adapters when configured
+When the score crosses a threshold, the system requires human approval before acting.
 
-| `audio_classifier`
-| audio
-| Anomaly classification is fixture-backed by default, with optional OpenVINO/ONNX CPU adapters when configured
+=== Intent Emitter
 
-| `embedding_classifier`
-| (placeholder)
-| Extension point for embedding/clustering via vector inference
-|===
-
-==== Macroagents (5) -- Higher-Level Reasoning
-
-Macroagents perform cross-modal correlation and reasoning.
-By default they use template-based reasoning on Intel Xeon 6 CPU.
-When `LITELLM_API_BASE` is configured, they use LLM inference for richer reasoning — Granite 3.2 8B on Xeon for CPU inference, or Intel Gaudi 3 for GPU-accelerated reasoning.
+Emits typed intents to fleet-llm-d:
 
 [cols="2,4"]
 |===
-| Agent | What It Does
+| Intent Type | Action
 
-| `incident_timeline`
-| Sequences evidence by timestamp, overlays classifications to build incident narrative
+| `PreWarmIntent`
+| Scale model replicas before a predicted event
 
-| `root_cause_hypothesis`
-| Counts classification families across modalities to identify most likely root cause
+| `ScaleIntent`
+| Adjust replica count based on capacity pressure
 
-| `action_planner`
-| Proposes safe actions (notify, observe, ticket) -- never destructive without human approval
+| `ShedLoadIntent`
+| Activate load shedding when overload is imminent
 
-| `verification_planner`
-| Builds verification plan to check if post-action metrics return to baseline
-
-| `learning_proposal`
-| Proposes threshold/rule updates based on high-confidence findings -- never auto-applied
+| `AlertIntent`
+| Notify operators when severity exceeds human-gate threshold
 |===
 
-== Escalation Logic
+fleet-llm-d evaluates each intent against policy (confidence gates, replica limits, budget constraints) before executing.
 
-Not every signal reaches every tier.
-The cascade uses explicit escalation rules:
+== Layer 3: ARE Immutable Ledger
 
-=== Nano to Micro
+The ARE Ledger is independent shared infrastructure -- not a fleet-llm-d component.
+It provides a tamper-proof audit trail for every fleet decision.
 
-A signal escalates from nano to micro when:
+=== 5 Chain Types
 
-* The evidence modality is `image`, `audio`, or `document` (always escalated -- these require richer analysis)
-* Any nanoagent classified the signal as `actionable` or `escalate`
-* Any nanoagent assigned severity `high` or `critical`
-* A nanoagent's confidence is below 0.8 and the classification is not `normal` or `noise`
-
-Confidence threshold: *0.8*
-
-=== Micro to Macro
-
-Signals escalate from micro to macro when:
-
-* High or critical severity findings span *2 or more modalities* (cross-modal convergence)
-* Any microagent assigned `critical` severity
-
-Modality threshold: *2*
-
-== Agent Promotion Pipeline
-
-Agents are not born trusted.
-They earn their tier through empirical validation.
-
-....
-draft -> candidate -> nano -> micro -> macro
-....
-
-Each promotion requires meeting specific thresholds:
-
-[cols="1,1,1,1,1,1"]
+[cols="2,4"]
 |===
-| Tier | Min Samples | Min Accuracy | Max FP Rate | Max FN Rate | Additional
+| Chain | What It Records
 
-| *candidate*
-| 50
-| 60%
-| 30%
-| --
-| --
+| `placement`
+| Model placement decisions -- which cluster, why, cost delta
 
-| *nano*
-| 200
-| 75%
-| 15%
-| 20%
-| --
+| `scaling`
+| Scaling events -- replica changes, trigger reason, SLO state
 
-| *micro*
-| 500
-| 85%
-| 10%
-| --
-| Human reviewed
+| `routing`
+| Routing changes -- traffic weights, failover events, geographic shifts
 
-| *macro*
-| 1,000
-| 85%
-| 5%
-| --
-| Human reviewed + cross-modal agreement
+| `lifecycle`
+| Model lifecycle events -- canary rollouts, promotions, rollbacks
+
+| `tenant`
+| Tenant governance events -- quota changes, rate limit adjustments, budget alerts
 |===
 
-Ground truth is baseline-derived: evidence within normal ranges counts as normal, evidence outside ranges counts as abnormal.
-No human labeling is required for promotion -- the baseline provides the truth signal.
+=== Hash Linking
 
-== Rubric Matrix
+Each ledger entry contains a SHA-256 hash of the previous entry in its chain.
+Tampering with any entry breaks the chain.
+Proof receipts are portable and can be verified independently.
 
-Every agent carries a rubric status: *green*, *yellow*, or *red*.
+== Inference Proxy
 
-[cols="1,2,2"]
-|===
-| Status | Criteria | Meaning
+The inference proxy provides an OpenAI-compatible interface:
 
-| *Green*
-| Accuracy >= 75%, FP rate <= 15%
-| Agent is trusted and production-ready
+* *Endpoint*: `/v1/chat/completions` -- drop-in replacement for OpenAI API
+* *Connection pooling*: HTTP/2 multiplexed connections to backend model servers
+* *Load shedding*: Returns 503 with `Retry-After` header under overload
+* *SSE streaming*: Proxies `text/event-stream` responses for streaming inference
+* *Routing headers*: `X-Fleet-Routed-To` (cluster), `X-Fleet-Routing-Reason` (why)
+* *Fairness*: `x-llm-d-inference-fairness-id` header for tenant-aware scheduling
 
-| *Yellow*
-| Accuracy >= 60%
-| Agent is functional but needs more validation
+== CPU Inference Stack
 
-| *Red*
-| Accuracy < 60%
-| Agent is not ready -- needs retraining or reconfiguration
-|===
-
-The overall system rubric is computed from all agents:
-
-* *Green* if 50% or more of agents are green
-* *Yellow* if 30% or more of agents are green or yellow
-* *Red* otherwise
-
-== Evidence-Based Constraint Classification
-
-Constraints require accumulated evidence before triggering -- not a single event, but a pattern of evidence building a case.
-
-Two constraint types:
-
-* *`single_event`* -- Fires on a single evidence match (e.g., `restarts > 3`)
-* *`evidence_based`* -- Requires multiple conditions to be met across classifications and evidence before firing (e.g., both vibration drift AND temperature increase AND image defect must be present)
-
-Confidence for evidence-based constraints is proportional to conditions met: `met_count / total_conditions`.
-
-== Cross-Modal Convergence
-
-For macro-tier promotion and for escalation decisions, the system detects *cross-modal convergence*: when multiple modalities independently agree on a finding.
-
-The algorithm:
-
-. Collect all high-confidence (>= 0.6) classifications with severity `high` or `critical`
-. Group by resource (namespace or evidence ID)
-. If any resource has findings from 2 or more distinct modalities, convergence is detected
-
-Cross-modal convergence is a prerequisite for macro-tier agent promotion.
-It ensures that the most trusted agents are those that have been validated across signal types.
-
-== GPU Economics
-
-The architecture is designed around a key insight: *GPU is expensive and most classification does not need it*.
+The CPU inference path uses Intel Xeon 6 Granite Rapids:
 
 [cols="1,3"]
 |===
-| Layer | GPU Requirement
+| Component | Detail
 
-| Nanoagents (7)
-| None -- pure deterministic CPU
+| *Hardware*
+| Intel Xeon 6 Granite Rapids, 256 cores, AMX acceleration
 
-| Microagents (5)
-| None by default -- rule-backed on CPU. Optional OpenVINO/ONNX for specialized inference (still CPU)
+| *Model Server*
+| OVMS (OpenVINO Model Server) C++ runtime
 
-| Macroagents (5)
-| None by default -- template-based CPU. Optional LLM via LiteLLM when configured
+| *Quantization*
+| INT8 via Neural Compressor, leveraging AMX instructions
 
-| Bootstrap
-| Frontier model (Qwen 235B, Granite, Claude Sonnet) used once to generate initial rules. After bootstrap, the system runs on CPU
+| *Models*
+| Granite family (350M, 1B, 3B, 8B) in OpenVINO IR format
+
+| *Cost*
+| $0.60/hr vs $32/hr GPU (H100) -- 53x savings
 |===
-
-Net result: the benchmark CLI (`python3 -m app.benchmark`) measures the CPU pre-expensive ratio for each environment.
-Frontier models are used only when configured.
-The nanoagent compression layer ensures that even when LLM inference or ONNX media adapters are configured, the volume of requests to expensive paths is minimized.
-
-== Intel TDX for Secure Bootstrap
-
-When using a frontier model (e.g., Qwen 3 235B on Intel Gaudi) at bootstrap time, the system can leverage Intel Trust Domain Extensions (TDX) to ensure that the bootstrap conversation -- which may contain sensitive enterprise signal patterns -- runs in a hardware-isolated secure enclave.
-
-After bootstrap, the generated rules are deterministic and contain no sensitive data.
-The TDX boundary is only needed for the initial frontier model conversation.
-
-== Connector Architecture
-
-DeepField Multimodal connects to data sources through a pluggable connector interface:
-
-[cols="1,2,2"]
-|===
-| Connector | Source | Capabilities
-
-| *File*
-| CSV files, log files, fixture data
-| `connect()`, `sample(count)`, `stream()`
-
-| *Prometheus*
-| Prometheus/Thanos API
-| Query metrics by PromQL, sample time ranges, stream live data
-
-| *Kubernetes*
-| Kubernetes/OpenShift API
-| Read pods, events, nodes, deployments across namespaces
-|===
-
-All connectors implement the `BaseConnector` interface:
-
-....
-class BaseConnector(ABC):
-    name: str = "base"
-
-    def connect(self, config: dict) -> bool: ...
-    def sample(self, count: int = 200) -> list[dict]: ...
-    def stream(self) -> Iterator[dict]: ...
-    def describe(self) -> dict: ...
-....
-
-Connectors are used both in the Bootstrap Lab (for connecting to live data sources) and in production (for continuous signal ingestion).

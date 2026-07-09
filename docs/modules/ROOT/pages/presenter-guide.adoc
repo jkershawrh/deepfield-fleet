@@ -1,198 +1,162 @@
-= Presenter Guide
+= fleet-llm-d Presenter Guide
 :toc: left
-:toclevels: 3
-
-This guide covers what to say at each step of the DeepField Multimodal demo.
-The demo has three parts: a presentation (7 slides), an auto-orchestrated walkthrough (8 acts), and a scale run (5 acts).
-After those, attendees enter the Bootstrap Lab for hands-on self-service.
+:icons: font
 
 == Before You Start
 
-* Open the DeepField Multimodal URL in a browser
-* Verify the app loads (you should see the presentation view)
-* If using live LLM inference, confirm the Infrastructure panel shows "LLM inference via LiteLLM"
-* If running CPU-only, confirm it shows "Rule-backed (no LLM configured)" -- this is the default and works perfectly for the demo
-* Have this guide open on a second screen or printed
+. Open the dashboard URL in full-screen browser (dark mode)
+. Verify health: Infrastructure Panel -> fleet-llm-d connection shows green or "Simulated"
+. Have a glass of water
 
 == Part 1: Presentation Slides
 
-The presentation sets the thesis before the live demo begins.
-Click through slides at your own pace.
-Each slide has a key message -- say it, then move on.
+=== Slide 0: Title (30s)
 
-=== Slide 1: Title (30 seconds)
+[quote]
+This is fleet-llm-d -- fleet-level inference orchestration built on llm-d. Not another chatbot platform. Not another model server. This is the orchestration layer that makes fleet-scale inference governable, affordable, and predictable.
 
-*Key message:* "This is DeepField Multimodal -- an agentic signal classification engine built on Red Hat OpenShift and Intel Xeon."
+_Pause. Let the logos land._
 
-Say: "We are going to show you something different today. Not another chatbot. Not another code generator. An engine that classifies enterprise signals -- metrics, logs, events, images, audio -- and turns them into governed action. All on CPU."
+=== Slide 1: The Problem (45s)
 
-=== Slide 2: The Problem (45 seconds)
+[quote]
+Enterprise inference runs on GPU. Thirty-two dollars per hour per H100. Hardware is scarce -- you wait weeks for allocation. Each cluster runs its own models with no coordination. Scaling is reactive -- by the time you see the spike, users are already waiting. There's no multi-tenant governance, no cost allocation, no audit trail. Every team runs their own thing.
 
-*Key message:* "Enterprises are drowning in signals, not insights."
+_Key phrase_: *"$32 per hour. Scarce. Static. Ungoverned."*
 
-Say: "Every enterprise has the same problem. Prometheus is firing. Logs are filling up. Events are piling on. You have more signals than any team can process. The question is not 'how do I generate more?' -- the question is 'what am I looking at?'"
+=== Slide 2: The Platform (60s)
 
-=== Slide 3: The Thesis (45 seconds)
+[quote]
+fleet-llm-d changes this. Seven Kubernetes CRDs define the fleet's desired state -- where models run, how traffic routes, when to scale, who gets what quota. Thirty-one API endpoints. A Go control plane that reconciles continuously. A Rust data plane for cross-cluster routing. SLO-gated rollouts that auto-rollback if latency exceeds thresholds. Cost optimization that compares GPU types across tiers. And every single decision -- every placement, every scaling event, every routing change -- recorded in the ARE Immutable Ledger. Tamper-proof. Chain-verified. Auditable.
 
-*Key message:* "The first job of enterprise AI is not generation -- it is classification."
+_Key phrase_: *"Fleet-level, not cluster-level."*
 
-Say: "Before you generate a single token, you need to know what you are looking at. Classification comes first. And here is the key insight: the benchmark tells us how much work stayed on CPU before anything expensive ran. It needs fast, deterministic agents running on the infrastructure you already have."
+=== Slide 3: CPU + Intel (45s)
 
-=== Slide 4: The Three Tiers (60 seconds)
+[quote]
+But here's where it gets interesting. Intel Xeon 6 Granite Rapids. Two hundred fifty-six cores. AMX instructions for matrix math -- the same acceleration that GPUs use, built into the CPU you already own. OVMS C++ serving INT8 quantized Granite models. Sixty cents per hour. That is fifty-three times cheaper than GPU inference.
 
-*Key message:* "Nano, micro, macro -- cheapest first, most expensive last."
+_Pause on the "53x" animation._
 
-Say: "DeepField uses a three-tier cascade. Nanoagents are pure CPU -- threshold checks, pattern matching, evidence gating. Seven of them, fully deterministic. Microagents are rule-backed classifiers -- text, image, audio, document. Still CPU. Macroagents do the heavy reasoning -- incident timelines, root cause analysis, action planning. They can use an LLM when configured, but they don't have to. The cascade compresses signal volume so only the most important findings reach expensive tiers."
+_Key phrase_: *"53x cheaper. On the hardware you already own."*
 
-=== Slide 5: The Loop (45 seconds)
+=== Slide 4: The Brain (45s)
 
-*Key message:* "Signals, Decide, Act, Verify, Learn -- and the system gets smarter."
+[quote]
+On top of the actuator sits deepfield-fleet -- the predictive intelligence layer. Four fleet nanoagents monitor SLO drift, capacity pressure, queue depth, and event calendars. A microagent runs linear regression on P95 latency to forecast breaches. A macroagent calculates blast radius -- affected models times users times severity. When the score crosses the threshold, the system emits a typed intent to fleet-llm-d: pre-warm, scale, shed load, or alert. And fleet-llm-d evaluates the intent against policy before executing. Confidence gates. Replica limits. Human approval for critical actions.
 
-Say: "This is not a one-shot classifier. It is a continuous loop. Signals come in. The cascade decides what they are. The system proposes safe action -- never destructive without human approval. It verifies whether the action worked. And it proposes what should be learned for next time. The learning is never applied silently. Always reviewed."
+_Key phrase_: *"Predict, don't react."*
 
-=== Slide 6: Intel + Red Hat (30 seconds)
+=== Slide 5: The Proof (30s)
 
-*Key message:* "CPU-native classification on the platform you already run."
+[quote]
+Three hundred sixty tests across twelve suites. Five CPU models serving on prod-cluster-1 and dev-cluster-1. P95 under five seconds. HPA scaling from one to four replicas under load. Zero downtime during scaling events. Every decision in the ledger.
 
-Say: "This runs on Red Hat OpenShift. It uses Intel Xeon for the heavy lifting. No GPU cluster required. When you need a frontier model -- at bootstrap time, to generate initial rules -- Intel TDX provides hardware-isolated security. After bootstrap, it is all CPU."
+_Key phrase_: *"Measured. Tested. Auditable."*
 
-=== Slide 7: Let Me Show You (15 seconds)
+=== Slide 6: CTA (15s)
 
-*Key message:* Transition to the live walkthrough.
+[quote]
+Enough slides. Let me show you the fleet.
 
-Say: "Enough slides. Let me show you."
+_Click "Next" -- enters the walkthrough._
 
-Click the *Start Walkthrough* button.
+== Part 2: Walkthrough (8 Acts)
 
-== Part 2: Auto-Orchestrated Walkthrough
+=== Act 1: The Cost of Inference (~2 min)
 
-The walkthrough runs automatically with pause points between each act.
-You narrate while the system processes.
-Each act auto-pauses at the end so you can explain what happened before clicking *Next*.
+[quote]
+This is what inference costs today. The bar on top -- H100, thirty-two dollars per hour. The bar below -- Intel Xeon 6, sixty cents. Same model, same quality, fifty-three times cheaper. And that's not an estimate -- that's measured on prod-cluster-1 with OVMS C++.
 
-=== Act 1: The Ordinary World (10 seconds)
+_Let the cost bars animate. Don't rush._
 
-*What happens:* The dashboard shows a factory production line in normal state. Vibration RMS at 0.22, temperature at 38.2C.
+=== Act 2: The Event Arrives (~2 min)
 
-*What to say:* "A factory production line. Bearings spinning. Temperature steady. Every signal says: normal. This is the baseline -- the shape of what healthy looks like."
+_Click "Load Event Profile"._
 
-*When it pauses:* Click Next.
+[quote]
+Red Hat Summit Connect starts in thirty minutes. Two hundred concurrent users will need inference across five Granite models. This is the summit_connect.yaml event profile -- a YAML file that tells fleet-llm-d what's coming. The event_calendar nanoagent sees it and fires. Pre-warming begins.
 
-=== Act 2: The Call to Adventure (12 seconds)
+_Point out_: expected users, pre-warm minutes, burst RPS.
 
-*What happens:* Evidence artifacts are ingested one by one. The UI shows each artifact appearing with its modality (metric, log, document, image, audio) and feature extraction happening in real time.
+=== Act 3: The Fleet Deploys (~2 min)
 
-*What to say:* "Now signals arrive. Vibration readings. Temperature data. A maintenance log. A surface inspection image. An audio sample from the bearing. Each one gets feature-extracted on CPU -- no inference endpoint called. Watch the modality badges -- this is multimodal evidence."
+_Click "Check Fleet Health"._
 
-*When it pauses:* "Six evidence artifacts across five modalities. All ingested. Now the system needs to understand what normal looks like."
+[quote]
+Here's the fleet. dev-cluster-1 and prod-cluster-1 -- both Intel Xeon clusters running OpenShift. Five Granite models deployed via FleetInferencePool CRDs. OVMS C++ serves INT8 quantized inference. The Go control plane coordinates placement, scaling, and routing. The Rust gateway handles cross-cluster traffic.
 
-=== Act 3: Crossing the Threshold (12 seconds)
+_Point to the architecture diagram -- trace a request from user to model._
 
-*What happens:* The baseline compiler runs. Statistical signatures appear -- means, standard deviations, normal ranges, thresholds.
+=== Act 4: The Platform (~2 min)
 
-*What to say:* "The baseline compiler analyzes historical evidence and computes the shape of normal. For vibration: normal range is 0.18 to 0.26 RMS. For temperature: 37.8 to 38.5 degrees. Any signal outside these boundaries will be flagged. This is deterministic. No LLM. Pure statistics."
+[quote]
+Seven CRDs. FleetInferencePool defines _what_ to serve -- model name, version, replica count. PlacementPolicy defines _where_ -- regulatory constraints, hardware affinity, cost optimization. FleetRoutingPolicy defines _how_ traffic flows -- weighted, geographic, or failover. FleetScalingPolicy defines _when_ to scale -- GPU utilization, latency, queue depth. TenantProfile defines _who_ gets what -- token quotas, GPU budgets, rate limits. KVCacheTransferPolicy handles cross-cluster KV cache migration. ModelLifecycle manages canary rollouts with SLO gates.
 
-*When it pauses:* "Baseline ready. Now watch what happens when signals start deviating."
+_Key phrase_: *"Declarative. Reconciled. Governed."*
 
-=== Act 4: The Ordeal -- Nano Tier (15 seconds)
+=== Act 5: The Brain Predicts (~2 min)
 
-*What happens:* Seven nanoagents run in sequence. Each one produces classifications. The UI shows agent names, classification results, and rationale.
+_Click "Run SLO Forecast"._
 
-*What to say:* "Seven nanoagents. All deterministic. No GPU. Watch: baseline_distance checks if vibration has drifted. metric_drift checks the z-score. log_pattern finds ERROR entries. evidence_gate decides what escalates. Each agent produces a classification with confidence and rationale. This is the compression layer -- most signals get classified right here."
+[quote]
+The SLO forecaster runs linear regression on the P95 latency trend. Current P95: twenty-one hundred milliseconds. At plus eighty milliseconds per minute, the forecast crosses the five-thousand-millisecond SLO in twenty-two minutes. Confidence: eighty-two percent. That's a breach prediction, not a breach.
 
-*Key point to emphasize:* "This is where the CPU compression happens. No inference cost per retained signal. The benchmark proves 100% of classifications happen on CPU in rule-backed mode — exceeding the 98% target."
+_Click "Scope Blast Radius"._
 
-*When it pauses:* State the numbers. "X classifications from 7 agents. Y escalated to micro."
+[quote]
+Now the consequence scoper calculates the blast radius. Five models affected. Two hundred users impacted. Severity score: one thousand. That crosses the human gate threshold -- any action requires approval.
 
-=== Act 5: The Ordeal -- Micro Tier (12 seconds)
+_Point to the SLO gauge -- show current vs forecast needles._
 
-*What happens:* Four microagents process escalated evidence. Image classifier evaluates defect scores. Audio classifier evaluates anomaly scores.
+=== Act 6: The Intent (~2 min)
 
-*What to say:* "Only the escalated evidence reaches micro. The text classifier matches incident-family patterns. The image classifier evaluates the surface defect. The audio classifier checks the vibration anomaly. All running on CPU with rule-backed classification. Extension points exist for OpenVINO and ONNX -- still CPU-native."
+_Click "Emit PreWarm Intent"._
 
-*When it pauses:* "Micro tier complete. Multiple modalities are reporting problems. Time for macroagent reasoning."
+[quote]
+The predictive brain emits a PreWarmIntent to fleet-llm-d. Scale granite-4.1-3b to four replicas. Confidence zero-point-eight-five. fleet-llm-d evaluates the intent against policy. Confidence above threshold -- check. Replicas within limit -- check. Status: executed. And look -- a ledger entry ID. That decision is now in the ARE Ledger, tamper-proof, chain-verified.
 
-=== Act 6: The Ordeal -- Macro Tier (12 seconds)
+_Point to the intent flow: Predict -> Emit -> Evaluate -> Execute._
 
-*What happens:* Five macroagents reason across all evidence and prior classifications. Incident timeline, root cause hypothesis, action plan, verification plan, learning proposal.
+=== Act 7: The Proof (~2 min)
 
-*What to say:* "The incident timeline agent sequences everything by timestamp. The root cause hypothesis agent sees that multiple modalities agree -- vibration, temperature, image, audio all point to the same thing. Bearing failure. The action planner proposes: notify the maintenance team. The verification planner sets up a check: did vibration return to baseline after intervention?"
+_Click "Verify Ledger Chains"._
 
-*When it pauses:* "The cascade is complete. From raw signals to root cause in three tiers."
+[quote]
+Three hundred sixty tests across twelve suites -- unit, integration, end-to-end, chaos, performance, security. All green. Five ARE Ledger chains verified: placement, scaling, routing, lifecycle, tenant. Every entry has a SHA-256 hash linking it to the previous entry. Tamper with one, the chain breaks.
 
-=== Act 7: The Reward (10 seconds)
+_Point to the test matrix -- all green cells._
 
-*What happens:* An action is proposed. It is non-destructive (notify). It requires human approval.
+=== Act 8: The Return (~1 min)
 
-*What to say:* "The system proposes action: notify maintenance. Notice: it requires human approval. This is a strict safety model. Only non-destructive operations -- notify, observe, ticket -- are proposed automatically. Anything destructive requires explicit human sign-off."
+[quote]
+Here's the HPA timeline -- replicas scaled from one to four under load, then back down during recovery. Every scaling event recorded. Next time Summit Connect runs, the event profile pre-warms automatically. The system captures what it learned. Predictive, not reactive. Governed, not ad-hoc.
 
-*When it pauses:* "Action proposed. Verification created. Now -- what does the system learn?"
-
-=== Act 8: The Return (10 seconds)
-
-*What happens:* A learning proposal appears. It suggests tightening vibration thresholds for earlier detection.
-
-*What to say:* "The system learned from this incident. It proposes: lower the vibration warning threshold from 2.0 sigma to 1.8 sigma for earlier detection next time. But -- and this is critical -- the proposal is not applied silently. It requires human review. The system suggests. Humans decide."
-
-*When it pauses:* "Single-line walkthrough complete. Now the real question: does it scale?"
-
-== Part 3: Scale Run
-
-The scale run proves the architecture handles volume.
-It runs automatically after the walkthrough.
-
-=== Scale 10 Lines (12 seconds)
-
-*What to say:* "Ten factory lines. Ten times the evidence. But the nanoagent pipeline is deterministic -- it scales linearly. No inference cost per signal. Watch the compression ratio."
-
-*What to emphasize:* The elapsed time in milliseconds. The compression ratio. "All on CPU."
-
-=== Scale 50 Lines (12 seconds)
-
-*What to say:* "Fifty production lines. Hundreds of evidence artifacts. Thousands of classifications. The three-tier cascade compresses the volume. Only the most important findings reach macro-level reasoning. Still all on CPU."
-
-=== Stress Test (15 seconds)
-
-*What to say:* "Now we break it. Fifteen percent failure rate. Bearing failures cascading across the plant. This is an incident storm. Watch what happens: the nanoagent filter layer absorbs the blast. More evidence escalates, but the system does not break. It classifies, proposes, verifies."
-
-*What to emphasize:* The nano retention rate dropping (more signals escalating). The system staying functional. The actions proposed.
-
-=== Recovery (10 seconds)
-
-*What to say:* "The storm passes. Failure rate drops to 2%. Metrics stabilize. But the system learned from the storm -- more anomaly families identified, more threshold proposals generated. Each incident makes the baseline smarter."
-
-=== The Claim (8 seconds)
-
-*What to say:* "One CPU-first pipeline. Seventeen agents across three tiers. 98% of signals classified on CPU before anything expensive runs. This is what enterprise AI looks like when you start with classification instead of generation."
-
-*Pause here.* Let the numbers sink in.
-
-== Part 4: Bootstrap Lab Handoff
-
-After the scale run completes, invite attendees to try the Bootstrap Lab.
-
-*What to say:* "That was the built-in scenario -- a factory bearing failure. But the real power is that you can connect your own data. The Bootstrap Lab lets you pick a scenario -- OpenShift cluster health, telecom network operations, AAP job monitoring -- or connect your own Prometheus endpoint. A frontier model analyzes your signals, generates classification rules, and you validate them before they go live. Want to try it?"
-
-Direct attendees to the xref:lab-guide.adoc[Lab Guide].
+_Click "Run at Scale" to enter auto mode._
 
 == Common Audience Questions
 
-=== "Is this just monitoring?"
+=== "Is this just another model server?"
 
-No. Monitoring tells you something is wrong. DeepField classifies what is wrong, proposes action, verifies the action worked, and learns for next time. The loop is: Signals, Decide, Act, Verify, Learn.
+[quote]
+No. fleet-llm-d doesn't serve models -- it orchestrates the fleet of model servers. OVMS C++ serves the models. fleet-llm-d manages where they run, how traffic routes, when to scale, who gets what quota, and records every decision.
 
-=== "Why not just use an LLM for everything?"
+=== "Why not just use HPA?"
 
-Cost and latency. A frontier model costs $3-15 per million input tokens. Most enterprise signals do not need that. A deterministic nanoagent costs nothing per signal. The cascade ensures you only pay for LLM inference when it adds value.
+[quote]
+HPA is reactive -- it scales after the spike hits. fleet-llm-d's predictive brain scales before the spike. Event profiles pre-warm for known events. SLO forecasting catches trends before they breach. HPA is still there as the safety net.
 
-=== "What if the LLM is down?"
+=== "What if the predictive brain is wrong?"
 
-The system degrades gracefully. Nanoagents are fully deterministic -- they never need an LLM. Microagents fall back to rule-backed classification. Macroagents fall back to template-based reasoning. The demo you just saw can run entirely without any LLM configured.
+[quote]
+The policy evaluator is the safety gate. Confidence below threshold? Deferred. Too many replicas? Refused. Critical action? Requires human approval. And every prediction-action-outcome chain is in the ledger, so you can measure accuracy over time.
 
-=== "How long does deployment take?"
+=== "Does this work with GPUs too?"
 
-The container image is ~210 MB. Deployment to OpenShift takes under 5 minutes. First demo runs in 30 seconds. The Bootstrap Lab takes 10-15 minutes to connect, analyze, and validate a new data source.
+[quote]
+Yes. fleet-llm-d manages GPU clusters, CPU clusters, or mixed fleets. The cost engine calculates chargeback across H200, B200, H100, A100, MI300X, L40, and CPU. CPU inference is the cost optimization story -- not the only story.
 
-=== "Can I use my own models?"
+=== "What about multi-cluster?"
 
-Yes. The system uses LiteLLM, which supports any OpenAI-compatible API. You can point it at vLLM, Ollama, Granite on Intel Gaudi, or any hosted endpoint. For bootstrap, you can choose from Qwen 3 235B, Granite, or Claude Sonnet.
+[quote]
+That's fleet-llm-d's core design. The Rust gateway routes traffic across clusters. PlacementPolicy spreads models geographically. KVCacheTransferPolicy migrates hot caches between clusters. The fleet controller federates metrics across all clusters.

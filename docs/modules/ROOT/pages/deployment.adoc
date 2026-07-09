@@ -2,267 +2,276 @@
 :toc: left
 :toclevels: 3
 
-== Container Image
+== fleet-llm-d (Helm Chart)
 
-The DeepField Multimodal container image is published to:
+=== Quick Start
 
-....
-quay.io/deepfield-fleet/deepfield-fleet:latest
-....
+Deploy fleet-llm-d using the Helm chart:
 
-The image is built using a multi-stage Containerfile:
-
-* *Stage 1:* Node 20 builds the React frontend (`npm run build`)
-* *Stage 2:* Python 3.11 slim installs the backend, copies the built frontend, fixtures, config, and migrations
-
-Final image size: ~210 MB.
-
-== Quick Start: Podman Local Run
-
-To run DeepField Multimodal locally with Podman:
-
-[source,bash]
+[source,bash,role=execute]
 ----
-podman run -d \
-  --name deepfield \
-  -p 8000:8000 \
-  quay.io/deepfield-fleet/deepfield-fleet:latest
+helm install fleet-llm-d charts/fleet-llm-d/ \
+  --namespace fleet-llm-d \
+  --create-namespace \
+  --set mode=all \
+  --set auth.enabled=true \
+  --set auth.secretName=fleet-auth
 ----
 
-The app will be available at http://localhost:8000.
+Verify the deployment:
 
-To run with LLM inference enabled:
-
-[source,bash]
+[source,bash,role=execute]
 ----
-podman run -d \
-  --name deepfield \
-  -p 8000:8000 \
-  -e LITELLM_API_BASE=https://your-litellm-proxy:8080 \
-  -e LITELLM_API_KEY=your-api-key \
-  -e LITELLM_MODEL_MICRO=granite-3-2-8b-instruct-cpu \
-  -e LITELLM_MODEL_MACRO=granite-3-2-8b-instruct-cpu \
-  quay.io/deepfield-fleet/deepfield-fleet:latest
+curl $FLEET_URL/healthz
 ----
 
-To run with a frontier model for bootstrap:
+=== Helm Values
 
-[source,bash]
-----
-podman run -d \
-  --name deepfield \
-  -p 8000:8000 \
-  -e LITELLM_API_BASE=https://your-litellm-proxy:8080 \
-  -e LITELLM_API_KEY=your-api-key \
-  -e BOOTSTRAP_API_BASE=https://your-bootstrap-proxy:8080 \
-  -e BOOTSTRAP_API_KEY=your-bootstrap-key \
-  -e BOOTSTRAP_MODEL=qwen3-235b \
-  quay.io/deepfield-fleet/deepfield-fleet:latest
-----
+Key values in `charts/fleet-llm-d/values.yaml`:
 
-Health check:
-
-[source,bash]
-----
-curl http://localhost:8000/health
-# {"status":"ok","service":"deepfield-multimodal"}
-----
-
-== Environment Variables
-
-[cols="2,1,3,2"]
+[cols="2,1,3"]
 |===
-| Variable | Required | Description | Default
+| Value | Default | Description
 
-| `LITELLM_API_BASE`
-| No
-| Base URL for the LiteLLM proxy (OpenAI-compatible). When not set, all agents use rule-backed/template-based classification -- no inference calls.
-| (not set -- rule-backed mode)
+| `mode`
+| `all`
+| Deployment mode: `all` (controller + proxy + cost), `controller`, `proxy`, or `cost`
 
-| `LITELLM_API_KEY`
-| No
-| API key for authenticating with the LiteLLM proxy.
-| (empty)
+| `replicas`
+| `1`
+| Number of fleet-controller replicas
 
-| `LITELLM_MODEL_MICRO`
-| No
-| Model name for micro-tier inference. Used when `LITELLM_API_BASE` is set.
-| `granite-3-2-8b-instruct-cpu`
+| `image.repository`
+| `quay.io/deepfield-fleet/fleet-controller`
+| Container image repository
 
-| `LITELLM_MODEL_MACRO`
-| No
-| Model name for macro-tier inference. Used when `LITELLM_API_BASE` is set.
-| `granite-3-2-8b-instruct-cpu`
+| `image.tag`
+| `latest`
+| Container image tag
 
-| `BOOTSTRAP_API_BASE`
-| No
-| Base URL for the frontier model used during bootstrap analysis. Falls back to `LITELLM_API_BASE` if not set.
-| (falls back to `LITELLM_API_BASE`)
+| `auth.enabled`
+| `false`
+| Enable bearer token authentication
 
-| `BOOTSTRAP_API_KEY`
-| No
-| API key for the bootstrap frontier model. Falls back to `LITELLM_API_KEY` if not set.
-| (falls back to `LITELLM_API_KEY`)
+| `auth.secretName`
+| `fleet-auth`
+| Kubernetes Secret containing the auth token
 
-| `BOOTSTRAP_MODEL`
-| No
-| Model name for bootstrap analysis (e.g., `qwen3-235b`, `claude-sonnet-4-6`).
-| `claude-sonnet-4-6`
+| `rateLimit.enabled`
+| `true`
+| Enable per-tenant rate limiting
 
-| `DATABASE_URL`
-| No
-| PostgreSQL connection string. When not set, the app runs with in-memory storage and graceful degradation.
-| (not set -- in-memory mode)
+| `rateLimit.defaultRPM`
+| `60`
+| Default requests per minute when no TenantProfile matches
+
+| `loadShedding.enabled`
+| `true`
+| Enable load shedding under overload
+
+| `loadShedding.maxInflight`
+| `100`
+| Maximum concurrent in-flight requests before shedding
+
+| `backends`
+| `[]`
+| List of backend model server endpoints
+
+| `grpc.port`
+| `9090`
+| gRPC port for data plane communication
+
+| `ledger.endpoint`
+| `""`
+| ARE Ledger gRPC endpoint (e.g., `ledger:9092`)
+
+| `ledger.enabled`
+| `false`
+| Enable ARE Ledger integration
 |===
 
-NOTE: No environment variables are required. The system runs fully functional with zero configuration -- all agents use rule-backed classification and in-memory storage.
+=== Production Configuration
 
-== OpenShift Deployment
+For production deployments with multiple backends and ledger integration:
 
-=== Namespace Setup
-
-Create the namespace and required secrets:
-
-[source,bash]
+[source,bash,role=execute]
 ----
-oc new-project deepfield-multimodal
-
-# Create the secrets for LiteLLM and OAuth
-oc create secret generic deepfield-secrets \
-  --from-literal=LITELLM_API_KEY=your-api-key \
-  --from-literal=BOOTSTRAP_API_KEY=your-bootstrap-key
-
-# Create OAuth proxy secrets
-oc create secret generic deepfield-oauth-secret \
-  --from-literal=client-secret=$(openssl rand -hex 32) \
-  --from-literal=session_secret=$(openssl rand -hex 32)
-----
-
-=== Deploy the Manifest
-
-Apply the deployment manifest:
-
-[source,bash]
-----
-oc apply -f deploy/deployment.yaml
+helm install fleet-llm-d charts/fleet-llm-d/ \
+  --namespace fleet-llm-d \
+  --create-namespace \
+  --set mode=all \
+  --set replicas=3 \
+  --set auth.enabled=true \
+  --set auth.secretName=fleet-auth \
+  --set rateLimit.enabled=true \
+  --set loadShedding.enabled=true \
+  --set loadShedding.maxInflight=200 \
+  --set grpc.port=9090 \
+  --set ledger.enabled=true \
+  --set ledger.endpoint=are-ledger:9092 \
+  --set-json 'backends=[{"name":"ovms-cpu","url":"http://ovms:8080","type":"cpu"},{"name":"vllm-gpu","url":"http://vllm:8000","type":"gpu"}]'
 ----
 
-The manifest creates:
+== deepfield-fleet (Dashboard)
+
+=== Container Deployment
+
+Deploy the deepfield-fleet dashboard container:
+
+[source,bash,role=execute]
+----
+podman run -d \
+  --name deepfield-fleet \
+  -p 3000:3000 \
+  -e FLEET_URL=http://fleet-llm-d:8000 \
+  -e FLEET_TOKEN=$FLEET_TOKEN \
+  quay.io/deepfield-fleet/deepfield-fleet:latest
+----
+
+=== Environment Variables
+
+[cols="2,1,3"]
+|===
+| Variable | Required | Description
+
+| `FLEET_URL`
+| Yes
+| fleet-llm-d API endpoint (e.g., `http://fleet-llm-d:8000`)
+
+| `FLEET_TOKEN`
+| Yes
+| Bearer token for fleet-llm-d API authentication
+
+| `FLEET_AUTH_SECRET_FILE`
+| No
+| Path to file containing the auth token (alternative to `FLEET_TOKEN`)
+
+| `FLEET_AUTH_TTL`
+| No
+| Token TTL in seconds (default: 3600)
+
+| `NEXT_PUBLIC_FLEET_URL`
+| No
+| Fleet URL for client-side API calls (defaults to `FLEET_URL`)
+
+| `PORT`
+| No
+| Dashboard listening port (default: 3000)
+|===
+
+=== OpenShift Deployment
+
+Deploy on OpenShift with a Route:
+
+[source,bash,role=execute]
+----
+oc new-project deepfield-fleet
+
+oc create secret generic fleet-secrets \
+  --from-literal=FLEET_TOKEN=$FLEET_TOKEN
+
+oc apply -f deploy/deepfield-fleet.yaml
+----
+
+The deployment manifest creates:
 
 [cols="1,2"]
 |===
 | Resource | Purpose
 
-| *ServiceAccount* `deepfield-reader`
-| Service account with OAuth redirect annotation for OpenShift authentication
-
-| *ClusterRoleBinding*
-| Binds `cluster-reader` role to the service account for read-only cluster access
-
 | *Deployment*
-| Two containers: the app (port 8000) and OAuth proxy (port 8080)
+| deepfield-fleet container (port 3000)
 
 | *Service*
-| Routes traffic to the OAuth proxy on port 8080
+| Routes traffic to port 3000
 
 | *Route*
 | TLS-terminated edge route with redirect for insecure traffic
+
+| *Secret*
+| `fleet-secrets` with FLEET_TOKEN
 |===
 
-=== Service Account Roles
+=== OpenShift Route Configuration
 
-The deployment requires these cluster roles:
+Create the route manually if not using the manifest:
 
-[cols="1,3"]
-|===
-| Role | Why
-
-| `cluster-reader`
-| Allows the Kubernetes connector to read pods, events, nodes, and deployments across namespaces for signal ingestion
-
-| `cluster-monitoring-view`
-| (Optional) Allows the Prometheus connector to query the cluster's built-in Prometheus instance
-|===
-
-To add the monitoring role:
-
-[source,bash]
+[source,bash,role=execute]
 ----
-oc adm policy add-cluster-role-to-user cluster-monitoring-view \
-  system:serviceaccount:deepfield-multimodal:deepfield-reader
+oc create route edge deepfield-fleet \
+  --service=deepfield-fleet \
+  --port=3000 \
+  --insecure-policy=Redirect
 ----
 
-=== OAuth Proxy
+== Grafana and Prometheus
 
-The deployment includes an OpenShift OAuth proxy sidecar that provides single sign-on with OpenShift credentials.
+=== Prometheus Setup
 
-Configuration details:
+fleet-llm-d exposes metrics on `/metrics` in Prometheus format.
+Key metrics:
 
-* Proxy listens on port 8080, forwards to the app on port 8000
-* The `/health` endpoint is excluded from authentication (`-skip-auth-regex=^/health`)
-* Upstream timeout is set to 180 seconds to accommodate LLM inference latency
-* User headers are passed through to the app (`-pass-user-headers=true`)
-
-=== Resource Requests
-
-[cols="1,1,1"]
+[cols="2,3"]
 |===
-| Container | CPU Request/Limit | Memory Request/Limit
+| Metric | Description
 
-| App
-| 500m / 1 core
-| 256Mi / 512Mi
+| `fleet_inference_requests_total`
+| Total inference requests by model, cluster, tenant
 
-| OAuth Proxy
-| 100m / 200m
-| 64Mi / 128Mi
+| `fleet_inference_latency_seconds`
+| Request latency histogram (P50, P95, P99)
+
+| `fleet_scaling_events_total`
+| Scaling events by type (hpa, predictive, intent)
+
+| `fleet_cost_dollars`
+| Inference cost in dollars by hardware tier
+
+| `fleet_tenant_tokens_used`
+| Tokens consumed per tenant
+
+| `fleet_load_shed_total`
+| Load shedding events (503 responses)
+
+| `fleet_ledger_entries_total`
+| ARE Ledger entries by chain type
 |===
 
-=== Probes
+If using OpenShift built-in monitoring, create a ServiceMonitor:
 
-Both containers have readiness and liveness probes:
-
-* App: `GET /health` on port 8000 (readiness: 5s initial, 10s period; liveness: 10s initial, 30s period)
-* OAuth Proxy: `GET /oauth/healthz` on port 8080 (readiness: 5s initial, 5s period; liveness: 10s initial, 10s period)
-
-== Deployment Manifest
-
-The full deployment manifest is at `deploy/deployment.yaml`.
-Key sections:
-
-=== Deployment Environment Variables
-
-[source,yaml]
+[source,bash,role=execute]
 ----
-env:
-  - name: LITELLM_API_BASE
-    value: "https://litellm.example.com"
-  - name: LITELLM_MODEL_MICRO
-    value: "granite-3-2-8b-instruct-cpu"
-  - name: LITELLM_MODEL_MACRO
-    value: "granite-3-2-8b-instruct-cpu"
-  - name: BOOTSTRAP_API_BASE
-    value: "https://litellm.example.com"
-  - name: BOOTSTRAP_MODEL
-    value: "qwen3-235b"
-envFrom:
-  - secretRef:
-      name: deepfield-secrets
+cat <<'EOF' | oc apply -f -
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fleet-llm-d
+  namespace: fleet-llm-d
+spec:
+  selector:
+    matchLabels:
+      app: fleet-llm-d
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+EOF
 ----
 
-=== Container Image Reference
+=== Grafana Dashboards
 
-[source,yaml]
-----
-image: quay.io/deepfield-fleet/deepfield-fleet:latest
-imagePullPolicy: Always
-----
+Import the fleet dashboards from `deploy/grafana/`:
 
-== Verification Script
+* `fleet-overview.json` -- cluster health, model metrics, cost summary
+* `fleet-inference.json` -- per-model latency, throughput, error rate
+* `fleet-governance.json` -- tenant quotas, rate limits, budget alerts
+* `fleet-scaling.json` -- replica timeline, intent history, SLO compliance
 
-The `deploy/verify.sh` script validates a deployment with a RED/GREEN rubric:
+== Verification
 
-[source,bash]
+Run the deployment verification script:
+
+[source,bash,role=execute]
 ----
 ./deploy/verify.sh
 ----
@@ -274,108 +283,17 @@ The script checks:
 | Category | Checks
 
 | *Infrastructure*
-| Pod running, health check passes, frontend loads, readiness probe passing
+| fleet-llm-d pod running, healthz responds, CRDs installed
 
-| *API Endpoints*
-| Profiles endpoint, infrastructure endpoint, models endpoint, demo state endpoint, benchmark endpoint
+| *API*
+| Fleet management endpoints, inference proxy, cost engine
 
-| *Bootstrap Lab*
-| Profile apply works, rubric endpoint responds
+| *Governance*
+| TenantProfile enforcement, rate limiting, budget alerts
 
-| *Security*
-| No hardcoded secrets in deployment, secret reference exists
+| *Ledger*
+| ARE Ledger connection, chain integrity
+
+| *Dashboard*
+| deepfield-fleet container running, frontend loads
 |===
-
-Output:
-
-....
-==================================================
-  DeepField Multimodal -- Deployment Rubric
-  Route: https://deepfield-multimodal.apps.cluster.example.com
-==================================================
-
-INFRASTRUCTURE
-  + Pod running
-  + Health check
-  + Frontend loads
-  + Readiness passing
-
-API ENDPOINTS
-  + Profiles endpoint
-  + Infrastructure endpoint
-  + Models endpoint
-  + Demo state endpoint
-  + Benchmark endpoint
-
-BOOTSTRAP LAB
-  + Profile apply
-  + Rubric endpoint
-
-SECURITY
-  + No hardcoded secrets
-  + Secret ref exists
-
-==================================================
-  Results: 13 passed, 0 failed
-==================================================
-....
-
-== Building the Container Image
-
-To build the image locally:
-
-[source,bash]
-----
-podman build -t deepfield-multimodal:latest -f Containerfile .
-----
-
-The Containerfile uses a two-stage build:
-
-[source,dockerfile]
-----
-# Stage 1: Build frontend
-FROM node:20-slim AS frontend-build
-WORKDIR /build
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --legacy-peer-deps
-COPY frontend/ ./
-RUN npm run build
-
-# Stage 2: Python backend + built frontend
-FROM python:3.11-slim
-WORKDIR /app
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir ".[db]"
-COPY app/ ./app/
-COPY migrations/ ./migrations/
-COPY fixtures/ ./fixtures/
-COPY config/ ./config/
-COPY --from=frontend-build /build/dist ./frontend/dist/
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-----
-
-== Development Setup
-
-For local development without containers:
-
-[source,bash]
-----
-# Backend
-pip install -e ".[dev]"
-pytest app/tests/ -v          # Run tests
-uvicorn app.main:app --reload # Start backend with hot reload
-
-# Frontend
-cd frontend
-npm install --legacy-peer-deps
-npm test
-npm run build
-npm run dev                    # Start dev server at http://localhost:3000
-
-# Benchmark + whole-project validation
-python -m app.benchmark --profile enterprise-signal-volume --iterations 5 --include-project-tests
-
-# Health check
-curl http://localhost:8000/health
-----
