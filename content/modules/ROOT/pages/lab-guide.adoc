@@ -7,7 +7,7 @@ Self-paced lab for learning fleet-llm-d inference orchestration.
 
 == Prerequisites
 
-* An OpenShift cluster with fleet-llm-d deployed
+* An OpenShift sandbox with fleet-llm-d and synthetic-maas pre-deployed
 * Terminal access (via showroom or local)
 * A modern web browser (Chrome, Firefox, Edge)
 * The following variables are provided by your lab environment:
@@ -99,9 +99,11 @@ You should see 7 CRDs:
 
 == Module 2: Serve a Model on CPU (10 min)
 
+Your sandbox includes a pre-deployed **synthetic-maas** emulator with 19 models — the same API contract as production MaaS, zero GPU required. fleet-llm-d routes inference through it.
+
 === 2.1 Create a FleetInferencePool
 
-Deploy a Granite 350M model on CPU by creating a FleetInferencePool CRD:
+Register a Granite 350M model by creating a FleetInferencePool CRD. The inference backend (synthetic-maas) is already running:
 
 [source,bash,role=execute]
 ----
@@ -426,11 +428,11 @@ Log in with `{user}` / `{password}`.
 
 === 5.2 View the Fleet Overview Dashboard
 
-Navigate to *Dashboards -> Fleet Overview*. This dashboard shows:
+Navigate to *Dashboards -> Fleet Overview*. The synthetic-maas emulator produces realistic vLLM Prometheus metrics — the dashboards show real-looking data:
 
 * *Cluster Health* -- status of all registered clusters
-* *Model Serving Metrics* -- request rate, latency P50/P95/P99, error rate per model
-* *Cost Metrics* -- GPU vs CPU spend, savings ratio, per-tenant chargeback
+* *Model Serving Metrics* -- request rate, latency P50/P95/P99, error rate per model (from synthetic-maas vLLM metrics)
+* *KV Cache* -- cache hit rate, prefix reuse (the emulator simulates a real prefix cache)
 * *Scaling Events* -- replica timeline, intent history, SLO compliance
 * *Governance* -- tenant quota utilization, rate limit triggers, budget alerts
 
