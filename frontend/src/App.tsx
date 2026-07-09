@@ -868,10 +868,10 @@ export default function App() {
                         breachInMinutes={sloForecast.breach_in_minutes ?? undefined}
                       />
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 12 }}>
-                        <MetricCard label="Current P95" value={`${sloForecast.current_p95_ms}ms`} color="var(--rh-blue)" />
-                        <MetricCard label="Forecast" value={`${sloForecast.forecast_p95_ms}ms`} color={sloForecast.status === 'breach_predicted' ? 'var(--rh-red)' : 'var(--rh-orange)'} />
-                        <MetricCard label="SLO Target" value={`${sloForecast.slo_target_ms}ms`} color="var(--rh-green)" />
-                        <MetricCard label="Confidence" value={`${(sloForecast.confidence * 100).toFixed(0)}%`} color="var(--rh-teal)" />
+                        <MetricCard label="Current P95" value={`${Math.round(sloForecast.current_p95_ms).toLocaleString()}ms`} color="var(--rh-blue)" />
+                        <MetricCard label="Forecast" value={`${Math.round(sloForecast.forecast_p95_ms).toLocaleString()}ms`} color={sloForecast.status === 'breach_predicted' ? 'var(--rh-red)' : 'var(--rh-orange)'} />
+                        <MetricCard label="SLO Target" value={`${Math.round(sloForecast.slo_target_ms).toLocaleString()}ms`} color="var(--rh-green)" />
+                        <MetricCard label="Confidence" value={`${Math.round(sloForecast.confidence * 100)}%`} color="var(--rh-teal)" />
                       </div>
                     </div>
                   )}

@@ -130,13 +130,13 @@ export function SLOGauge({ currentMs, forecastMs, targetMs, breachInMinutes }: S
         }}
       >
         <div style={{ fontSize: 28, fontWeight: 700, color: currentColor, lineHeight: 1 }}>
-          {currentMs.toFixed(0)}
+          {Math.round(currentMs).toLocaleString()}
           <span style={{ fontSize: 12, fontWeight: 400, color: "#aaa" }}> ms</span>
         </div>
         <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>P95 Latency</div>
         {breachInMinutes != null && breachInMinutes > 0 && (
           <div style={{ fontSize: 11, color: "var(--rh-red, #ee0000)", marginTop: 4, fontWeight: 600 }}>
-            Breach in {breachInMinutes} min
+            Breach in {Math.round(breachInMinutes * 10) / 10} min
           </div>
         )}
       </div>

@@ -214,11 +214,11 @@ async def fleet_forecast():
         status = "safe"
 
     return ForecastResponse(
-        current_p95_ms=metrics.get("current_value", evidence[-1].features["value"]),
-        forecast_p95_ms=metrics.get("forecast_value", 0),
-        slo_target_ms=metrics.get("slo_target", 5000.0),
-        breach_in_minutes=metrics.get("minutes_to_breach"),
-        confidence=record.confidence,
+        current_p95_ms=round(metrics.get("current_value", evidence[-1].features["value"])),
+        forecast_p95_ms=round(metrics.get("forecast_value", 0)),
+        slo_target_ms=round(metrics.get("slo_target", 5000.0)),
+        breach_in_minutes=round(metrics.get("minutes_to_breach") or 0, 1) or None,
+        confidence=round(record.confidence, 2),
         status=status,
     )
 
