@@ -23,7 +23,7 @@ import { useDataStore } from './stores/useDataStore';
 import type { DemoState } from './stores/useDataStore';
 
 /*
- * fleet-llm-d — Fleet-Level Inference Orchestration
+ * fleet-llm-d — Battle-Ready Inference at Fleet Scale
  *
  * Hero's Journey through the platform:
  * - Slides: 7 slides introducing the problem and solution
@@ -178,120 +178,130 @@ export default function App() {
           fleet-llm-d
         </motion.h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          style={{ fontSize: 20, color: 'var(--text-dim)', marginTop: 24 }}>
-          Fleet-Level Inference Orchestration
+          style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 24 }}>
+          Battle-Ready Inference at Fleet Scale
         </motion.p>
       </div>
     ),
-    // 1: The Problem
+    // 1: The Bottleneck
     () => (
-      <div style={{ textAlign: 'center', maxWidth: 700 }}>
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 32, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.4 }}>
-          GPU inference: <span style={{ color: 'var(--rh-red)' }}>$32/hr.</span>
-          <br />Scarce. Single-cluster. Static scaling.
-          <br />No governance. No audit trail.
+      <div style={{ textAlign: 'center', maxWidth: 800 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <p style={{ fontSize: 40, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, margin: 0 }}>
+            Enterprise AI inference demand is growing <span style={{ color: 'var(--rh-red)' }}>10x per year.</span>
+          </p>
+          <p style={{ fontSize: 36, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, margin: 0, color: 'var(--text-secondary)' }}>
+            73% of organizations report inference service degradation during peak traffic.
+          </p>
+          <p style={{ fontSize: 36, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, margin: 0, color: 'var(--text-secondary)' }}>
+            Average cost of unplanned AI downtime: <span style={{ color: 'var(--rh-red)' }}>$300,000 per hour.</span>
+          </p>
+        </motion.div>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+          style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 32 }}>
+          The bottleneck isn&apos;t compute. It&apos;s orchestration.
+        </motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+          style={{ fontSize: 12, color: 'var(--text-disabled)', marginTop: 24, fontFamily: 'Red Hat Mono, monospace' }}>
+          Sources: Gartner 2025, IDC AI Infrastructure Survey, Forrester TEI Analysis
         </motion.p>
       </div>
     ),
-    // 2: The Platform
+    // 2: What is llm-d?
     () => (
       <div style={{ textAlign: 'center', maxWidth: 700 }}>
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.4 }}>
-          7 CRDs. 31 endpoints. Multi-cluster.
-          <br />Multi-tenant. SLO-gated rollouts.
-          <br />Cost optimization. ARE Ledger compliance.
+        <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 56, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', margin: '0 0 16px' }}>
+          llm-d
+        </motion.h2>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          style={{ fontSize: 20, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 32 }}>
+          Open-source inference gateway for Kubernetes. Scalable model serving with intelligent
+          routing, KV cache optimization, and prefix-aware scheduling. The foundation.
         </motion.p>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 32 }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left' }}>
           {[
-            { num: '7', label: 'CRDs', sub: 'Kubernetes-native' },
-            { num: '31', label: 'REST Endpoints', sub: 'Full fleet API' },
-            { num: '5', label: 'CPU Models', sub: 'Granite family' },
-          ].map(s => (
-            <div key={s.label} style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>{s.num}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 2 }}>{s.sub}</div>
+            'Scalable model serving on Kubernetes',
+            'Intelligent request routing with KV cache affinity',
+            'Open source, CNCF-aligned, community-driven',
+          ].map((line, i) => (
+            <div key={i} style={{ fontSize: 20, color: 'var(--text-dim)', paddingLeft: 16, borderLeft: '3px solid var(--rh-red)' }}>
+              {line}
             </div>
           ))}
         </motion.div>
       </div>
     ),
-    // 3: CPU + Intel — the 53x number
+    // 3: What is fleet-llm-d?
     () => (
-      <div style={{ textAlign: 'center' }}>
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
-          <div style={{ fontSize: 120, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1 }}>
-            53x
-          </div>
+      <div style={{ textAlign: 'center', maxWidth: 750 }}>
+        <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 56, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', margin: '0 0 16px' }}>
+          <span style={{ color: 'var(--rh-red)' }}>fleet-</span>llm-d
+        </motion.h2>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          style={{ fontSize: 20, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 32 }}>
+          Multi-cluster orchestration built on llm-d. Governs inference fleets across clusters,
+          tenants, and regions. Designed for the burst, not just the baseline.
+        </motion.p>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'left' }}>
+          {[
+            { bold: 'Multi-cluster placement', desc: "models where they're needed, when they're needed" },
+            { bold: 'Multi-tenant governance', desc: 'quotas, budgets, fair scheduling per tenant' },
+            { bold: 'SLO-gated rollouts', desc: 'auto-rollback if latency breaches threshold' },
+            { bold: 'Load shedding', desc: 'graceful 503s with Retry-After, not cascading failures' },
+          ].map((item, i) => (
+            <div key={i} style={{ fontSize: 22, lineHeight: 1.4 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{item.bold}</strong>
+              <span style={{ color: 'var(--text-dim)' }}> &mdash; {item.desc}</span>
+            </div>
+          ))}
         </motion.div>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-          style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 16, lineHeight: 1.5 }}>
-          cheaper than GPU inference.
-          <br />Intel Xeon 6 Granite Rapids. 256 cores. AMX.
-        </motion.p>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          style={{ fontSize: 16, color: 'var(--text-disabled)', marginTop: 24 }}>
-          OVMS C++ with INT8 quantization. $0.60/hr vs $32/hr H100.
-        </motion.p>
       </div>
     ),
-    // 4: The Brain — deepfield-fleet
+    // 4: Battle-Ready
     () => (
-      <div style={{ maxWidth: 700 }}>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ fontSize: 14, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, textAlign: 'center', marginBottom: 24 }}>
-          THE PREDICTIVE LAYER
+      <div style={{ maxWidth: 800 }}>
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 42, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.2, textAlign: 'center', marginBottom: 40 }}>
+          When 200 users hit at once,
+          <br />does your inference stack <span style={{ color: 'var(--rh-red)' }}>survive?</span>
         </motion.p>
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.4, textAlign: 'center', marginBottom: 24 }}>
-          deepfield-fleet: predictive intelligence.
-        </motion.p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
-            { label: 'SLO Forecasting', desc: 'Linear regression on P95 latency. Predicts breach 22 min ahead.', color: 'var(--rh-blue)', delay: 0.3 },
-            { label: 'Event Pre-Warming', desc: 'Learns event profiles. Scales before the surge, not after.', color: 'var(--rh-green)', delay: 0.4 },
-            { label: 'Intent-Driven Scaling', desc: 'Emits PreWarmIntent with confidence + justification. Policy-gated.', color: 'var(--rh-orange)', delay: 0.5 },
-            { label: 'A/B Provable', desc: 'Ledger records every prediction vs outcome. Proof, not opinion.', color: 'var(--rh-purple)', delay: 0.6 },
-          ].map(t => (
-            <motion.div key={t.label} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: t.delay }}
-              style={{ padding: 14, background: 'var(--surface-1)', border: `1px solid ${t.color}40`, borderLeft: `4px solid ${t.color}`, borderRadius: '0 10px 10px 0' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.color }}>{t.label}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>{t.desc}</div>
+            { industry: 'Telco edge', desc: '5G tower handoff spikes, 10,000 inference calls in 30 seconds', color: 'var(--rh-blue)' },
+            { industry: 'Financial services', desc: 'market open, every trading desk needs risk models simultaneously', color: 'var(--rh-green)' },
+            { industry: 'Healthcare', desc: 'clinical decision support during shift change, 40 providers querying at once', color: 'var(--rh-purple)' },
+            { industry: 'Events', desc: 'Red Hat Summit Connect, 200 concurrent demo users, zero tolerance for failure', color: 'var(--rh-red)' },
+          ].map((scenario, i) => (
+            <motion.div key={scenario.industry} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.15 }}
+              style={{ padding: 20, background: 'var(--surface-1)', border: `1px solid ${scenario.color}40`, borderLeft: `4px solid ${scenario.color}`, borderRadius: '0 10px 10px 0' }}>
+              <span style={{ fontSize: 22, fontWeight: 800, color: scenario.color }}>{scenario.industry}</span>
+              <span style={{ fontSize: 20, color: 'var(--text-dim)', fontStyle: 'italic' }}>{' '}&mdash; {scenario.desc}</span>
             </motion.div>
           ))}
         </div>
       </div>
     ),
-    // 5: The Proof
+    // 5: The Intelligence Layer
     () => (
       <div style={{ textAlign: 'center', maxWidth: 700 }}>
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginBottom: 32 }}>
-          Measured. Tested. Auditable.
+        <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 48, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', margin: '0 0 24px' }}>
+          Predict. Don&apos;t react.
+        </motion.h2>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          style={{ fontSize: 20, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+          deepfield-fleet adds a predictive intelligence layer. SLO forecasting detects breaches
+          before they happen. Event profiles pre-warm models before the crowd arrives. Every
+          prediction recorded in the ARE Ledger.
         </motion.p>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          {[
-            { num: '360', label: 'Tests Passing', color: 'var(--rh-green)' },
-            { num: '12', label: 'Test Suites', color: 'var(--rh-blue)' },
-            { num: '5', label: 'CPU Models', color: 'var(--rh-teal)' },
-            { num: '< 5s', label: 'P95 Latency', color: 'var(--rh-orange)' },
-            { num: '1 → 4', label: 'HPA Scale', color: 'var(--rh-purple)' },
-            { num: '0', label: 'Downtime', color: 'var(--rh-red)' },
-          ].map(s => (
-            <div key={s.label} style={{ padding: 16, background: 'var(--surface-1)', border: `1px solid ${s.color}30`, borderRadius: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: s.color, fontFamily: 'Red Hat Display, sans-serif' }}>{s.num}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>{s.label}</div>
-            </div>
-          ))}
-        </motion.div>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
           style={{ fontSize: 14, color: 'var(--text-disabled)', marginTop: 24 }}>
-          Every decision recorded in the ARE Immutable Ledger.
+          Optional. fleet-llm-d works without it. But it&apos;s better with it.
         </motion.p>
       </div>
     ),
@@ -299,23 +309,19 @@ export default function App() {
     () => (
       <div style={{ textAlign: 'center' }}>
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 36, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginBottom: 16 }}>
-          Let me show you the fleet.
-        </motion.p>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-          style={{ fontSize: 16, color: 'var(--text-dim)', marginBottom: 40, lineHeight: 1.6 }}>
-          Walk through each layer of the orchestration platform.
-          <br />Then run it at scale.
+          style={{ fontSize: 42, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginBottom: 16 }}>
+          Let me show you what happens
+          <br />when 200 users hit at once.
         </motion.p>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <button onClick={() => setMode('manual')}
-            style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '16px 48px', borderRadius: 10, fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
-            Next
+            style={{ background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '16px 48px', borderRadius: 10, fontSize: 20, fontWeight: 700, cursor: 'pointer' }}>
+            Start the Demo &rarr;
           </button>
         </motion.div>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          style={{ marginTop: 32, fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
-          Go control plane · Rust data plane · Intel Xeon 6 · $0.60/hr
+          style={{ marginTop: 32, fontSize: 13, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
+          Tested on Intel Xeon 6 &middot; Red Hat OpenShift &middot; Zero GPU required
         </motion.div>
       </div>
     ),
@@ -728,16 +734,16 @@ export default function App() {
 
   /* ───────────────────────── MANUAL MODE ───────────────────────── */
 
-  const manualActs = ['cost', 'event', 'deploy', 'platform', 'predict', 'intent', 'proof', 'return'] as const;
+  const manualActs = ['baseline', 'event', 'fleet', 'predict', 'response', 'burst', 'proof', 'learning'] as const;
   const manualMeta: Record<string, { title: string; subtitle: string; next: string }> = {
-    cost:     { title: 'The Cost of Inference',  subtitle: 'Enterprise inference runs on GPU. There is another way.',          next: 'See the event →' },
-    event:    { title: 'The Event Arrives',      subtitle: 'A surge is coming. The fleet prepares.',                           next: 'Deploy the fleet →' },
-    deploy:   { title: 'The Fleet Deploys',      subtitle: 'OVMS C++ on Intel Xeon 6. Multi-cluster orchestration.',           next: 'See the CRDs →' },
-    platform: { title: 'The Platform',           subtitle: 'Seven CRDs define the fleet\'s desired state.',                    next: 'Predict the SLO →' },
-    predict:  { title: 'The Brain Predicts',     subtitle: 'SLO forecasting and blast radius scoping.',                        next: 'Emit the intent →' },
-    intent:   { title: 'The Intent',             subtitle: 'Predictive intelligence drives pre-emptive action.',               next: 'See the proof →' },
-    proof:    { title: 'The Proof',              subtitle: '360 tests. 12 suites. Every decision in the ledger.',              next: 'See the return →' },
-    return:   { title: 'The Return',             subtitle: 'Auditable. Verifiable. Continuous.',                               next: '' },
+    baseline: { title: 'The Baseline',    subtitle: 'The fleet is quiet. Everything is green.',                                   next: 'The event arrives →' },
+    event:    { title: 'The Event',        subtitle: 'The burst is coming. Load the event profile.',                               next: 'See the fleet →' },
+    fleet:    { title: 'The Fleet',        subtitle: 'How fleet-llm-d manages routing, scaling, and governance.',                  next: 'See the prediction →' },
+    predict:  { title: 'The Prediction',   subtitle: 'The SLO forecaster sees latency climbing.',                                  next: 'See the response →' },
+    response: { title: 'The Response',     subtitle: 'The system responds before the breach.',                                     next: 'The burst arrives →' },
+    burst:    { title: 'The Burst',        subtitle: '200 users arrive. Does the fleet survive?',                                  next: 'See the proof →' },
+    proof:    { title: 'The Proof',        subtitle: 'Everything survived. The ledger recorded it all.',                           next: 'See the learning →' },
+    learning: { title: 'The Learning',     subtitle: 'The fleet gets smarter for next time.',                                      next: '' },
   };
   const currentAct = manualActs[actIndex] || manualActs[0];
   const meta = manualMeta[currentAct];
@@ -761,28 +767,28 @@ export default function App() {
               <p style={{ fontSize: 16, color: 'var(--text-dim)', margin: 0 }}>{meta.subtitle}</p>
             </div>
 
-            {/* Act 0: The Cost of Inference */}
-            {currentAct === 'cost' && (
+            {/* Act 0: The Baseline */}
+            {currentAct === 'baseline' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  Enterprise inference runs on GPU. $32 per hour per H100. Scarce hardware.
-                  Static scaling. No multi-tenant governance. No audit trail.
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
+                  A fleet of 5 Granite models serving inference on Intel Xeon 6. Single replica per
+                  model. P95 latency: 800ms. The fleet is quiet.
                 </p>
-                <CostComparison />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 16 }}>
-                  <MetricCard label="GPU Cost" value="$32/hr" color="var(--rh-red)" detail="H100 instance" />
-                  <MetricCard label="CPU Cost" value="$0.60/hr" color="var(--rh-green)" detail="Xeon 6 instance" />
-                  <MetricCard label="Savings" value="53x" color="var(--rh-blue)" detail="Same models" />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16 }}>
+                  <MetricCard label="P95 Latency" value="800ms" color="var(--rh-green)" detail="Under SLO" />
+                  <MetricCard label="Replicas" value="5" color="var(--rh-blue)" detail="1 each" />
+                  <MetricCard label="Queue Depth" value="0" color="var(--rh-teal)" detail="No backlog" />
+                  <MetricCard label="Error Rate" value="0%" color="var(--rh-green)" detail="All healthy" />
                 </div>
               </div>
             )}
 
-            {/* Act 1: The Event Arrives */}
+            {/* Act 1: The Event */}
             {currentAct === 'event' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
                   Red Hat Summit Connect starts in 30 minutes. 200 concurrent users will need
-                  inference across 5 Granite models. The fleet needs to prepare.
+                  inference. This is the moment that breaks most inference stacks.
                 </p>
                 <StepCard num={1} title="Load Event Profile" status={eventProfileStatus} onRun={doEventProfile} buttonLabel="Load profile">
                   {eventProfiles.length > 0 && (() => {
@@ -808,12 +814,12 @@ export default function App() {
               </div>
             )}
 
-            {/* Act 2: The Fleet Deploys */}
-            {currentAct === 'deploy' && (
+            {/* Act 2: The Fleet */}
+            {currentAct === 'fleet' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  fleet-llm-d manages clusters, models, tenants, and routing. OVMS C++ serves
-                  Granite on Intel Xeon 6 with INT8 quantization via AMX.
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
+                  fleet-llm-d sits between users and models. It manages routing, scaling, load
+                  shedding, and tenant governance across the fleet.
                 </p>
                 <StepCard num={2} title="Check Fleet Health" status={fleetNanoStatus} onRun={doFleetHealth} buttonLabel="Check health">
                   {fleetHealth && (
@@ -833,7 +839,7 @@ export default function App() {
                       {fleetHealth.models.map(m => (
                         <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 12 }}>
                           <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--text-secondary)' }}>{m.name}</span>
-                          <span style={{ color: 'var(--text-dim)', marginLeft: 'auto' }}>{m.runtime} · {m.replicas} replicas</span>
+                          <span style={{ color: 'var(--text-dim)', marginLeft: 'auto' }}>{m.runtime} &middot; {m.replicas} replicas</span>
                         </div>
                       ))}
                     </div>
@@ -845,40 +851,12 @@ export default function App() {
               </div>
             )}
 
-            {/* Act 3: The Platform — 7 CRDs */}
-            {currentAct === 'platform' && (
-              <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  Seven CRDs define the fleet's desired state. The Go control plane watches for
-                  changes and reconciles actual state continuously.
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
-                  {[
-                    { name: 'FleetInferencePool', desc: 'Cluster inventory, model placement, GPU/CPU allocation', color: 'var(--rh-blue)' },
-                    { name: 'PlacementPolicy', desc: 'Affinity, anti-affinity, topology constraints', color: 'var(--rh-green)' },
-                    { name: 'FleetRoutingPolicy', desc: 'Cross-cluster traffic, load balancing, failover', color: 'var(--rh-teal)' },
-                    { name: 'FleetScalingPolicy', desc: 'HPA triggers, SLO gates, min/max replicas', color: 'var(--rh-orange)' },
-                    { name: 'TenantProfile', desc: 'Per-tenant quotas, priorities, rate limits, chargeback', color: 'var(--rh-purple)' },
-                    { name: 'KVCacheTransferPolicy', desc: 'KV cache migration for session continuity', color: 'var(--rh-red)' },
-                    { name: 'ModelLifecycle', desc: 'SLO-gated rollouts, canary, blue-green, rollback', color: 'var(--rh-yellow)' },
-                  ].map(crd => (
-                    <motion.div key={crd.name} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                      style={{ padding: 14, background: 'var(--surface-1)', border: `1px solid ${crd.color}40`, borderLeft: `4px solid ${crd.color}`, borderRadius: '0 10px 10px 0' }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: crd.color, fontFamily: 'Red Hat Mono, monospace' }}>{crd.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>{crd.desc}</div>
-                    </motion.div>
-                  ))}
-                </div>
-                <FlowDescription text="CRDs are the source of truth. The fleet controller watches for changes and reconciles: creating InferencePools, adjusting placement, updating routing rules, and enforcing tenant isolation. The Rust data plane picks up routing and scaling decisions in real time via gRPC." />
-              </div>
-            )}
-
-            {/* Act 4: The Brain Predicts */}
+            {/* Act 3: The Prediction */}
             {currentAct === 'predict' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  The SLO forecaster runs linear regression on P95 latency. At +80ms/min,
-                  P95 will breach the 5s SLO in 22 minutes. Time to act.
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
+                  The SLO forecaster sees latency climbing. At the current rate, P95 will breach
+                  the 5-second SLO in 22 minutes. 200 users across 5 models &mdash; severity score: critical.
                 </p>
                 <StepCard num={3} title="Run SLO Forecast" status={forecastStatus} onRun={doForecast} buttonLabel="Run forecast">
                   {sloForecast && (
@@ -923,12 +901,13 @@ export default function App() {
               </div>
             )}
 
-            {/* Act 5: The Intent */}
-            {currentAct === 'intent' && (
+            {/* Act 4: The Response */}
+            {currentAct === 'response' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  The predictive brain emits a PreWarmIntent to fleet-llm-d. The policy
-                  evaluator checks confidence, replica limits, and human gates before executing.
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
+                  The system responds before the breach. PreWarmIntent: scale granite-3.3-8b-instruct
+                  to 4 replicas. fleet-llm-d evaluates the intent against policy. Confidence: 87%.
+                  Replicas within limits. Executed.
                 </p>
                 <StepCard num={5} title="Emit PreWarm Intent" status={intentStatus} onRun={doIntent} buttonLabel="Emit intent">
                   {intentResponse && (
@@ -959,76 +938,96 @@ export default function App() {
                     confidence={0.87}
                   />
                 </div>
-                <FlowDescription text="The intent carries a confidence score, justification, and target replica count. The policy evaluator checks: Is confidence above threshold? Are we within the scaling window? Does this model have headroom? If all gates pass, the intent executes and the decision is recorded in the ARE Ledger." />
+              </div>
+            )}
+
+            {/* Act 5: The Burst */}
+            {currentAct === 'burst' && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
+                  The event starts. 200 concurrent users. The pre-warmed fleet absorbs the initial
+                  load. As traffic exceeds capacity, load shedding returns 503 with Retry-After &mdash; no
+                  cascading failures. HPA scales remaining models.
+                </p>
+                <ReplicaTimeline events={[
+                  { time: 'T-30m', replicas: 1, trigger: 'Baseline' },
+                  { time: 'T-22m', replicas: 2, trigger: 'SLO forecast' },
+                  { time: 'T-10m', replicas: 3, trigger: 'Pre-warm intent' },
+                  { time: 'T-0', replicas: 4, trigger: 'Event start — pre-warmed' },
+                  { time: 'T+5m', replicas: 4, trigger: 'Load shedding active' },
+                  { time: 'T+15m', replicas: 5, trigger: 'HPA scale-up' },
+                ]} maxReplicas={5} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 16 }}>
+                  <MetricCard label="Peak Users" value="200" color="var(--rh-red)" detail="Concurrent" />
+                  <MetricCard label="503s Served" value="12" color="var(--rh-orange)" detail="With Retry-After" />
+                  <MetricCard label="Cascading Failures" value="0" color="var(--rh-green)" detail="Load shedding active" />
+                </div>
               </div>
             )}
 
             {/* Act 6: The Proof */}
             {currentAct === 'proof' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  360 tests across 12 suites. 5 CPU models. P95 under 5 seconds. HPA scales
-                  1 to 4 replicas. Zero downtime. Every decision in the ledger.
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
+                  P95 held under SLO. Zero cascading failures. Every scaling decision, every intent,
+                  every load shed event recorded in the ARE Ledger. 360 tests confirm it works.
                 </p>
                 <TestMatrixCompact />
                 <StepCard num={6} title="Verify Ledger Chains" status={ledgerStatus} onRun={doLedger} buttonLabel="Verify chains">
                   {ledgerChains && <LedgerChainView chains={ledgerChains.chains} />}
                 </StepCard>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 16 }}>
-                  <MetricCard label="Tests" value="360" color="var(--rh-green)" />
-                  <MetricCard label="Suites" value="12" color="var(--rh-blue)" />
-                  <MetricCard label="P95" value="< 5s" color="var(--rh-orange)" />
-                  <MetricCard label="Savings" value="53x" color="var(--rh-red)" />
+                  <MetricCard label="P95 Latency" value="< 5s" color="var(--rh-green)" detail="Under SLO" />
+                  <MetricCard label="Tests" value="360" color="var(--rh-blue)" detail="All passing" />
+                  <MetricCard label="Cascading Failures" value="0" color="var(--rh-green)" detail="Load shed worked" />
+                  <MetricCard label="Ledger Entries" value="5 chains" color="var(--rh-purple)" detail="Verified" />
                 </div>
               </div>
             )}
 
-            {/* Act 7: The Return */}
-            {currentAct === 'return' && (
+            {/* Act 7: The Learning */}
+            {currentAct === 'learning' && (
               <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  Every prediction, action, and outcome is recorded in the ARE Ledger. The
-                  chain is cryptographically verifiable. The cycle continues.
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
+                  The event profile captures what actually happened vs what was predicted. Next
+                  time, pre-warming starts earlier, replica targets are higher. The fleet learns
+                  from every burst.
                 </p>
-                <ReplicaTimeline events={[
-                  { time: 'T-30m', replicas: 1, trigger: 'Baseline' },
-                  { time: 'T-22m', replicas: 2, trigger: 'SLO forecast' },
-                  { time: 'T-10m', replicas: 3, trigger: 'Pre-warm intent' },
-                  { time: 'T-0', replicas: 4, trigger: 'Event start' },
-                  { time: 'T+60m', replicas: 2, trigger: 'Load decrease' },
-                  { time: 'T+90m', replicas: 1, trigger: 'Cool-down' },
-                ]} maxReplicas={4} />
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
                   <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-red)30', borderRadius: 10 }}>
-                    <div style={{ fontSize: 10, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>WITHOUT PREDICTION</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>Reactive</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>SLO breach → scramble → scale → 2 min outage</div>
+                    <div style={{ fontSize: 10, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>PREDICTED</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>4 replicas</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>Pre-warm target based on event profile. Started 30 min early.</div>
                   </div>
                   <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-green)30', borderRadius: 10 }}>
-                    <div style={{ fontSize: 10, color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>WITH PREDICTION</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-green)', fontFamily: 'Red Hat Display, sans-serif' }}>Proactive</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>Forecast → pre-warm → zero downtime → ledger proof</div>
+                    <div style={{ fontSize: 10, color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>ACTUAL</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-green)', fontFamily: 'Red Hat Display, sans-serif' }}>5 replicas needed</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>HPA scaled one additional. Next time, pre-warm to 5.</div>
                   </div>
                 </div>
 
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
                   style={{ marginTop: 16, padding: 16, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Event Profile Learning</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Event Profile Update</div>
                   <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-                    After each event, the system compares predicted vs actual load. The event
-                    profile updates: if we pre-warmed too many replicas, next time we warm fewer.
-                    If we under-provisioned, next time we warm earlier. Continuous improvement,
-                    recorded in the ledger.
+                    The event profile records the delta: predicted 4 replicas, needed 5. Pre-warm
+                    window was 30 minutes &mdash; sufficient. Next Summit Connect event will pre-warm to
+                    5 replicas. Continuous improvement, recorded in the ledger.
                   </p>
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-                  style={{ marginTop: 16, padding: 20, background: 'var(--surface-1)', border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center' }}>
-                  <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.8 }}>
-                    Predict. Act. Prove. Learn. The fleet orchestration cycle.
-                  </p>
-                </motion.div>
+                <div style={{ marginTop: 16 }}>
+                  <ReplicaTimeline events={[
+                    { time: 'T-30m', replicas: 1, trigger: 'Baseline' },
+                    { time: 'T-22m', replicas: 2, trigger: 'SLO forecast' },
+                    { time: 'T-10m', replicas: 4, trigger: 'Pre-warm intent' },
+                    { time: 'T-0', replicas: 4, trigger: 'Event start' },
+                    { time: 'T+15m', replicas: 5, trigger: 'HPA scale-up' },
+                    { time: 'T+60m', replicas: 2, trigger: 'Load decrease' },
+                    { time: 'T+90m', replicas: 1, trigger: 'Cool-down' },
+                  ]} maxReplicas={5} />
+                </div>
               </div>
             )}
           </motion.div>
