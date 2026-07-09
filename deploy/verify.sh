@@ -1,14 +1,14 @@
 #!/bin/bash
 # Deployment verification script — RED/GREEN rubric checker
-# Usage: ./deploy/verify.sh
+# Usage: NAMESPACE=fleet-llm-d ./deploy/verify.sh
 
 set +e
 
-NAMESPACE="deepfield-multimodal"
-ROUTE=$(oc get route deepfield-multimodal -n $NAMESPACE -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+NAMESPACE="${NAMESPACE:-fleet-llm-d}"
+ROUTE=$(oc get route deepfield-fleet -n $NAMESPACE -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
 
 if [ -z "$ROUTE" ]; then
-  echo "✗ No route found. Is the app deployed?"
+  echo "✗ No route found for deepfield-fleet in $NAMESPACE. Is the app deployed?"
   exit 1
 fi
 
@@ -30,34 +30,37 @@ check() {
 
 echo ""
 echo "═══════════════════════════════════════════"
-echo "  DeepField Multimodal — Deployment Rubric"
+echo "  fleet-llm-d — Deployment Rubric"
 echo "  Route: $URL"
+echo "  Namespace: $NAMESPACE"
 echo "═══════════════════════════════════════════"
 
 echo ""
 echo "INFRASTRUCTURE"
-check "Pod running" "oc get pods -n $NAMESPACE -l app=deepfield-multimodal -o jsonpath='{.items[0].status.phase}' | grep -q Running"
+check "deepfield-fleet pod running" "oc get pods -n $NAMESPACE -l app=deepfield-fleet -o jsonpath='{.items[0].status.phase}' | grep -q Running"
+check "fleet-controller pod running" "oc get pods -n $NAMESPACE -l app=fleet-controller -o jsonpath='{.items[0].status.phase}' | grep -q Running"
 check "Health check" "curl -sfk $URL/health | grep -q ok"
 check "Frontend loads" "curl -sfk $URL/ | grep -q root"
-check "Readiness passing" "oc get pods -n $NAMESPACE -l app=deepfield-multimodal -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}' | grep -q True"
+check "Readiness passing" "oc get pods -n $NAMESPACE -l app=deepfield-fleet -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}' | grep -q True"
 
 echo ""
-echo "API ENDPOINTS"
-check "Profiles endpoint" "curl -sfk $URL/api/v1/bootstrap/profiles | grep -q openshift"
-check "Infrastructure endpoint" "curl -sfk $URL/api/v1/demo/infrastructure | grep -q agents"
-check "Models endpoint" "curl -sfk $URL/api/v1/bootstrap/models | grep -q qwen"
-check "Demo state endpoint" "curl -sfk $URL/api/v1/demo/state"
-check "Benchmark endpoint" "curl -sfk $URL/api/v1/benchmark/latest | grep -q status"
+echo "FLEET API"
+check "Fleet health" "curl -sfk $URL/api/v1/fleet/health | grep -q status"
+check "Fleet cost" "curl -sfk $URL/api/v1/fleet/cost | grep -q savings"
+check "Fleet event profiles" "curl -sfk $URL/api/v1/fleet/event-profiles | grep -q profiles"
+check "Fleet forecast" "curl -sfk -X POST $URL/api/v1/fleet/forecast | grep -q forecast"
+check "Demo state" "curl -sfk $URL/api/v1/demo/state"
+check "Infrastructure" "curl -sfk $URL/api/v1/demo/infrastructure | grep -q agents"
 
 echo ""
-echo "BOOTSTRAP LAB"
-check "Profile apply" "curl -sfk -X POST $URL/api/v1/bootstrap/profiles/openshift-monitoring/apply | grep -q profile_applied"
-check "Rubric endpoint" "curl -sfk $URL/api/v1/bootstrap/rubric | grep -q agents"
+echo "MOCK INFERENCE"
+check "Mock inference pod running" "oc get pods -n $NAMESPACE -l app=mock-inference -o jsonpath='{.items[0].status.phase}' | grep -q Running"
+check "Mock models endpoint" "curl -sfk http://mock-inference.$NAMESPACE.svc/v1/models | grep -q granite"
 
 echo ""
 echo "SECURITY"
-check "No hardcoded secrets" "! oc get deployment deepfield-multimodal -n $NAMESPACE -o yaml | grep -q 'sk-'"
-check "Secret ref exists" "oc get secret deepfield-secrets -n $NAMESPACE -o name | grep -q secret"
+check "No hardcoded secrets" "! oc get deployment deepfield-fleet -n $NAMESPACE -o yaml | grep -q 'sk-'"
+check "Pre-commit hooks exist" "test -f .pre-commit-config.yaml"
 
 echo ""
 echo "═══════════════════════════════════════════"

@@ -1,11 +1,11 @@
 .PHONY: install uninstall
 
-NAMESPACE ?= deepfield-multimodal
+NAMESPACE ?= fleet-llm-d
 LITELLM_API_BASE ?=
 LITELLM_API_KEY ?=
 
 install:
-	@echo "Deploying DeepField Multimodal to $(NAMESPACE)"
+	@echo "Deploying deepfield-fleet to $(NAMESPACE)"
 	oc create secret generic deepfield-oauth-secret \
 		--from-literal=client-secret=$$(openssl rand -hex 32) \
 		--from-literal=session_secret=$$(openssl rand -hex 32) \
@@ -21,7 +21,7 @@ install:
 		deployment.yaml | oc apply -f -
 
 uninstall:
-	@echo "Removing DeepField Multimodal from $(NAMESPACE)"
+	@echo "Removing deepfield-fleet from $(NAMESPACE)"
 	sed 's/namespace: deepfield-multimodal/namespace: $(NAMESPACE)/g; \
 		s/name: deepfield-reader-binding/name: deepfield-reader-$(NAMESPACE)/g' \
 		deployment.yaml | oc delete --ignore-not-found -f -
