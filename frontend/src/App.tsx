@@ -3,15 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { StepCard } from './components/StepCard';
 import { MetricCard } from './components/MetricCard';
-import { AgentCascadeFlow } from './components/AgentCascadeFlow';
-import { PipelineFunnel } from './components/PipelineFunnel';
-import { LiveAgentFeed } from './components/LiveAgentFeed';
-import type { AgentEvent } from './components/LiveAgentFeed';
 import { StepProgress } from './components/StepProgress';
 import { DetailModal, KeyValueTable, ComparisonTable } from './components/DetailModal';
 import { FlowDescription } from './components/FlowDescription';
 import { InfraPanel } from './components/InfraPanel';
-import { BootstrapLab } from './components/BootstrapLab';
+import { FleetPipelineFlow } from './components/FleetPipelineFlow';
 import { CostComparison } from './components/CostComparison';
 import { SLOGauge } from './components/SLOGauge';
 import { IntentFlow } from './components/IntentFlow';
@@ -71,28 +67,7 @@ export default function App() {
   const detailContent = detail.content;
   const detailType = detail.type;
 
-  /* Agent event click handlers — used in auto mode */
-  const onAgentEventClick = (event: AgentEvent) => {
-    openDetail(`Agent: ${event.agent_name}`, {
-      tier: event.tier, taxonomy: event.taxonomy, class_name: event.class_name,
-      severity: event.severity, confidence: event.confidence,
-      rationale: event.rationale || '(no rationale recorded)',
-      decision_type: event.tier === 'nano' ? 'Deterministic (no LLM)' : event.tier === 'micro' ? 'Rule-backed (CPU)' : 'Template-based (CPU)',
-      runtime: 'CPU — no GPU, no LLM API',
-    }, 'agent');
-  };
-
-  const onCascadeAgentClick = useCallback((agentName: string, tier: string) => {
-    const record = classifications.find(r => r.agent_name === agentName && r.agent_tier === tier);
-    if (record) {
-      openDetail(`Agent: ${agentName}`, {
-        tier, taxonomy: record.taxonomy, class_name: record.class_name,
-        severity: record.severity, confidence: record.confidence, rationale: record.rationale,
-        decision_type: tier === 'nano' ? 'Deterministic' : tier === 'micro' ? 'Rule-backed' : 'Template',
-        runtime: 'CPU',
-      }, 'agent');
-    }
-  }, [classifications, openDetail]);
+  /* eslint-disable @typescript-eslint/no-unused-vars */
 
   /* SSE connection for auto mode */
   useEffect(() => {
@@ -394,23 +369,12 @@ export default function App() {
     );
   }
 
-  /* ───────────────────────── LAB MODE ───────────────────────── */
-
-  if (mode === 'lab') {
-    return <BootstrapLab onExit={() => setMode('auto')} />;
-  }
-
   /* ───────────────────────── AUTO MODE ───────────────────────── */
 
   if (mode === 'auto') {
     const isRunning = demoState.status === 'running' || demoState.status === 'starting';
     const isPaused = demoState.status === 'paused';
     const isComplete = demoState.status === 'completed';
-    const allRecords = [
-      ...(demoState.nano_records || []),
-      ...(demoState.micro_records || []),
-      ...(demoState.macro_records || []),
-    ];
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -503,16 +467,46 @@ export default function App() {
             </div>
           ) : null}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {demoState.funnel && <PipelineFunnel funnel={demoState.funnel} />}
-            {demoState.agent_events && <LiveAgentFeed events={demoState.agent_events} onEventClick={onAgentEventClick} />}
-          </div>
+          {/* Fleet Pipeline Flow — live animated prediction→action→outcome→learn */}
+          <FleetPipelineFlow
+            stepId={demoState.step_id}
+            sloGauge={demoState.slo_gauge}
+            blastRadius={demoState.blast_radius}
+            intentFlow={demoState.intent_flow}
+            ledgerChains={demoState.ledger_chains}
+            replicaEvents={demoState.replica_events}
+            funnel={demoState.funnel}
+            agentEvents={demoState.agent_events}
+            costData={demoState.cost_data}
+          />
 
-          {allRecords.length > 0 && (
-            <AgentCascadeFlow records={allRecords}
-              activeStage={demoState.step_id === 'ordeal_nano' ? 'nano' : demoState.step_id === 'ordeal_micro' ? 'micro' : demoState.step_id === 'ordeal_macro' ? 'macro' : 'all'}
-              onAgentClick={onCascadeAgentClick} />
-          )}
+          {/* Contextual detail panels — fade in at relevant steps */}
+          <AnimatePresence>
+            {demoState.cost_data && (
+              <motion.div key="cost" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <CostComparison animate />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {demoState.slo_gauge && (
+              <motion.div key="slo" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <SLOGauge
+                  currentMs={(demoState.slo_gauge as Record<string, number>).current_p95 || 800}
+                  forecastMs={(demoState.slo_gauge as Record<string, number>).forecast_p95 || 800}
+                  targetMs={(demoState.slo_gauge as Record<string, number>).slo_target || 5000}
+                  breachInMinutes={(demoState.slo_gauge as Record<string, number>).minutes_to_breach}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {demoState.replica_events && demoState.replica_events.length > 0 && (
+              <motion.div key="replicas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <ReplicaTimeline events={demoState.replica_events} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* The Claim — fleet metrics + use cases */}
           {isComplete && (
@@ -622,10 +616,10 @@ export default function App() {
                   <p style={{ fontSize: 12, color: 'var(--text-disabled)', marginTop: 12, fontFamily: 'Red Hat Mono, monospace' }}>
                     $0.60/hr CPU · 53x cheaper · 360 tests · ARE Ledger compliance
                   </p>
-                  <button onClick={() => setMode('lab')}
-                    style={{ marginTop: 16, background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '10px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                    Deploy to your cluster →
-                  </button>
+                  <a href="https://github.com/jkershawrh/fleet-llm-d" target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'inline-block', marginTop: 16, background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '10px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
+                    View on GitHub →
+                  </a>
                 </div>
               </motion.div>
             </motion.div>

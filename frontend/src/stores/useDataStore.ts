@@ -48,6 +48,7 @@ interface DemoState {
   waiting_for_next?: boolean;
   // Fleet-specific SSE state
   fleet_metrics?: Record<string, unknown>;
+  blast_radius?: Record<string, unknown>;
   intent_flow?: Record<string, unknown>;
   slo_gauge?: Record<string, unknown>;
   replica_events?: Array<{ time: string; replicas: number; trigger: string }>;
