@@ -15,3 +15,8 @@ benchmark-results/
 
 # Internal documentation (not for public repos)
 docs/internal/
+
+# Cluster-specific deployment artifacts
+*.kubeconfig
+deploy/cluster-*/
+deploy/snapshots/
