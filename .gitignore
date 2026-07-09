@@ -20,3 +20,6 @@ docs/internal/
 *.kubeconfig
 deploy/cluster-*/
 deploy/snapshots/
+
+# Cluster credentials
+secrets/

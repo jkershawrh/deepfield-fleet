@@ -40,7 +40,7 @@ def _fleet_token() -> str:
 
 
 def _is_fleet_available() -> bool:
-    return bool(_fleet_url())
+    return bool(_fleet_url()) and bool(_fleet_token())
 
 
 def _fleet_headers() -> dict:
