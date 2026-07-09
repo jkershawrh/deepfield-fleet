@@ -92,7 +92,7 @@ The app is a presentation-first demo: 7 click-through slides → 6-act manual wa
 - **Classification records**: every classification from any tier returns `ClassificationRecord` with `agent_tier`, `rationale`, and `evidence_ids`
 - **Taxonomy validation**: `is_valid_classification(taxonomy, class_name)` in `app/classification/taxonomy.py` — loads from YAML config, falls back to hardcoded
 - **"unclassified" not "unknown"**: microagents that can't match return `class_name="unclassified"` with low confidence
-- **Container image**: `quay.io/deepfield-fleet/deepfield-multimodal` — must build `--platform linux/amd64` for OpenShift
+- **Container image**: `quay.io/deepfield-fleet/deepfield-fleet` — must build `--platform linux/amd64` for OpenShift
 - **OAuth proxy**: deployment includes `ose-oauth-proxy-rhel9` sidecar. Route targets port 8080 (proxy), not 8000 (app). `/health` is bypassed via `-skip-auth-regex`
 
 ## Environment Variables

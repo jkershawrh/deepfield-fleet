@@ -18,16 +18,16 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    logger.info("DeepField Multimodal started")
+    logger.info("fleet-llm-d presentation dashboard started")
     yield
     await close_db()
-    logger.info("DeepField Multimodal stopped")
+    logger.info("fleet-llm-d presentation dashboard stopped")
 
 
 app = FastAPI(
-    title="DeepField Multimodal",
-    description="Agentic Signal Classification Engine — deterministic nanoagents, rule-backed microagents, LLM macroagents",
-    version="0.1.0",
+    title="fleet-llm-d — Fleet Inference Orchestration",
+    description="Predictive intelligence layer for fleet-llm-d inference orchestration — fleet nanoagents, SLO forecasting, intent-driven scaling, ARE Ledger compliance",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -58,10 +58,13 @@ app.include_router(sse_router)
 app.include_router(bootstrap_router)
 app.include_router(benchmark_router)
 
+from app.api.fleet_demo import router as fleet_demo_router
+app.include_router(fleet_demo_router)
+
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "deepfield-multimodal"}
+    return {"status": "ok", "service": "fleet-llm-d-dashboard"}
 
 
 _STATIC_DIR = Path(__file__).resolve().parents[1] / "frontend" / "dist"

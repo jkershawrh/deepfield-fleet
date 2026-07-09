@@ -16,11 +16,20 @@ interface DemoStore {
   cascadeStatus: StepStatus;
   loopStatus: StepStatus;
 
+  // Fleet-specific step statuses
+  costStatus: StepStatus;
+  eventProfileStatus: StepStatus;
+  fleetNanoStatus: StepStatus;
+  forecastStatus: StepStatus;
+  blastRadiusStatus: StepStatus;
+  intentStatus: StepStatus;
+  ledgerStatus: StepStatus;
+
   detail: {
     open: boolean;
     title: string;
     content: Record<string, unknown> | null;
-    type: 'agent' | 'evidence' | 'baseline' | 'action' | 'learning';
+    type: 'agent' | 'evidence' | 'baseline' | 'action' | 'learning' | 'intent' | 'ledger';
   };
 
   setMode: (mode: Mode) => void;
@@ -42,6 +51,13 @@ const initialState = {
   macroStatus: 'idle' as const,
   cascadeStatus: 'idle' as const,
   loopStatus: 'idle' as const,
+  costStatus: 'idle' as const,
+  eventProfileStatus: 'idle' as const,
+  fleetNanoStatus: 'idle' as const,
+  forecastStatus: 'idle' as const,
+  blastRadiusStatus: 'idle' as const,
+  intentStatus: 'idle' as const,
+  ledgerStatus: 'idle' as const,
   detail: { open: false, title: '', content: null, type: 'agent' as const },
 };
 
@@ -57,6 +73,13 @@ export const useDemoStore = create<DemoStore>((set) => ({
   macroStatus: 'idle',
   cascadeStatus: 'idle',
   loopStatus: 'idle',
+  costStatus: 'idle',
+  eventProfileStatus: 'idle',
+  fleetNanoStatus: 'idle',
+  forecastStatus: 'idle',
+  blastRadiusStatus: 'idle',
+  intentStatus: 'idle',
+  ledgerStatus: 'idle',
 
   detail: { open: false, title: '', content: null, type: 'agent' },
 

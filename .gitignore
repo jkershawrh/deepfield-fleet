@@ -11,3 +11,7 @@ venv/
 *.sqlite
 .DS_Store
 benchmark-results/
+.claude/settings.local.json
+
+# Internal documentation (not for public repos)
+docs/internal/

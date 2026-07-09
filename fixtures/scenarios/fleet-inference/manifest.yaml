@@ -1,0 +1,55 @@
+name: fleet-inference
+description: "Fleet inference orchestration scenario — CPU models on Intel Xeon 6"
+domain: inference-orchestration
+models:
+  - name: granite-350m
+    runtime: ovms-cpp
+    quantization: INT8
+    replicas: 1
+    max_replicas: 4
+  - name: granite-2b-int8
+    runtime: ovms-cpp
+    quantization: INT8
+    replicas: 1
+    max_replicas: 4
+  - name: granite-4.1-3b
+    runtime: ovms-cpp
+    quantization: INT8
+    replicas: 1
+    max_replicas: 4
+  - name: granite-3.2-sovereign
+    runtime: ovms-cpp
+    quantization: INT8
+    replicas: 1
+    max_replicas: 4
+  - name: granite-3.2-8b
+    runtime: ovms-cpp
+    quantization: INT8
+    replicas: 1
+    max_replicas: 8
+clusters:
+  - name: dev-cluster-1
+    region: us-east
+    hardware: "Intel Xeon 6767P (Granite Rapids)"
+    cores: 256
+    amx: true
+    openshift: "4.19"
+  - name: prod-cluster-1
+    region: us-east
+    hardware: "Intel Xeon"
+    cores: 128
+    amx: true
+    openshift: "4.17"
+slo:
+  p95_latency_ms: 5000
+  p99_latency_ms: 10000
+  error_rate_pct: 0.1
+cost:
+  gpu_h100_per_hour: 32.00
+  cpu_xeon_per_hour: 0.60
+  savings_multiplier: 53
+event:
+  name: "Red Hat Summit Connect"
+  expected_users: 200
+  pre_warm_minutes: 30
+  burst_rps: 6.7

@@ -95,7 +95,7 @@ npm install --legacy-peer-deps
 npm run dev                    # http://localhost:3000 (proxies to :8000)
 
 # Container
-podman run -p 8000:8000 quay.io/deepfield-fleet/deepfield-multimodal:latest
+podman run -p 8000:8000 quay.io/deepfield-fleet/deepfield-fleet:latest
 
 # CLI demo (no server needed)
 python3 -m app.demo
@@ -180,7 +180,7 @@ oc apply -f deploy/deployment.yaml
 bash deploy/verify.sh
 ```
 
-Container: `quay.io/deepfield-fleet/deepfield-multimodal:latest`
+Container: `quay.io/deepfield-fleet/deepfield-fleet:latest`
 
 Requires: `cluster-reader` + `cluster-monitoring-view` ClusterRoles on ServiceAccount.
 

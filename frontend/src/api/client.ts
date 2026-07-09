@@ -91,9 +91,78 @@ export interface LoopResult {
   learning_proposals: LearningProposal[];
 }
 
+// Fleet-specific types
+export interface FleetHealthResponse {
+  status: string;
+  fleet_url: string;
+  mode: 'live' | 'simulated';
+  clusters: Array<{ name: string; region: string; status: string }>;
+  models: Array<{ name: string; runtime: string; replicas: number }>;
+}
+
+export interface SLOForecastResponse {
+  current_p95_ms: number;
+  forecast_p95_ms: number;
+  slo_target_ms: number;
+  breach_in_minutes: number | null;
+  confidence: number;
+  status: 'safe' | 'approaching' | 'breach_predicted';
+  data_points: number;
+}
+
+export interface BlastRadiusResponse {
+  affected_models: number;
+  estimated_users: number;
+  severity_score: number;
+  requires_human_gate: boolean;
+  severity: string;
+  rationale: string;
+}
+
+export interface IntentEmitRequest {
+  intent_type: 'pre_warm' | 'scale' | 'shed_load' | 'alert';
+  model?: string;
+  target_replicas?: number;
+  confidence: number;
+  justification: string;
+}
+
+export interface IntentResponse {
+  intent_id: string;
+  status: 'executed' | 'refused' | 'deferred';
+  reason: string;
+  ledger_entry_id?: string;
+}
+
+export interface CostComparisonResponse {
+  gpu: { type: string; per_hour: number; monthly: number };
+  cpu: { type: string; per_hour: number; monthly: number };
+  savings_multiplier: number;
+  annual_savings: number;
+}
+
+export interface LedgerChainResponse {
+  chains: Array<{
+    type: string;
+    valid: boolean;
+    entries: number;
+    latest_hash: string;
+  }>;
+}
+
+export interface EventProfileResponse {
+  profiles: Array<{
+    name: string;
+    expected_users: number;
+    pre_warm_minutes: number;
+    models: string[];
+  }>;
+}
+
 export const api = {
   health: () => request<{ status: string }>('GET', '/health'),
 
+  // Original demo endpoints (still work for factory scenario)
   ingestFixture: () =>
     request<EvidenceArtifact[]>('POST', '/api/v1/demo/ingest'),
 
@@ -117,4 +186,26 @@ export const api = {
 
   classifyMacro: () =>
     request<{ tier: string; records: ClassificationRecord[]; count: number; elapsed_ms: number; agents: string[]; decision_type: string; runtime: string }>('POST', '/api/v1/demo/classify/macro'),
+
+  // Fleet-llm-d specific endpoints
+  fleetHealth: () =>
+    request<FleetHealthResponse>('GET', '/api/v1/fleet/health'),
+
+  fleetForecast: () =>
+    request<SLOForecastResponse>('POST', '/api/v1/fleet/forecast'),
+
+  fleetBlastRadius: () =>
+    request<BlastRadiusResponse>('POST', '/api/v1/fleet/blast-radius'),
+
+  fleetEmitIntent: (data: IntentEmitRequest) =>
+    request<IntentResponse>('POST', '/api/v1/fleet/emit-intent', data),
+
+  fleetCost: () =>
+    request<CostComparisonResponse>('GET', '/api/v1/fleet/cost'),
+
+  fleetVerifyChain: () =>
+    request<LedgerChainResponse>('POST', '/api/v1/fleet/verify-chain'),
+
+  fleetEventProfiles: () =>
+    request<EventProfileResponse>('GET', '/api/v1/fleet/event-profiles'),
 };

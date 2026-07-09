@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { StepCard } from './components/StepCard';
@@ -12,6 +12,13 @@ import { DetailModal, KeyValueTable, ComparisonTable } from './components/Detail
 import { FlowDescription } from './components/FlowDescription';
 import { InfraPanel } from './components/InfraPanel';
 import { BootstrapLab } from './components/BootstrapLab';
+import { CostComparison } from './components/CostComparison';
+import { SLOGauge } from './components/SLOGauge';
+import { IntentFlow } from './components/IntentFlow';
+import { FleetArchitectureFlow } from './components/FleetArchitectureFlow';
+import { ReplicaTimeline } from './components/ReplicaTimeline';
+import { LedgerChainView } from './components/LedgerChainView';
+import { TestMatrixCompact } from './components/TestMatrixCompact';
 import { api } from './api/client';
 import type { ApiCall } from './api/client';
 import { useDemoStore } from './stores/useDemoStore';
@@ -19,19 +26,18 @@ import { useDataStore } from './stores/useDataStore';
 import type { DemoState } from './stores/useDataStore';
 
 /*
- * Joseph Campbell's Hero's Journey — DeepField Multimodal
+ * fleet-llm-d — Fleet-Level Inference Orchestration
  *
- * Two modes:
- * - Manual: click through acts, run steps yourself
- * - Auto: click "Run the story" and watch it unfold via SSE streaming
+ * Hero's Journey through the platform:
+ * - Slides: 7 slides introducing the problem and solution
+ * - Manual: 8 acts walking through fleet operations step by step
+ * - Auto: SSE-driven walkthrough via backend _run_demo()
  */
 
-const MODALITY_COLORS: Record<string, string> = {
-  metric: 'var(--rh-blue)', log: 'var(--rh-green)', document: 'var(--rh-orange)',
-  image: 'var(--rh-purple)', audio: 'var(--rh-red)', event: 'var(--rh-yellow)',
-};
-
 const STEP_TO_ACT: Record<string, number> = {
+  cost: 0, event_profile: 1, fleet_deploy: 2, platform: 3,
+  forecast: 4, blast_radius: 4, intent: 5, proof: 6, ledger: 6,
+  fleet_return: 7,
   ordinary: 0, call: 1, threshold: 2,
   ordeal_nano: 3, ordeal_micro: 4, ordeal_macro: 5,
   reward: 6, return: 7,
@@ -39,34 +45,37 @@ const STEP_TO_ACT: Record<string, number> = {
 };
 
 const ACT_LABELS = [
-  'Ordinary', 'Call', 'Threshold', 'Nano', 'Micro', 'Macro',
-  'Reward', 'Return', '10x', '50x', 'Stress', 'Recovery', 'Claim',
+  'Cost', 'Event', 'Deploy', 'CRDs', 'Predict', 'Intent',
+  'Proof', 'Return', '10x', '50x', 'Stress', 'Recovery', 'Claim',
 ];
 
 export default function App() {
   const { mode, setMode, slide, setSlide, actIndex, setActIndex,
-    ingestStatus, baselineStatus, nanoStatus, microStatus, macroStatus, loopStatus,
+    costStatus, eventProfileStatus, fleetNanoStatus, forecastStatus,
+    blastRadiusStatus, intentStatus, ledgerStatus,
     setStepStatus, detail, openDetail, closeDetail } = useDemoStore();
 
-  const { demoState, setDemoState, evidence, setEvidence, baseline, setBaseline,
-    classifications, setClassifications, loopResult, setLoopResult,
-    nanoResult, setNanoResult, microResult, setMicroResult, macroResult, setMacroResult,
+  const { demoState, setDemoState, classifications,
+    fleetHealth, setFleetHealth, sloForecast, setSLOForecast,
+    blastRadius, setBlastRadius, intentResponse, setIntentResponse,
+    setCostComparison, ledgerChains, setLedgerChains,
     addApiCall } = useDataStore();
 
   const eventSourceRef = useRef<EventSource | null>(null);
+  const [eventProfiles, setEventProfiles] = useState<
+    Array<{ name: string; expected_users: number; pre_warm_minutes: number; models: string[] }>
+  >([]);
 
   const detailOpen = detail.open;
   const detailTitle = detail.title;
   const detailContent = detail.content;
   const detailType = detail.type;
 
+  /* Agent event click handlers — used in auto mode */
   const onAgentEventClick = (event: AgentEvent) => {
     openDetail(`Agent: ${event.agent_name}`, {
-      tier: event.tier,
-      taxonomy: event.taxonomy,
-      class_name: event.class_name,
-      severity: event.severity,
-      confidence: event.confidence,
+      tier: event.tier, taxonomy: event.taxonomy, class_name: event.class_name,
+      severity: event.severity, confidence: event.confidence,
       rationale: event.rationale || '(no rationale recorded)',
       decision_type: event.tier === 'nano' ? 'Deterministic (no LLM)' : event.tier === 'micro' ? 'Rule-backed (CPU)' : 'Template-based (CPU)',
       runtime: 'CPU — no GPU, no LLM API',
@@ -79,13 +88,13 @@ export default function App() {
       openDetail(`Agent: ${agentName}`, {
         tier, taxonomy: record.taxonomy, class_name: record.class_name,
         severity: record.severity, confidence: record.confidence, rationale: record.rationale,
-        decision_type: tier === 'nano' ? 'Deterministic (no LLM)' : tier === 'micro' ? 'Rule-backed (CPU)' : 'Template-based (CPU)',
+        decision_type: tier === 'nano' ? 'Deterministic' : tier === 'micro' ? 'Rule-backed' : 'Template',
         runtime: 'CPU',
       }, 'agent');
     }
   }, [classifications, openDetail]);
 
-  // SSE connection for auto mode
+  /* SSE connection for auto mode */
   useEffect(() => {
     if (mode !== 'auto') { eventSourceRef.current?.close(); eventSourceRef.current = null; return; }
     const es = new EventSource('/api/v1/stream');
@@ -101,77 +110,82 @@ export default function App() {
     return () => { es.close(); eventSourceRef.current = null; };
   }, [mode, setDemoState, setActIndex]);
 
+  /* Auto mode controls */
   const startAuto = useCallback(async () => {
     await fetch('/api/v1/demo/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     setMode('auto');
   }, [setMode]);
-
-  const pauseAuto = useCallback(async () => {
-    await fetch('/api/v1/demo/pause', { method: 'POST' });
-  }, []);
-
-  const resumeAuto = useCallback(async () => {
-    await fetch('/api/v1/demo/resume', { method: 'POST' });
-  }, []);
-
+  const pauseAuto = useCallback(async () => { await fetch('/api/v1/demo/pause', { method: 'POST' }); }, []);
+  const resumeAuto = useCallback(async () => { await fetch('/api/v1/demo/resume', { method: 'POST' }); }, []);
   const stopAuto = useCallback(async () => {
     await fetch('/api/v1/demo/stop', { method: 'POST' });
     setDemoState({ status: 'stopped' });
   }, [setDemoState]);
 
-  // Manual callbacks
-  const doIngest = useCallback(async () => {
-    setStepStatus('ingest', 'running');
-    const call = await api.ingestFixture();
+  /* Manual fleet callbacks */
+  const doCost = useCallback(async () => {
+    setStepStatus('cost', 'running');
+    const call = await api.fleetCost();
     addApiCall(call as ApiCall<unknown>);
-    setEvidence(call.response.data);
-    setStepStatus('ingest', 'done');
-  }, [setStepStatus, addApiCall, setEvidence]);
-  const doBaseline = useCallback(async () => {
-    setStepStatus('baseline', 'running');
-    const call = await api.buildBaseline();
+    setCostComparison(call.response.data);
+    setStepStatus('cost', 'done');
+  }, [setStepStatus, addApiCall, setCostComparison]);
+
+  const doEventProfile = useCallback(async () => {
+    setStepStatus('eventProfile', 'running');
+    const call = await api.fleetEventProfiles();
     addApiCall(call as ApiCall<unknown>);
-    setBaseline(call.response.data);
-    setStepStatus('baseline', 'done');
-  }, [setStepStatus, addApiCall, setBaseline]);
-  const doNano = useCallback(async () => {
-    setStepStatus('nano', 'running');
-    const call = await api.classifyNano();
+    setEventProfiles(call.response.data.profiles);
+    setStepStatus('eventProfile', 'done');
+  }, [setStepStatus, addApiCall]);
+
+  const doFleetHealth = useCallback(async () => {
+    setStepStatus('fleetNano', 'running');
+    const call = await api.fleetHealth();
     addApiCall(call as ApiCall<unknown>);
-    setNanoResult(call.response.data);
-    setClassifications(prev => [...prev, ...call.response.data.records]);
-    setStepStatus('nano', 'done');
-  }, [setStepStatus, addApiCall, setNanoResult, setClassifications]);
-  const doMicro = useCallback(async () => {
-    setStepStatus('micro', 'running');
-    const call = await api.classifyMicro();
+    setFleetHealth(call.response.data);
+    setStepStatus('fleetNano', 'done');
+  }, [setStepStatus, addApiCall, setFleetHealth]);
+
+  const doForecast = useCallback(async () => {
+    setStepStatus('forecast', 'running');
+    const call = await api.fleetForecast();
     addApiCall(call as ApiCall<unknown>);
-    setMicroResult(call.response.data);
-    setClassifications(prev => [...prev, ...call.response.data.records]);
-    setStepStatus('micro', 'done');
-  }, [setStepStatus, addApiCall, setMicroResult, setClassifications]);
-  const doMacro = useCallback(async () => {
-    setStepStatus('macro', 'running');
-    const call = await api.classifyMacro();
+    setSLOForecast(call.response.data);
+    setStepStatus('forecast', 'done');
+  }, [setStepStatus, addApiCall, setSLOForecast]);
+
+  const doBlastRadius = useCallback(async () => {
+    setStepStatus('blastRadius', 'running');
+    const call = await api.fleetBlastRadius();
     addApiCall(call as ApiCall<unknown>);
-    setMacroResult(call.response.data);
-    setClassifications(prev => [...prev, ...call.response.data.records]);
-    setStepStatus('macro', 'done');
-  }, [setStepStatus, addApiCall, setMacroResult, setClassifications]);
-  const doCascade = useCallback(async () => {
-    setStepStatus('cascade', 'running');
-    const call = await api.runCascade();
+    setBlastRadius(call.response.data);
+    setStepStatus('blastRadius', 'done');
+  }, [setStepStatus, addApiCall, setBlastRadius]);
+
+  const doIntent = useCallback(async () => {
+    setStepStatus('intent', 'running');
+    const call = await api.fleetEmitIntent({
+      intent_type: 'pre_warm',
+      model: 'granite-3.3-8b-instruct',
+      target_replicas: 4,
+      confidence: 0.87,
+      justification: 'SLO breach predicted in 22 minutes based on P95 latency trend at +80ms/min.',
+    });
     addApiCall(call as ApiCall<unknown>);
-    setClassifications(call.response.data);
-    setStepStatus('cascade', 'done');
-  }, [setStepStatus, addApiCall, setClassifications]);
-  const doLoop = useCallback(async () => {
-    setStepStatus('loop', 'running');
-    const call = await api.runLoop();
+    setIntentResponse(call.response.data);
+    setStepStatus('intent', 'done');
+  }, [setStepStatus, addApiCall, setIntentResponse]);
+
+  const doLedger = useCallback(async () => {
+    setStepStatus('ledger', 'running');
+    const call = await api.fleetVerifyChain();
     addApiCall(call as ApiCall<unknown>);
-    setLoopResult(call.response.data);
-    setStepStatus('loop', 'done');
-  }, [setStepStatus, addApiCall, setLoopResult]);
+    setLedgerChains(call.response.data);
+    setStepStatus('ledger', 'done');
+  }, [setStepStatus, addApiCall, setLedgerChains]);
+
+  /* ───────────────────────── SLIDES ───────────────────────── */
 
   const SLIDES = [
     // 0: Title
@@ -185,103 +199,42 @@ export default function App() {
         </motion.div>
         <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }}
           style={{ fontSize: 56, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.1, margin: '24px 0 0', maxWidth: 700 }}>
-          DeepField<br /><span style={{ color: 'var(--rh-red)' }}>Multimodal</span>
+          fleet-llm-d
         </motion.h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
           style={{ fontSize: 20, color: 'var(--text-dim)', marginTop: 24 }}>
-          Agentic Signal Classification Engine
+          Fleet-Level Inference Orchestration
         </motion.p>
       </div>
     ),
-    // 1: The problem
+    // 1: The Problem
     () => (
       <div style={{ textAlign: 'center', maxWidth: 700 }}>
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 36, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3 }}>
-          Your operations generate
-          <br />thousands of signals per hour.
-        </motion.p>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-          style={{ fontSize: 20, color: 'var(--text-dim)', marginTop: 24, lineHeight: 1.6 }}>
-          Metrics. Logs. Events. Images. Audio.
-          <br />Streaming right now. <strong style={{ color: 'var(--rh-orange)' }}>Unclassified.</strong>
+          style={{ fontSize: 32, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.4 }}>
+          GPU inference: <span style={{ color: 'var(--rh-red)' }}>$32/hr.</span>
+          <br />Scarce. Single-cluster. Static scaling.
+          <br />No governance. No audit trail.
         </motion.p>
       </div>
     ),
-    // 2: The thesis
-    () => (
-      <div style={{ textAlign: 'center', maxWidth: 700 }}>
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 32, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-          "The first job of enterprise AI
-          <br />is not generation.
-        </motion.p>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          style={{ fontSize: 32, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginTop: 16 }}>
-          It is classifying reality well enough
-          <br />to know what should happen next."
-        </motion.p>
-      </div>
-    ),
-    // 3: The proof — measured compression
-    () => (
-      <div style={{ textAlign: 'center' }}>
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
-          <div style={{ fontSize: 120, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1 }}>
-            98%
-          </div>
-        </motion.div>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-          style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 16, lineHeight: 1.5 }}>
-          of signals classified on CPU
-          <br />before anything expensive runs.
-        </motion.p>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          style={{ fontSize: 16, color: 'var(--text-disabled)', marginTop: 24 }}>
-          Deterministic nanoagents compress the noise. Only what matters reaches inference.
-        </motion.p>
-      </div>
-    ),
-    // 4: How — the three tiers
-    () => (
-      <div style={{ maxWidth: 700 }}>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ fontSize: 14, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, textAlign: 'center', marginBottom: 32 }}>
-          THREE TIERS — ONE PIPELINE
-        </motion.p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {[
-            { tier: 'Nanoagents', count: 7, desc: 'Deterministic rules. Z-score checks, pattern matching, gating. Always CPU. Zero inference cost.', color: 'var(--rh-blue)', delay: 0.2 },
-            { tier: 'Microagents', count: 5, desc: 'Rule-backed classifiers. Image/audio are fixture-backed by default, with optional ONNX CPU adapters. LLM when configured.', color: 'var(--rh-green)', delay: 0.4 },
-            { tier: 'Macroagents', count: 5, desc: 'Incident reasoning. Timeline building, root cause hypothesis, action planning. Template-based or LLM-backed.', color: 'var(--rh-purple)', delay: 0.6 },
-          ].map(t => (
-            <motion.div key={t.tier} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: t.delay }}
-              style={{ display: 'flex', gap: 16, padding: 20, background: 'var(--surface-1)', border: `1px solid ${t.color}40`, borderLeft: `4px solid ${t.color}`, borderRadius: '0 10px 10px 0' }}>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: t.color }}>{t.tier} <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-disabled)' }}>({t.count})</span></div>
-                <div style={{ fontSize: 14, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>{t.desc}</div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    ),
-    // 5: What you already have
+    // 2: The Platform
     () => (
       <div style={{ textAlign: 'center', maxWidth: 700 }}>
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.4 }}>
-          Start deterministic. Add LLM when ready.
+          7 CRDs. 31 endpoints. Multi-cluster.
+          <br />Multi-tenant. SLO-gated rollouts.
+          <br />Cost optimization. ARE Ledger compliance.
         </motion.p>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 32 }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 32 }}>
           {[
-            { num: '207 MB', label: 'Container image', sub: 'vs 4-15 GB for ML stack' },
-            { num: '26', label: 'Dependencies', sub: 'vs 150-300 for PyTorch' },
-            { num: '30s', label: 'To first demo', sub: 'podman run, done' },
+            { num: '7', label: 'CRDs', sub: 'Kubernetes-native' },
+            { num: '31', label: 'REST Endpoints', sub: 'Full fleet API' },
+            { num: '5', label: 'CPU Models', sub: 'Granite family' },
           ].map(s => (
-            <div key={s.label} style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+            <div key={s.label} style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
               <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>{s.num}</div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{s.label}</div>
               <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 2 }}>{s.sub}</div>
@@ -290,17 +243,93 @@ export default function App() {
         </motion.div>
       </div>
     ),
-    // 6: CTA — enter the walkthrough
+    // 3: CPU + Intel — the 53x number
+    () => (
+      <div style={{ textAlign: 'center' }}>
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
+          <div style={{ fontSize: 120, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1 }}>
+            53x
+          </div>
+        </motion.div>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+          style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 16, lineHeight: 1.5 }}>
+          cheaper than GPU inference.
+          <br />Intel Xeon 6 Granite Rapids. 256 cores. AMX.
+        </motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+          style={{ fontSize: 16, color: 'var(--text-disabled)', marginTop: 24 }}>
+          OVMS C++ with INT8 quantization. $0.60/hr vs $32/hr H100.
+        </motion.p>
+      </div>
+    ),
+    // 4: The Brain — deepfield-fleet
+    () => (
+      <div style={{ maxWidth: 700 }}>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          style={{ fontSize: 14, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, textAlign: 'center', marginBottom: 24 }}>
+          THE PREDICTIVE LAYER
+        </motion.p>
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.4, textAlign: 'center', marginBottom: 24 }}>
+          deepfield-fleet: predictive intelligence.
+        </motion.p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[
+            { label: 'SLO Forecasting', desc: 'Linear regression on P95 latency. Predicts breach 22 min ahead.', color: 'var(--rh-blue)', delay: 0.3 },
+            { label: 'Event Pre-Warming', desc: 'Learns event profiles. Scales before the surge, not after.', color: 'var(--rh-green)', delay: 0.4 },
+            { label: 'Intent-Driven Scaling', desc: 'Emits PreWarmIntent with confidence + justification. Policy-gated.', color: 'var(--rh-orange)', delay: 0.5 },
+            { label: 'A/B Provable', desc: 'Ledger records every prediction vs outcome. Proof, not opinion.', color: 'var(--rh-purple)', delay: 0.6 },
+          ].map(t => (
+            <motion.div key={t.label} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: t.delay }}
+              style={{ padding: 14, background: 'var(--surface-1)', border: `1px solid ${t.color}40`, borderLeft: `4px solid ${t.color}`, borderRadius: '0 10px 10px 0' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.color }}>{t.label}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>{t.desc}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    ),
+    // 5: The Proof
+    () => (
+      <div style={{ textAlign: 'center', maxWidth: 700 }}>
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginBottom: 32 }}>
+          Measured. Tested. Auditable.
+        </motion.p>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          {[
+            { num: '360', label: 'Tests Passing', color: 'var(--rh-green)' },
+            { num: '12', label: 'Test Suites', color: 'var(--rh-blue)' },
+            { num: '5', label: 'CPU Models', color: 'var(--rh-teal)' },
+            { num: '< 5s', label: 'P95 Latency', color: 'var(--rh-orange)' },
+            { num: '1 → 4', label: 'HPA Scale', color: 'var(--rh-purple)' },
+            { num: '0', label: 'Downtime', color: 'var(--rh-red)' },
+          ].map(s => (
+            <div key={s.label} style={{ padding: 16, background: 'var(--surface-1)', border: `1px solid ${s.color}30`, borderRadius: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: s.color, fontFamily: 'Red Hat Display, sans-serif' }}>{s.num}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>{s.label}</div>
+            </div>
+          ))}
+        </motion.div>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+          style={{ fontSize: 14, color: 'var(--text-disabled)', marginTop: 24 }}>
+          Every decision recorded in the ARE Immutable Ledger.
+        </motion.p>
+      </div>
+    ),
+    // 6: CTA
     () => (
       <div style={{ textAlign: 'center' }}>
         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           style={{ fontSize: 36, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.3, marginBottom: 16 }}>
-          Let's see it work.
+          Let me show you the fleet.
         </motion.p>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
           style={{ fontSize: 16, color: 'var(--text-dim)', marginBottom: 40, lineHeight: 1.6 }}>
-          First, we'll walk through the pipeline step by step.
-          <br />Then, we'll run it at scale.
+          Walk through each layer of the orchestration platform.
+          <br />Then run it at scale.
         </motion.p>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <button onClick={() => setMode('manual')}
@@ -310,11 +339,13 @@ export default function App() {
         </motion.div>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
           style={{ marginTop: 32, fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
-          207 MB container · no GPU required · 30 seconds to first demo
+          Go control plane · Rust data plane · Intel Xeon 6 · $0.60/hr
         </motion.div>
       </div>
     ),
   ];
+
+  /* ───────────────────────── SLIDES MODE ───────────────────────── */
 
   if (mode === 'slides') {
     const isLastSlide = slide === SLIDES.length - 1;
@@ -323,7 +354,6 @@ export default function App() {
         onClick={() => { if (!isLastSlide) setSlide(s => s + 1); }}
         style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-dark)', cursor: isLastSlide ? 'default' : 'pointer' }}
       >
-        {/* Slide dots */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '20px 0' }}>
           {SLIDES.map((_, i) => (
             <div key={i}
@@ -336,26 +366,16 @@ export default function App() {
             />
           ))}
         </div>
-
-        {/* Slide content */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 48px' }}>
           <AnimatePresence mode="wait">
-            <motion.div
-              key={slide}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-            >
+            <motion.div key={slide} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
               {SLIDES[slide]()}
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {/* Footer nav */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 32px' }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); if (slide > 0) setSlide(s => s - 1); }}
+          <button onClick={(e) => { e.stopPropagation(); if (slide > 0) setSlide(s => s - 1); }}
             style={{ background: 'none', border: 'none', color: slide > 0 ? 'var(--text-dim)' : 'transparent', fontSize: 13, cursor: slide > 0 ? 'pointer' : 'default', padding: '6px 16px' }}>
             ← Back
           </button>
@@ -374,13 +394,14 @@ export default function App() {
     );
   }
 
+  /* ───────────────────────── LAB MODE ───────────────────────── */
 
-  // --- Lab mode ---
   if (mode === 'lab') {
     return <BootstrapLab onExit={() => setMode('auto')} />;
   }
 
-  // --- Auto mode ---
+  /* ───────────────────────── AUTO MODE ───────────────────────── */
+
   if (mode === 'auto') {
     const isRunning = demoState.status === 'running' || demoState.status === 'starting';
     const isPaused = demoState.status === 'paused';
@@ -411,52 +432,29 @@ export default function App() {
 
         {/* Content */}
         <div style={{ flex: 1, maxWidth: 900, margin: '0 auto', padding: '24px 24px', width: '100%' }}>
-          {/* Infrastructure panel — always available */}
           <InfraPanel />
 
-          {/* Step progress */}
           {(isRunning || isPaused) && demoState.step_title && (
-            <StepProgress
-              progress={demoState.step_progress || 0}
-              title={demoState.step_title}
-              subtitle={demoState.step_subtitle || ''}
-            />
+            <StepProgress progress={demoState.step_progress || 0} title={demoState.step_title} subtitle={demoState.step_subtitle || ''} />
           )}
 
-          {/* Narrative */}
           <AnimatePresence mode="wait">
             {demoState.narrative && (
               <motion.div key={demoState.narrative.slice(0, 30)}
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                style={{
-                  padding: 16, background: 'var(--surface-1)', border: '1px solid var(--border)',
-                  borderRadius: 10, marginBottom: 12, fontSize: 14, color: 'var(--text-secondary)',
-                  lineHeight: 1.7, fontStyle: 'italic',
-                }}>
+                style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 12, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, fontStyle: 'italic' }}>
                 {demoState.narrative}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Flow description — always visible in auto mode */}
-          {demoState.flow_description && (
-            <FlowDescription text={demoState.flow_description} alwaysOpen />
-          )}
+          {demoState.flow_description && <FlowDescription text={demoState.flow_description} alwaysOpen />}
 
-          {/* Live agent indicator */}
           {isRunning && demoState.live_agent && (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16,
-                padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 8,
-                border: '1px solid var(--border)',
-              }}>
-              <motion.div
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ repeat: Infinity, duration: 1 }}
-                style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--rh-green)' }}
-              />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1 }}
+                style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--rh-green)' }} />
               <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
                 <strong style={{ color: 'var(--text-primary)' }}>{demoState.live_agent.name}</strong>
                 {' '}{demoState.live_agent.status}
@@ -470,212 +468,143 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* Inference stats bar — shown when LLM is connected */}
           {demoState.inference_stats && demoState.inference_stats.total_calls > 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12,
-                padding: '8px 14px', background: 'var(--surface-2)', borderRadius: 8,
-                border: '1px solid var(--border)', fontSize: 11,
-              }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12, padding: '8px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 11 }}>
               <span style={{ color: 'var(--rh-green)', fontWeight: 700 }}>INFERENCE</span>
               <span style={{ color: 'var(--text-dim)' }}>Calls: <strong style={{ color: 'var(--text-secondary)' }}>{demoState.inference_stats.total_calls}</strong></span>
               <span style={{ color: 'var(--text-dim)' }}>Tokens: <strong style={{ color: 'var(--text-secondary)' }}>{demoState.inference_stats.total_tokens_out}</strong></span>
               <span style={{ color: 'var(--text-dim)' }}>Latency: <strong style={{ color: 'var(--rh-orange)' }}>{demoState.inference_stats.avg_latency_ms}ms</strong></span>
               <span style={{ color: 'var(--text-dim)' }}>Tok/s: <strong style={{ color: 'var(--rh-blue)' }}>{demoState.inference_stats.avg_tokens_per_sec}</strong></span>
-              {demoState.inference_stats.errors > 0 && (
-                <span style={{ color: 'var(--rh-red)' }}>Errors: {demoState.inference_stats.errors}</span>
-              )}
+              {demoState.inference_stats.errors > 0 && <span style={{ color: 'var(--rh-red)' }}>Errors: {demoState.inference_stats.errors}</span>}
             </motion.div>
           )}
 
-          {/* Inference mode indicator */}
           {demoState.inference_mode && (
             <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginBottom: 8, fontFamily: 'Red Hat Mono, monospace', textAlign: 'center' }}>
               Inference mode: {demoState.inference_mode === 'llm' ? 'Live LLM via LiteLLM' : 'Simulated (rule-backed) — set LITELLM_API_BASE for live inference'}
             </div>
           )}
 
-          {/* Scale metrics (for scale/stress/recovery acts) */}
           {demoState.scale_metrics && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-              <MetricCard label="Lines" value={String((demoState.scale_metrics as Record<string, unknown>).lines || '—')} color="var(--rh-blue)" />
-              <MetricCard label="Evidence" value={String((demoState.scale_metrics as Record<string, unknown>).evidence || '—')} color="var(--rh-teal)" />
-              <MetricCard label="Classifications" value={String((demoState.scale_metrics as Record<string, unknown>).classifications || '—')} color="var(--rh-green)" />
-              <MetricCard label="CPU Time" value={`${(demoState.scale_metrics as Record<string, unknown>).elapsed_ms || '—'}ms`} color="var(--rh-orange)" />
+              <MetricCard label="Clusters" value={String((demoState.scale_metrics as Record<string, unknown>).clusters || '—')} color="var(--rh-blue)" />
+              <MetricCard label="Models" value={String((demoState.scale_metrics as Record<string, unknown>).models || '—')} color="var(--rh-teal)" />
+              <MetricCard label="Replicas" value={String((demoState.scale_metrics as Record<string, unknown>).replicas || '—')} color="var(--rh-green)" />
+              <MetricCard label="Latency" value={`${(demoState.scale_metrics as Record<string, unknown>).elapsed_ms || '—'}ms`} color="var(--rh-orange)" />
             </div>
           )}
 
-          {/* Cumulative totals (during scale acts) */}
-          {demoState.cumulative && (demoState.step_id || '').startsWith('scale') || (demoState.step_id || '') === 'stress' || (demoState.step_id || '') === 'recovery' ? (
-            demoState.cumulative && (
-              <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginBottom: 12, fontFamily: 'Red Hat Mono, monospace', display: 'flex', gap: 16, justifyContent: 'center' }}>
-                <span>Total evidence: {String((demoState.cumulative as Record<string, unknown>).total_evidence || 0)}</span>
-                <span>Total classifications: {String((demoState.cumulative as Record<string, unknown>).total_classifications || 0)}</span>
-                <span>Lines monitored: {String((demoState.cumulative as Record<string, unknown>).lines_monitored || 0)}</span>
-              </div>
-            )
+          {demoState.cumulative && ((demoState.step_id || '').startsWith('scale') || (demoState.step_id || '') === 'stress' || (demoState.step_id || '') === 'recovery') ? (
+            <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginBottom: 12, fontFamily: 'Red Hat Mono, monospace', display: 'flex', gap: 16, justifyContent: 'center' }}>
+              <span>Total replicas: {String((demoState.cumulative as Record<string, unknown>).total_replicas || 0)}</span>
+              <span>Total requests: {String((demoState.cumulative as Record<string, unknown>).total_requests || 0)}</span>
+              <span>Clusters active: {String((demoState.cumulative as Record<string, unknown>).clusters_active || 0)}</span>
+            </div>
           ) : null}
 
-          {/* Two-column layout: funnel + agent feed */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {demoState.funnel && <PipelineFunnel funnel={demoState.funnel} />}
             {demoState.agent_events && <LiveAgentFeed events={demoState.agent_events} onEventClick={onAgentEventClick} />}
           </div>
 
-          {/* Cascade diagram when we have records */}
           {allRecords.length > 0 && (
             <AgentCascadeFlow records={allRecords}
               activeStage={demoState.step_id === 'ordeal_nano' ? 'nano' : demoState.step_id === 'ordeal_micro' ? 'micro' : demoState.step_id === 'ordeal_macro' ? 'macro' : 'all'}
               onAgentClick={onCascadeAgentClick} />
           )}
 
-          {/* The Claim — final metrics + use cases */}
-          {isComplete && demoState.claim && (() => {
-            const cl = demoState.claim as Record<string, unknown>;
-            return (
+          {/* The Claim — fleet metrics + use cases */}
+          {isComplete && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              {/* Logos */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
                 <img src="/logos/redhat.svg" alt="Red Hat" style={{ height: 24 }} />
                 <span style={{ color: 'var(--text-disabled)', fontSize: 24, fontWeight: 300 }}>&times;</span>
                 <img src="/logos/intel.png" alt="Intel" style={{ height: 24 }} />
               </div>
 
-              {/* Headline stats */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
-                  <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>{String(cl.total_evidence_processed)}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>Evidence artifacts processed</div>
-                </div>
-                <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
-                  <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--rh-blue)', fontFamily: 'Red Hat Display, sans-serif' }}>{String(cl.total_classifications)}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>Classifications generated</div>
-                </div>
-                <div style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
-                  <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--rh-teal)', fontFamily: 'Red Hat Display, sans-serif' }}>{String(cl.peak_lines_monitored)}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>Factory lines at peak scale</div>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 24 }}>
-                <MetricCard label="Agents" value={String(cl.agents || 17)} color="var(--rh-purple)" />
-                <MetricCard label="Tiers" value={String(cl.tiers || 3)} />
-                <MetricCard label="Actions" value={String(cl.total_actions_proposed)} color="var(--rh-orange)" detail="non-destructive" />
-                <MetricCard label="Learning" value={String(cl.total_learning_proposals)} color="var(--rh-green)" detail="proposals generated" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+                {[
+                  { value: '53x', label: 'Cost Savings', color: 'var(--rh-red)' },
+                  { value: '360', label: 'Tests Passing', color: 'var(--rh-green)' },
+                  { value: '5', label: 'CPU Models', color: 'var(--rh-blue)' },
+                  { value: '< 5s', label: 'P95 SLO', color: 'var(--rh-orange)' },
+                ].map(s => (
+                  <div key={s.label} style={{ padding: 20, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+                    <div style={{ fontSize: 36, fontWeight: 800, color: s.color, fontFamily: 'Red Hat Display, sans-serif' }}>{s.value}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>{s.label}</div>
+                  </div>
+                ))}
               </div>
 
-              {/* The claim */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
                 style={{ padding: 24, background: 'var(--surface-1)', border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center', marginBottom: 24 }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'Red Hat Display, sans-serif' }}>
-                  Classify reality before you react to it.
+                  Fleet-level inference orchestration. Proven.
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 12, lineHeight: 1.8 }}>
-                  Three classification tiers. Deterministic compression on CPU.
-                  LLM reasoning when you need it. Scaled to 50 lines under 15% failure storm.
-                  {demoState.inference_stats?.total_calls
-                    ? ` ${demoState.inference_stats.total_calls} live inference calls at ${demoState.inference_stats.avg_latency_ms}ms avg.`
-                    : ' All on the infrastructure you already own.'}
+                  Multi-cluster. Multi-tenant. SLO-gated. Cost-optimized.
+                  CPU inference at $0.60/hr vs $32/hr GPU.
+                  Every decision recorded in the ARE Immutable Ledger.
                 </p>
               </motion.div>
 
               {demoState.flow_description && <FlowDescription text={demoState.flow_description} alwaysOpen />}
 
-              {/* Three key messages */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
-                {/* Economics */}
                 <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-green)30', borderRadius: 10 }}>
                   <div style={{ fontSize: 10, color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>ECONOMICS</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-green)', fontFamily: 'Red Hat Display, sans-serif' }}>98%</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-green)', fontFamily: 'Red Hat Display, sans-serif' }}>53x</div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
-                    classified on CPU. GPU only when the rubric proves it's needed. One frontier call at bootstrap. Deterministic at runtime.
+                    $0.60/hr Intel Xeon 6 vs $32/hr H100 GPU. OVMS C++ with INT8. Same Granite models, 53x cheaper.
                   </div>
                 </div>
-                {/* Security */}
                 <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-blue)30', borderRadius: 10 }}>
-                  <div style={{ fontSize: 10, color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>SECURITY</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-blue)', fontFamily: 'Red Hat Display, sans-serif' }}>TDX</div>
+                  <div style={{ fontSize: 10, color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>COMPLIANCE</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-blue)', fontFamily: 'Red Hat Display, sans-serif' }}>ARE</div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
-                    Bootstrap on Intel TDX with Qwen 235B. Data encrypted in-use. Runtime is deterministic on CPU — no model, no data exposure.
+                    ARE Immutable Ledger. 5 chains verified. Every placement, scaling, and routing decision cryptographically recorded.
                   </div>
                 </div>
-                {/* Lifecycle */}
                 <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-purple)30', borderRadius: 10 }}>
-                  <div style={{ fontSize: 10, color: 'var(--rh-purple)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>LIFECYCLE</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-purple)', fontFamily: 'Red Hat Display, sans-serif' }}>Earn</div>
+                  <div style={{ fontSize: 10, color: 'var(--rh-purple)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>INTELLIGENCE</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-purple)', fontFamily: 'Red Hat Display, sans-serif' }}>Predict</div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
-                    Agents earn their tier. Draft → Candidate → Nano → Micro → Macro. Evidence-based promotion. Human approval gates. Cross-modal proof.
+                    deepfield-fleet predicts, not reacts. SLO forecasting, event pre-warming, intent-driven scaling. A/B provable in the ledger.
                   </div>
                 </div>
               </motion.div>
 
-              {/* Where else this applies */}
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
                 <div style={{ fontSize: 14, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 2, textAlign: 'center', marginBottom: 16 }}>
-                  BEYOND THE FACTORY FLOOR
+                  BEYOND GPU INFERENCE
                 </div>
-                <p style={{ fontSize: 14, color: 'var(--text-dim)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
-                  The same three-tier agent architecture applies anywhere signals need classification.
-                  Nanoagents compress. Microagents classify. Macroagents reason.
-                </p>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   {[
-                    { title: 'Telecom Network Operations', color: 'var(--rh-blue)',
-                      nano: 'Threshold checks on latency, packet loss, signal strength across cell towers',
-                      micro: 'Classify outage type: hardware, software, capacity, weather-related',
-                      macro: 'Correlate across regions — is this a local fault or a cascading failure?' },
-                    { title: 'Energy Grid Monitoring', color: 'var(--rh-green)',
-                      nano: 'Frequency deviation, voltage sag, transformer temperature drift detection',
-                      micro: 'Classify asset health from SCADA signals, vibration, thermal imaging',
-                      macro: 'Predict demand-supply imbalance, propose load shedding or rerouting' },
-                    { title: 'Healthcare / Clinical Systems', color: 'var(--rh-teal)',
-                      nano: 'Vitals threshold alerts, lab result anomaly flags, medication interaction checks',
-                      micro: 'Classify diagnostic images (X-ray, MRI), lab panel patterns, clinical notes',
-                      macro: 'Correlate patient history with current signals for differential diagnosis support' },
-                    { title: 'Supply Chain & Logistics', color: 'var(--rh-orange)',
-                      nano: 'Delivery SLA breach detection, inventory level threshold, route deviation alerts',
-                      micro: 'Classify disruption type: weather, port congestion, supplier delay, customs hold',
-                      macro: 'Build impact timeline across multi-tier suppliers, propose alternate sourcing' },
-                    { title: 'Financial Services / Fraud', color: 'var(--rh-purple)',
-                      nano: 'Transaction velocity checks, geo-impossible travel, amount threshold breaches',
-                      micro: 'Classify transaction patterns against known fraud families, merchant risk scoring',
-                      macro: 'Correlate across accounts and time windows for organized fraud ring detection' },
-                    { title: 'Autonomous Vehicle / Fleet', color: 'var(--rh-red)',
-                      nano: 'Sensor fusion anomaly detection: lidar, camera, IMU, GPS drift checks',
-                      micro: 'Classify road conditions, obstacle types, weather impact on sensor reliability',
-                      macro: 'Fleet-wide incident correlation, predictive maintenance scheduling, route optimization' },
+                    { title: 'Edge Inference', color: 'var(--rh-blue)',
+                      desc: 'CPU inference at the edge. No GPU required. Low-latency serving on standard infrastructure. Granite models on Intel hardware at every location.' },
+                    { title: 'Sovereign Cloud', color: 'var(--rh-green)',
+                      desc: 'Data-sovereign inference within geographic boundaries. No model or data egress. ARE Ledger provides compliance proof for regulators.' },
+                    { title: 'Multi-Tenant SaaS', color: 'var(--rh-purple)',
+                      desc: 'Per-tenant quotas, priorities, and chargeback. TenantProfile CRD enforces isolation. Fair scheduling across shared GPU/CPU pools.' },
+                    { title: 'Event-Driven Pre-Warming', color: 'var(--rh-orange)',
+                      desc: 'Learn event profiles from history. Pre-warm replicas before conferences, launches, and campaigns. Zero downtime during demand surges.' },
                   ].map(uc => (
                     <motion.div key={uc.title} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                       style={{ padding: 16, background: 'var(--surface-1)', border: `1px solid ${uc.color}30`, borderRadius: 10 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: uc.color, marginBottom: 10 }}>{uc.title}</div>
-                      <div style={{ fontSize: 11, lineHeight: 1.7 }}>
-                        <div style={{ marginBottom: 6 }}>
-                          <span style={{ color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontSize: 9, fontWeight: 700 }}>NANO</span>
-                          <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>{uc.nano}</span>
-                        </div>
-                        <div style={{ marginBottom: 6 }}>
-                          <span style={{ color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontSize: 9, fontWeight: 700 }}>MICRO</span>
-                          <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>{uc.micro}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: 'var(--rh-purple)', fontFamily: 'Red Hat Mono, monospace', fontSize: 9, fontWeight: 700 }}>MACRO</span>
-                          <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>{uc.macro}</span>
-                        </div>
-                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: uc.color, marginBottom: 8 }}>{uc.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.6 }}>{uc.desc}</div>
                     </motion.div>
                   ))}
                 </div>
 
-                {/* Integration readiness */}
                 <div style={{ marginTop: 24, padding: 16, background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, textAlign: 'center', marginBottom: 12 }}>
                     INTEGRATION READY
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
-                    {['OpenShift', 'AAP', 'ACS', 'RHEL Insights', 'Satellite', 'Service Mesh', 'Quay',
-                      'ServiceNow', 'PagerDuty', 'Slack', 'Prometheus', 'Splunk', 'Kafka', 'S3'].map(name => (
+                    {['OpenShift', 'llm-d', 'OVMS', 'Prometheus', 'Grafana', 'Intel AMX', 'ARE Ledger', 'Helm'].map(name => (
                       <span key={name} style={{
                         padding: '4px 10px', borderRadius: 6, fontSize: 10,
                         background: 'var(--surface-2)', border: '1px solid var(--border)',
@@ -683,28 +612,24 @@ export default function App() {
                       }}>{name}</span>
                     ))}
                   </div>
-                  <p style={{ fontSize: 11, color: 'var(--text-disabled)', textAlign: 'center', marginTop: 10 }}>
-                    Same connector pattern. connect() · sample() · stream(). Add a source in hours, not weeks.
-                  </p>
                 </div>
 
                 <div style={{ textAlign: 'center', marginTop: 16, padding: 16, background: 'var(--surface-1)', borderRadius: 10, border: '1px solid var(--rh-red)40' }}>
                   <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7 }}>
-                    Same architecture. Same three tiers. Same compression economics.
-                    <br />Swap the signals, swap the classifiers — the pipeline stays.
+                    Go control plane. Rust data plane. Intel Xeon 6.
+                    <br />Fleet-level inference orchestration for the enterprise.
                   </p>
                   <p style={{ fontSize: 12, color: 'var(--text-disabled)', marginTop: 12, fontFamily: 'Red Hat Mono, monospace' }}>
-                    ~210 MB · Intel Xeon · Red Hat OpenShift · 30 seconds to your first demo
+                    $0.60/hr CPU · 53x cheaper · 360 tests · ARE Ledger compliance
                   </p>
                   <button onClick={() => setMode('lab')}
                     style={{ marginTop: 16, background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '10px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                    Try it with your data →
+                    Deploy to your cluster →
                   </button>
                 </div>
               </motion.div>
             </motion.div>
-            );
-          })()}
+          )}
         </div>
 
         {/* Footer */}
@@ -754,7 +679,6 @@ export default function App() {
           {!isRunning && !isComplete && !isPaused && <div />}
         </div>
 
-        {/* Detail modal — slides in when user clicks an agent event */}
         <DetailModal open={detailOpen} title={detailTitle} onClose={closeDetail}>
           {detailContent && detailType === 'agent' && (
             <div>
@@ -762,16 +686,11 @@ export default function App() {
                 {String(detailContent.decision_type)} · {String(detailContent.runtime)}
               </div>
               <KeyValueTable data={{
-                Tier: detailContent.tier,
-                Taxonomy: detailContent.taxonomy,
-                Classification: detailContent.class_name,
-                Severity: detailContent.severity,
+                Tier: detailContent.tier, Taxonomy: detailContent.taxonomy,
+                Classification: detailContent.class_name, Severity: detailContent.severity,
                 Confidence: `${Number(detailContent.confidence) * 100}%`,
               }} label="Classification" />
-              <div style={{
-                padding: 12, background: 'var(--surface-2)', borderRadius: 6, marginBottom: 12,
-                fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7,
-              }}>
+              <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 6, marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                 <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>RATIONALE</div>
                 {String(detailContent.rationale)}
               </div>
@@ -789,10 +708,16 @@ export default function App() {
               )}
             </div>
           )}
+          {detailContent && detailType === 'intent' && (
+            <KeyValueTable data={detailContent} label="Intent Details" />
+          )}
+          {detailContent && detailType === 'ledger' && (
+            <KeyValueTable data={detailContent} label="Ledger Entry" />
+          )}
           {detailContent && detailType === 'action' && (
             <KeyValueTable data={detailContent} label="Details" />
           )}
-          {detailContent && !['agent', 'learning', 'action'].includes(detailType) && (
+          {detailContent && !['agent', 'learning', 'action', 'intent', 'ledger'].includes(detailType) && (
             <KeyValueTable data={detailContent} />
           )}
         </DetailModal>
@@ -800,17 +725,20 @@ export default function App() {
     );
   }
 
-  // --- Manual mode (existing, simplified) ---
-  const manualActs = ['ordinary', 'call', 'threshold', 'ordeal', 'reward', 'return'] as const;
+  /* ───────────────────────── MANUAL MODE ───────────────────────── */
+
+  const manualActs = ['cost', 'event', 'deploy', 'platform', 'predict', 'intent', 'proof', 'return'] as const;
   const manualMeta: Record<string, { title: string; subtitle: string; next: string }> = {
-    ordinary:  { title: 'Normal Operations',       subtitle: 'Everything is normal. The factory hums.',                next: 'See the signals →' },
-    call:      { title: 'Signal Ingestion',        subtitle: 'Multimodal evidence arrives from the factory floor.',    next: 'Build the baseline →' },
-    threshold: { title: 'Baseline Compilation',    subtitle: 'Learning the shape of normal from historical data.',     next: 'Run the cascade →' },
-    ordeal:    { title: 'Classification Cascade',  subtitle: 'Three tiers of agents classify the evidence.',           next: 'See the action →' },
-    reward:    { title: 'Decide & Act',            subtitle: 'The system proposes what to do — safely.',               next: 'See what was learned →' },
-    return:    { title: 'Learn & Adapt',           subtitle: 'Capturing what changed for next time.',                  next: '' },
+    cost:     { title: 'The Cost of Inference',  subtitle: 'Enterprise inference runs on GPU. There is another way.',          next: 'See the event →' },
+    event:    { title: 'The Event Arrives',      subtitle: 'A surge is coming. The fleet prepares.',                           next: 'Deploy the fleet →' },
+    deploy:   { title: 'The Fleet Deploys',      subtitle: 'OVMS C++ on Intel Xeon 6. Multi-cluster orchestration.',           next: 'See the CRDs →' },
+    platform: { title: 'The Platform',           subtitle: 'Seven CRDs define the fleet\'s desired state.',                    next: 'Predict the SLO →' },
+    predict:  { title: 'The Brain Predicts',     subtitle: 'SLO forecasting and blast radius scoping.',                        next: 'Emit the intent →' },
+    intent:   { title: 'The Intent',             subtitle: 'Predictive intelligence drives pre-emptive action.',               next: 'See the proof →' },
+    proof:    { title: 'The Proof',              subtitle: '360 tests. 12 suites. Every decision in the ledger.',              next: 'See the return →' },
+    return:   { title: 'The Return',             subtitle: 'Auditable. Verifiable. Continuous.',                               next: '' },
   };
-  const currentAct = manualActs[actIndex];
+  const currentAct = manualActs[actIndex] || manualActs[0];
   const meta = manualMeta[currentAct];
 
   return (
@@ -832,300 +760,272 @@ export default function App() {
               <p style={{ fontSize: 16, color: 'var(--text-dim)', margin: 0 }}>{meta.subtitle}</p>
             </div>
 
-            {currentAct === 'ordinary' && (
-              <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>A factory production line runs 24/7. Vibration sensors, thermal monitors, inspection cameras, and maintenance logs generate thousands of signals per hour. Right now, everything reads normal.</p>
-                <p style={{ color: 'var(--text-dim)', lineHeight: 1.8, fontSize: 14, marginTop: 8 }}>But "normal" only has meaning when you've learned what it looks like. DeepField compiled a baseline from historical data — the statistical shape of healthy operations.</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 24 }}>
-                  <MetricCard label="Vibration RMS" value="0.22" color="var(--rh-green)" detail="Within baseline" />
-                  <MetricCard label="Temperature" value="38.2°C" color="var(--rh-green)" detail="Stable" />
-                  <MetricCard label="Defect Rate" value="0.1%" color="var(--rh-green)" detail="Normal" />
-                </div>
-                <FlowDescription text="These signals are already streaming from your infrastructure. The question isn't whether you have data — it's whether you're classifying it fast enough to act before damage occurs." />
-              </div>
-            )}
-            {currentAct === 'call' && (
-              <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>Then the signals change. Vibration drifts upward. Temperature creeps. An inspection camera captures something. An operator writes a note.</p>
-                <StepCard num={1} title="Ingest Multimodal Evidence" status={ingestStatus} onRun={doIngest} buttonLabel="Ingest signals">
-                  {evidence.length > 0 && (
-                    <div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-                        <MetricCard label="Artifacts" value={evidence.length} color="var(--rh-blue)" />
-                        <MetricCard label="Modalities" value={new Set(evidence.map(e => e.modality)).size} color="var(--rh-teal)" />
-                        <MetricCard label="Sources" value={new Set(evidence.map(e => e.source)).size} color="var(--rh-orange)" />
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {evidence.map(e => (
-                          <span key={e.evidence_id} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, background: (MODALITY_COLORS[e.modality] || 'var(--border)') + '20', border: `1px solid ${MODALITY_COLORS[e.modality] || 'var(--border)'}40`, color: 'var(--text-secondary)', fontFamily: 'Red Hat Mono, monospace' }}>
-                            {e.modality}/{e.artifact_type}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </StepCard>
-              </div>
-            )}
-            {currentAct === 'threshold' && (
-              <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>DeepField compiles everything into a <strong>baseline profile</strong> — thresholds, ranges, and statistical signatures.</p>
-                {evidence.length === 0 && <StepCard num={1} title="Ingest evidence first" status={ingestStatus} onRun={doIngest} buttonLabel="Ingest" />}
-                <StepCard num={2} title="Build Baseline Profile" status={baselineStatus} onRun={evidence.length > 0 ? doBaseline : undefined} buttonLabel="Compile baseline">
-                  {baseline && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}><MetricCard label="Confidence" value={`${(baseline.confidence * 100).toFixed(0)}%`} color="var(--rh-green)" /><MetricCard label="Thresholds" value={Object.keys(baseline.thresholds).length} color="var(--rh-orange)" /><MetricCard label="Ranges" value={Object.keys(baseline.normal_ranges).length} color="var(--rh-teal)" /></div>}
-                </StepCard>
-              </div>
-            )}
-            {currentAct === 'ordeal' && (
-              <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>Evidence flows through three tiers. Run each tier to see what it does.</p>
-                {evidence.length === 0 && <StepCard num={1} title="Ingest evidence first" status={ingestStatus} onRun={doIngest} buttonLabel="Ingest" />}
-                {evidence.length > 0 && !baseline && <StepCard num={2} title="Build baseline first" status={baselineStatus} onRun={doBaseline} buttonLabel="Build baseline" />}
-
-                {/* Nano tier */}
-                <StepCard num={3} title="Nano Tier — Deterministic Rules" status={nanoStatus} onRun={baseline ? doNano : undefined} buttonLabel="Run nanoagents">
-                  {nanoResult && (
-                    <div>
-                      <FlowDescription text="Nanoagents are deterministic — no LLM, pure CPU. They run threshold checks (z-score > 2.0?), pattern matching (ERROR in log?), and gating decisions. This is the compression layer." />
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-                        <MetricCard label="Records" value={nanoResult.records.length} color="var(--rh-blue)" />
-                        <MetricCard label="Time" value={`${nanoResult.elapsed_ms}ms`} color="var(--rh-teal)" />
-                        <MetricCard label="Runtime" value={nanoResult.runtime} color="var(--rh-green)" detail={nanoResult.decision_type} />
-                      </div>
-                      {nanoResult.records.slice(0, 8).map(r => (
-                        <div key={r.classification_id} onClick={() => openDetail(`${r.agent_name}`, { tier: 'nano', taxonomy: r.taxonomy, class_name: r.class_name, severity: r.severity, confidence: r.confidence, rationale: r.rationale, decision_type: 'Deterministic (no LLM)', runtime: 'CPU' }, 'agent')}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 11, cursor: 'pointer', border: '1px solid transparent' }}>
-                          <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--rh-blue)', minWidth: 110 }}>{r.agent_name}</span>
-                          <span style={{ color: 'var(--text-dim)' }}>{r.taxonomy}/{r.class_name}</span>
-                          <span style={{ marginLeft: 'auto', color: r.severity === 'high' || r.severity === 'critical' ? 'var(--rh-orange)' : 'var(--text-disabled)' }}>{r.severity}</span>
-                          <span style={{ color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{(r.confidence * 100).toFixed(0)}%</span>
-                        </div>
-                      ))}
-                      <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 4 }}>Click any row for full rationale</div>
-                    </div>
-                  )}
-                </StepCard>
-
-                {/* Micro tier */}
-                {nanoStatus === 'done' && (
-                  <StepCard num={4} title="Micro Tier — Rule-Backed Classifiers" status={microStatus} onRun={doMicro} buttonLabel="Run microagents">
-                    {microResult && (
-                      <div>
-                        <FlowDescription text="Microagents run rule-backed classifiers on CPU. Image/audio are fixture-backed by default for the demo, with optional ONNX CPU adapters when configured. When LLM is configured, this tier can use live model inference." />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-                          <MetricCard label="Records" value={microResult.records.length} color="var(--rh-green)" />
-                          <MetricCard label="Escalated" value={microResult.escalated_from_nano ?? 0} color="var(--rh-orange)" detail="from nano" />
-                          <MetricCard label="Time" value={`${microResult.elapsed_ms}ms`} color="var(--rh-teal)" />
-                          <MetricCard label="Runtime" value={microResult.runtime} color="var(--rh-green)" detail={microResult.decision_type} />
-                        </div>
-                        {microResult.records.map(r => (
-                          <div key={r.classification_id} onClick={() => openDetail(`${r.agent_name}`, { tier: 'micro', taxonomy: r.taxonomy, class_name: r.class_name, severity: r.severity, confidence: r.confidence, rationale: r.rationale, decision_type: microResult.decision_type, runtime: microResult.runtime, ...(r.metrics || {}) }, 'agent')}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 11, cursor: 'pointer' }}>
-                            <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--rh-green)', minWidth: 110 }}>{r.agent_name}</span>
-                            <span style={{ color: 'var(--text-dim)' }}>{r.taxonomy}/{r.class_name}</span>
-                            <span style={{ marginLeft: 'auto', color: r.severity === 'high' || r.severity === 'critical' ? 'var(--rh-orange)' : 'var(--text-disabled)' }}>{r.severity}</span>
-                            <span style={{ color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{(r.confidence * 100).toFixed(0)}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </StepCard>
-                )}
-
-                {/* Macro tier */}
-                {microStatus === 'done' && (
-                  <StepCard num={5} title="Macro Tier — Incident Reasoning" status={macroStatus} onRun={doMacro} buttonLabel="Run macroagents">
-                    {macroResult && (
-                      <div>
-                        <FlowDescription text="Macroagents correlate across modalities. The timeline agent sequences evidence. The root cause agent identifies the most likely failure family. The action planner proposes safe responses. When LLM is configured, this tier uses model reasoning." />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-                          <MetricCard label="Records" value={macroResult.records.length} color="var(--rh-purple)" />
-                          <MetricCard label="Time" value={`${macroResult.elapsed_ms}ms`} color="var(--rh-teal)" />
-                          <MetricCard label="Runtime" value={macroResult.runtime} color="var(--rh-purple)" detail={macroResult.decision_type} />
-                        </div>
-                        {macroResult.records.map(r => (
-                          <div key={r.classification_id} onClick={() => openDetail(`${r.agent_name}`, { tier: 'macro', taxonomy: r.taxonomy, class_name: r.class_name, severity: r.severity, confidence: r.confidence, rationale: r.rationale, decision_type: macroResult.decision_type, runtime: macroResult.runtime }, 'agent')}
-                            style={{ padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, cursor: 'pointer' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                              <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--rh-purple)', minWidth: 130 }}>{r.agent_name}</span>
-                              <span style={{ color: 'var(--text-dim)' }}>{r.taxonomy}/{r.class_name}</span>
-                              <span style={{ marginLeft: 'auto', color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{(r.confidence * 100).toFixed(0)}%</span>
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>{r.rationale.slice(0, 120)}...</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </StepCard>
-                )}
-
-                {/* Summary */}
-                {macroStatus === 'done' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 12 }}>
-                    <MetricCard label="Total" value={classifications.length} />
-                    <MetricCard label="Nano" value={nanoResult?.records.length || 0} color="var(--rh-blue)" />
-                    <MetricCard label="Micro" value={microResult?.records.length || 0} color="var(--rh-green)" />
-                    <MetricCard label="Macro" value={macroResult?.records.length || 0} color="var(--rh-purple)" />
-                  </div>
-                )}
-              </div>
-            )}
-            {currentAct === 'reward' && (() => {
-              const highFindings = loopResult ? loopResult.classifications.filter(c => c.confidence >= 0.7 && (c.severity === 'high' || c.severity === 'critical')) : [];
-              const tiers = loopResult ? { nano: loopResult.classifications.filter(c => c.agent_tier === 'nano').length, micro: loopResult.classifications.filter(c => c.agent_tier === 'micro').length, macro: loopResult.classifications.filter(c => c.agent_tier === 'macro').length } : null;
-              return (
+            {/* Act 0: The Cost of Inference */}
+            {currentAct === 'cost' && (
               <div>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                  The cascade found convergent signals across multiple modalities. Now the system
-                  decides what to do — and proves it's safe before proposing anything.
+                  Enterprise inference runs on GPU. $32 per hour per H100. Scarce hardware.
+                  Static scaling. No multi-tenant governance. No audit trail.
                 </p>
-                {evidence.length === 0 && <StepCard num={1} title="Ingest evidence first" status={ingestStatus} onRun={doIngest} buttonLabel="Ingest" />}
-                {evidence.length > 0 && !baseline && <StepCard num={2} title="Build baseline first" status={baselineStatus} onRun={doBaseline} buttonLabel="Build baseline" />}
-                <StepCard num={6} title="Decide → Act → Verify → Learn" status={loopStatus} onRun={baseline ? doLoop : undefined} buttonLabel="Run agent loop">
-                  {loopResult && (
-                    <div>
-                      {/* Decision chain — WHY this action */}
-                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--rh-blue)' }}>Decision Chain</div>
-                      <div style={{ padding: 14, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 16, border: '1px solid var(--border)' }}>
-                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 10px', lineHeight: 1.7 }}>
-                          {highFindings.length} high-confidence findings across {tiers ? `${tiers.nano} nano + ${tiers.micro} micro + ${tiers.macro} macro` : ''} classifications:
-                        </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
-                          {highFindings.slice(0, 6).map(c => (
-                            <div key={c.classification_id} onClick={() => openDetail(c.agent_name, { tier: c.agent_tier, taxonomy: c.taxonomy, class_name: c.class_name, severity: c.severity, confidence: c.confidence, rationale: c.rationale, decision_type: c.agent_tier === 'nano' ? 'Deterministic' : c.agent_tier === 'micro' ? 'Rule-backed' : 'Template', runtime: 'CPU' }, 'agent')}
-                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: 'var(--surface-1)', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.severity === 'critical' ? 'var(--rh-red)' : 'var(--rh-orange)', flexShrink: 0 }} />
-                              <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--text-secondary)', minWidth: 110 }}>{c.agent_name}</span>
-                              <span style={{ color: 'var(--text-dim)' }}>{c.class_name}</span>
-                              <span style={{ color: 'var(--text-dim)', marginLeft: 'auto' }}>{c.rationale.slice(0, 60)}</span>
-                            </div>
+                <CostComparison />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 16 }}>
+                  <MetricCard label="GPU Cost" value="$32/hr" color="var(--rh-red)" detail="H100 instance" />
+                  <MetricCard label="CPU Cost" value="$0.60/hr" color="var(--rh-green)" detail="Xeon 6 instance" />
+                  <MetricCard label="Savings" value="53x" color="var(--rh-blue)" detail="Same models" />
+                </div>
+              </div>
+            )}
+
+            {/* Act 1: The Event Arrives */}
+            {currentAct === 'event' && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  Red Hat Summit Connect starts in 30 minutes. 200 concurrent users will need
+                  inference across 5 Granite models. The fleet needs to prepare.
+                </p>
+                <StepCard num={1} title="Load Event Profile" status={eventProfileStatus} onRun={doEventProfile} buttonLabel="Load profile">
+                  {eventProfiles.length > 0 && (() => {
+                    const p = eventProfiles[0];
+                    return (
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--rh-blue)' }}>{p.name}</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
+                          <MetricCard label="Expected Users" value={p.expected_users} color="var(--rh-blue)" />
+                          <MetricCard label="Pre-Warm" value={`${p.pre_warm_minutes} min`} color="var(--rh-orange)" />
+                          <MetricCard label="Models" value={p.models.length} color="var(--rh-teal)" />
+                          <MetricCard label="Burst RPS" value="6.7" color="var(--rh-red)" />
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {p.models.map(m => (
+                            <span key={m} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, background: 'var(--rh-teal)20', border: '1px solid var(--rh-teal)40', color: 'var(--text-secondary)', fontFamily: 'Red Hat Mono, monospace' }}>{m}</span>
                           ))}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-dim)', borderTop: '1px solid var(--border)', paddingTop: 10, lineHeight: 1.6 }}>
-                          Multiple modalities converged on <strong style={{ color: 'var(--text-secondary)' }}>quality/bearing failure</strong>:
-                          vibration drift, thermal increase, log errors, image defect, audio anomaly.
-                          This cross-modal agreement triggers the action planner.
-                        </div>
                       </div>
+                    );
+                  })()}
+                </StepCard>
+              </div>
+            )}
 
-                      {/* Action — WHAT it proposes */}
-                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--rh-orange)' }}>Proposed Action</div>
-                      {loopResult.actions.map(a => (
-                        <div key={a.action_id} onClick={() => openDetail(`Action: ${a.action_type}`, { action_type: a.action_type, status: a.status, requires_human_approval: a.requires_human_approval, created_by_agent: a.created_by_agent, ...a.payload }, 'action')}
-                          style={{ padding: 14, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 12, cursor: 'pointer', border: '1px solid var(--border)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--rh-orange)' }} />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 16, fontWeight: 700 }}>{a.action_type.toUpperCase()}</div>
-                            </div>
-                            <span style={{ padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 700, background: 'var(--rh-green-dim)', color: 'var(--rh-green)' }}>NON-DESTRUCTIVE</span>
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>
-                            {String(a.payload.rationale || a.payload.reason || 'Action proposed based on classification cascade')}
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                            <div style={{ padding: 8, background: 'var(--surface-1)', borderRadius: 6, textAlign: 'center' }}>
-                              <div style={{ fontSize: 9, color: 'var(--text-disabled)' }}>STATUS</div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--rh-blue)' }}>{a.status}</div>
-                            </div>
-                            <div style={{ padding: 8, background: 'var(--surface-1)', borderRadius: 6, textAlign: 'center' }}>
-                              <div style={{ fontSize: 9, color: 'var(--text-disabled)' }}>APPROVAL</div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: a.requires_human_approval ? 'var(--rh-yellow)' : 'var(--rh-green)' }}>
-                                {a.requires_human_approval ? 'Human required' : 'Auto'}
-                              </div>
-                            </div>
-                            <div style={{ padding: 8, background: 'var(--surface-1)', borderRadius: 6, textAlign: 'center' }}>
-                              <div style={{ fontSize: 9, color: 'var(--text-disabled)' }}>PROPOSED BY</div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>{a.created_by_agent}</div>
-                            </div>
-                          </div>
+            {/* Act 2: The Fleet Deploys */}
+            {currentAct === 'deploy' && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  fleet-llm-d manages clusters, models, tenants, and routing. OVMS C++ serves
+                  Granite on Intel Xeon 6 with INT8 quantization via AMX.
+                </p>
+                <StepCard num={2} title="Check Fleet Health" status={fleetNanoStatus} onRun={doFleetHealth} buttonLabel="Check health">
+                  {fleetHealth && (
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginBottom: 8 }}>
+                        Mode: <strong style={{ color: fleetHealth.mode === 'live' ? 'var(--rh-green)' : 'var(--text-dim)' }}>{fleetHealth.mode}</strong>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: 'var(--rh-blue)' }}>Clusters</div>
+                      {fleetHealth.clusters.map(c => (
+                        <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 12 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.status === 'healthy' ? 'var(--rh-green)' : 'var(--rh-orange)', flexShrink: 0 }} />
+                          <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--text-secondary)' }}>{c.name}</span>
+                          <span style={{ color: 'var(--text-dim)', marginLeft: 'auto' }}>{c.region}</span>
                         </div>
                       ))}
-
-                      <FlowDescription text="The system will NOT restart services, scale infrastructure, or quarantine resources without explicit human approval. Only non-destructive actions (notify, observe, create ticket) are proposed automatically. This is a governance constraint, not a limitation." />
-
-                      {/* Verification — HOW it checks */}
-                      <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 8, color: 'var(--rh-green)' }}>Verification Plan</div>
-                      {loopResult.verifications.map(v => (
-                        <div key={v.verification_id} onClick={() => openDetail(`Verification: ${v.verification_type}`, { verification_type: v.verification_type, status: v.status, confidence: v.confidence, expected_outcome: v.expected_outcome }, 'action')}
-                          style={{ padding: 14, background: 'var(--surface-2)', borderRadius: 8, marginBottom: 8, cursor: 'pointer', border: '1px solid var(--border)' }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{v.verification_type.replace(/_/g, ' ')}</div>
-                          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8, lineHeight: 1.6 }}>
-                            After the action is taken, the system will check whether metrics return to baseline.
-                            This verification runs automatically to confirm the action had the desired effect.
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
-                            Expected: {Object.entries(v.expected_outcome).slice(0, 3).map(([k, val]) => `${k}: ${typeof val === 'number' ? (val as number).toFixed(1) : String(val)}`).join(' · ')}
-                            {Object.keys(v.expected_outcome).length > 3 && ` · +${Object.keys(v.expected_outcome).length - 3} more`}
-                          </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, marginTop: 10, marginBottom: 6, color: 'var(--rh-teal)' }}>Models</div>
+                      {fleetHealth.models.map(m => (
+                        <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 12 }}>
+                          <span style={{ fontFamily: 'Red Hat Mono, monospace', color: 'var(--text-secondary)' }}>{m.name}</span>
+                          <span style={{ color: 'var(--text-dim)', marginLeft: 'auto' }}>{m.runtime} · {m.replicas} replicas</span>
                         </div>
                       ))}
                     </div>
                   )}
                 </StepCard>
+                <div style={{ marginTop: 16 }}>
+                  <FleetArchitectureFlow />
+                </div>
               </div>
-              );
-            })()}
-            {currentAct === 'return' && (
-              <div>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>The system captures what it learned — not as silent changes, but as <strong>proposals</strong> that require human review before activation.</p>
-                <FlowDescription text="Learning proposals never apply silently. Each captures a concrete before/after delta (e.g., lower the vibration z-score warning from 2.0σ to 1.8σ). The operator decides whether to accept, reject, or modify." />
+            )}
 
-                {loopResult?.learning_proposals.map(p => (
-                  <div key={p.proposal_id}
-                    onClick={() => openDetail(`Proposal: ${p.proposal_type}`, {
-                      proposal_type: p.proposal_type, status: p.status, confidence: p.confidence,
-                      rationale: p.rationale, before: p.before, after: p.after,
-                    }, 'learning')}
-                    style={{ padding: 14, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 8, cursor: 'pointer' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: 'var(--rh-purple-dim)', color: 'var(--rh-purple)' }}>{p.proposal_type}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'Red Hat Mono, monospace' }}>{(p.confidence * 100).toFixed(0)}% confidence</span>
-                      <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-disabled)' }}>Click for before/after</span>
+            {/* Act 3: The Platform — 7 CRDs */}
+            {currentAct === 'platform' && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  Seven CRDs define the fleet's desired state. The Go control plane watches for
+                  changes and reconciles actual state continuously.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
+                  {[
+                    { name: 'FleetInferencePool', desc: 'Cluster inventory, model placement, GPU/CPU allocation', color: 'var(--rh-blue)' },
+                    { name: 'PlacementPolicy', desc: 'Affinity, anti-affinity, topology constraints', color: 'var(--rh-green)' },
+                    { name: 'FleetRoutingPolicy', desc: 'Cross-cluster traffic, load balancing, failover', color: 'var(--rh-teal)' },
+                    { name: 'FleetScalingPolicy', desc: 'HPA triggers, SLO gates, min/max replicas', color: 'var(--rh-orange)' },
+                    { name: 'TenantProfile', desc: 'Per-tenant quotas, priorities, rate limits, chargeback', color: 'var(--rh-purple)' },
+                    { name: 'KVCacheTransferPolicy', desc: 'KV cache migration for session continuity', color: 'var(--rh-red)' },
+                    { name: 'ModelLifecycle', desc: 'SLO-gated rollouts, canary, blue-green, rollback', color: 'var(--rh-yellow)' },
+                  ].map(crd => (
+                    <motion.div key={crd.name} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                      style={{ padding: 14, background: 'var(--surface-1)', border: `1px solid ${crd.color}40`, borderLeft: `4px solid ${crd.color}`, borderRadius: '0 10px 10px 0' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: crd.color, fontFamily: 'Red Hat Mono, monospace' }}>{crd.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>{crd.desc}</div>
+                    </motion.div>
+                  ))}
+                </div>
+                <FlowDescription text="CRDs are the source of truth. The fleet controller watches for changes and reconciles: creating InferencePools, adjusting placement, updating routing rules, and enforcing tenant isolation. The Rust data plane picks up routing and scaling decisions in real time via gRPC." />
+              </div>
+            )}
+
+            {/* Act 4: The Brain Predicts */}
+            {currentAct === 'predict' && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  The SLO forecaster runs linear regression on P95 latency. At +80ms/min,
+                  P95 will breach the 5s SLO in 22 minutes. Time to act.
+                </p>
+                <StepCard num={3} title="Run SLO Forecast" status={forecastStatus} onRun={doForecast} buttonLabel="Run forecast">
+                  {sloForecast && (
+                    <div>
+                      <SLOGauge
+                        currentMs={sloForecast.current_p95_ms}
+                        forecastMs={sloForecast.forecast_p95_ms}
+                        targetMs={sloForecast.slo_target_ms}
+                        breachInMinutes={sloForecast.breach_in_minutes ?? undefined}
+                      />
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 12 }}>
+                        <MetricCard label="Current P95" value={`${sloForecast.current_p95_ms}ms`} color="var(--rh-blue)" />
+                        <MetricCard label="Forecast" value={`${sloForecast.forecast_p95_ms}ms`} color={sloForecast.status === 'breach_predicted' ? 'var(--rh-red)' : 'var(--rh-orange)'} />
+                        <MetricCard label="SLO Target" value={`${sloForecast.slo_target_ms}ms`} color="var(--rh-green)" />
+                        <MetricCard label="Confidence" value={`${(sloForecast.confidence * 100).toFixed(0)}%`} color="var(--rh-teal)" />
+                      </div>
                     </div>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>{p.rationale}</p>
-                    {p.before && Object.keys(p.before).length > 0 && (
-                      <div style={{ marginTop: 8, display: 'flex', gap: 12, fontSize: 11 }}>
-                        <div style={{ flex: 1, padding: 8, background: 'var(--surface-2)', borderRadius: 6 }}>
-                          <div style={{ fontSize: 9, color: 'var(--text-disabled)', marginBottom: 4 }}>BEFORE</div>
-                          {Object.entries(p.before).slice(0, 3).map(([k, v]) => (
-                            <div key={k} style={{ color: 'var(--text-dim)', fontFamily: 'Red Hat Mono, monospace' }}>
-                              {k}: {typeof v === 'object' ? '...' : String(v)}
-                            </div>
-                          ))}
+                  )}
+                </StepCard>
+                {forecastStatus === 'done' && (
+                  <StepCard num={4} title="Scope Blast Radius" status={blastRadiusStatus} onRun={doBlastRadius} buttonLabel="Scope blast radius">
+                    {blastRadius && (
+                      <div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                          <MetricCard label="Affected Models" value={blastRadius.affected_models} color="var(--rh-orange)" />
+                          <MetricCard label="Est. Users" value={blastRadius.estimated_users} color="var(--rh-blue)" />
+                          <MetricCard label="Severity" value={blastRadius.severity} color={blastRadius.severity === 'high' || blastRadius.severity === 'critical' ? 'var(--rh-red)' : 'var(--rh-orange)'} />
                         </div>
-                        <div style={{ flex: 1, padding: 8, background: 'var(--rh-orange-dim)', borderRadius: 6 }}>
-                          <div style={{ fontSize: 9, color: 'var(--rh-orange)', marginBottom: 4 }}>AFTER (proposed)</div>
-                          {Object.entries(p.after).slice(0, 3).map(([k, v]) => (
-                            <div key={k} style={{ color: 'var(--text-secondary)', fontFamily: 'Red Hat Mono, monospace' }}>
-                              {k}: {typeof v === 'object' ? '...' : String(v)}
-                            </div>
-                          ))}
+                        <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                          <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>RATIONALE</div>
+                          {blastRadius.rationale}
                         </div>
+                        {blastRadius.requires_human_gate && (
+                          <div style={{ marginTop: 8, padding: '6px 12px', background: 'var(--surface-2)', border: '1px solid var(--rh-orange)', borderRadius: 6, fontSize: 12, color: 'var(--rh-orange)', fontWeight: 600 }}>
+                            Human gate required for this action
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
-                ))}
-
-                {/* Journey summary */}
-                {loopResult && (
-                  <div style={{ marginTop: 24 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Pipeline Summary</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-                      <MetricCard label="Evidence" value={evidence.length} color="var(--rh-blue)" />
-                      <MetricCard label="Classifications" value={classifications.length} color="var(--rh-teal)" />
-                      <MetricCard label="Actions" value={loopResult.actions.length} color="var(--rh-orange)" detail="non-destructive" />
-                      <MetricCard label="Verifications" value={loopResult.verifications.length} color="var(--rh-green)" detail="pending" />
-                      <MetricCard label="Learning" value={loopResult.learning_proposals.length} color="var(--rh-purple)" detail="awaiting review" />
-                    </div>
-                  </div>
+                  </StepCard>
                 )}
+              </div>
+            )}
+
+            {/* Act 5: The Intent */}
+            {currentAct === 'intent' && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  The predictive brain emits a PreWarmIntent to fleet-llm-d. The policy
+                  evaluator checks confidence, replica limits, and human gates before executing.
+                </p>
+                <StepCard num={5} title="Emit PreWarm Intent" status={intentStatus} onRun={doIntent} buttonLabel="Emit intent">
+                  {intentResponse && (
+                    <div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                        <MetricCard label="Status" value={intentResponse.status} color={intentResponse.status === 'executed' ? 'var(--rh-green)' : intentResponse.status === 'refused' ? 'var(--rh-red)' : 'var(--rh-orange)'} />
+                        <MetricCard label="Intent ID" value={intentResponse.intent_id.slice(0, 8)} color="var(--rh-blue)" />
+                        <MetricCard label="Ledger" value={intentResponse.ledger_entry_id ? 'Recorded' : 'Pending'} color="var(--rh-purple)" />
+                      </div>
+                      <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                        <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>REASON</div>
+                        {intentResponse.reason}
+                      </div>
+                    </div>
+                  )}
+                </StepCard>
+                <div style={{ marginTop: 16 }}>
+                  <IntentFlow
+                    stages={[
+                      { label: 'SLO Forecast', status: sloForecast ? 'done' : 'idle' },
+                      { label: 'Blast Radius', status: blastRadius ? 'done' : 'idle' },
+                      { label: 'Policy Check', status: intentResponse ? 'done' : intentStatus === 'running' ? 'active' : 'idle' },
+                      { label: 'Execute', status: intentResponse ? (intentResponse.status === 'executed' ? 'done' : 'error') : 'idle' },
+                      { label: 'Ledger Write', status: intentResponse?.ledger_entry_id ? 'done' : 'idle' },
+                    ]}
+                    intentType="pre_warm"
+                    model="granite-3.3-8b-instruct"
+                    confidence={0.87}
+                  />
+                </div>
+                <FlowDescription text="The intent carries a confidence score, justification, and target replica count. The policy evaluator checks: Is confidence above threshold? Are we within the scaling window? Does this model have headroom? If all gates pass, the intent executes and the decision is recorded in the ARE Ledger." />
+              </div>
+            )}
+
+            {/* Act 6: The Proof */}
+            {currentAct === 'proof' && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  360 tests across 12 suites. 5 CPU models. P95 under 5 seconds. HPA scales
+                  1 to 4 replicas. Zero downtime. Every decision in the ledger.
+                </p>
+                <TestMatrixCompact />
+                <StepCard num={6} title="Verify Ledger Chains" status={ledgerStatus} onRun={doLedger} buttonLabel="Verify chains">
+                  {ledgerChains && <LedgerChainView chains={ledgerChains.chains} />}
+                </StepCard>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 16 }}>
+                  <MetricCard label="Tests" value="360" color="var(--rh-green)" />
+                  <MetricCard label="Suites" value="12" color="var(--rh-blue)" />
+                  <MetricCard label="P95" value="< 5s" color="var(--rh-orange)" />
+                  <MetricCard label="Savings" value="53x" color="var(--rh-red)" />
+                </div>
+              </div>
+            )}
+
+            {/* Act 7: The Return */}
+            {currentAct === 'return' && (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  Every prediction, action, and outcome is recorded in the ARE Ledger. The
+                  chain is cryptographically verifiable. The cycle continues.
+                </p>
+                <ReplicaTimeline events={[
+                  { time: 'T-30m', replicas: 1, trigger: 'Baseline' },
+                  { time: 'T-22m', replicas: 2, trigger: 'SLO forecast' },
+                  { time: 'T-10m', replicas: 3, trigger: 'Pre-warm intent' },
+                  { time: 'T-0', replicas: 4, trigger: 'Event start' },
+                  { time: 'T+60m', replicas: 2, trigger: 'Load decrease' },
+                  { time: 'T+90m', replicas: 1, trigger: 'Cool-down' },
+                ]} maxReplicas={4} />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
+                  <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-red)30', borderRadius: 10 }}>
+                    <div style={{ fontSize: 10, color: 'var(--rh-red)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>WITHOUT PREDICTION</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-red)', fontFamily: 'Red Hat Display, sans-serif' }}>Reactive</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>SLO breach → scramble → scale → 2 min outage</div>
+                  </div>
+                  <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-green)30', borderRadius: 10 }}>
+                    <div style={{ fontSize: 10, color: 'var(--rh-green)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>WITH PREDICTION</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--rh-green)', fontFamily: 'Red Hat Display, sans-serif' }}>Proactive</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>Forecast → pre-warm → zero downtime → ledger proof</div>
+                  </div>
+                </div>
 
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                  style={{ marginTop: 24, padding: 20, background: 'var(--surface-1)', border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center' }}>
+                  style={{ marginTop: 16, padding: 16, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Event Profile Learning</div>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                    After each event, the system compares predicted vs actual load. The event
+                    profile updates: if we pre-warmed too many replicas, next time we warm fewer.
+                    If we under-provisioned, next time we warm earlier. Continuous improvement,
+                    recorded in the ledger.
+                  </p>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                  style={{ marginTop: 16, padding: 20, background: 'var(--surface-1)', border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center' }}>
                   <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.8 }}>
-                    The system studied signals, classified reality, proposed safe action,
-                    and captured what should change. The cycle continues.
+                    Predict. Act. Prove. Learn. The fleet orchestration cycle.
                   </p>
                 </motion.div>
               </div>
@@ -1133,6 +1033,8 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 32px', borderTop: '1px solid var(--border)', background: 'var(--surface-1)' }}>
         <button onClick={() => { if (actIndex > 0) setActIndex(actIndex - 1); else { setMode('slides'); setSlide(SLIDES.length - 1); } }}
           style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-dim)', padding: '6px 16px', borderRadius: 6, fontSize: 13 }}>

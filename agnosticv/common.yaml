@@ -8,16 +8,16 @@ tag: main
 
 requirements_content:
   collections:
-    - name: https://github.com/agnosticd/namespaced_workloads.git
+    - name: https://github.com/example/namespaced_workloads.git
       type: git
       version: "{{ tag }}"
-    - name: https://github.com/rhpds/rhpds.litellm_virtual_keys.git
+    - name: https://github.com/example/litellm-keys.git
       type: git
       version: "{{ tag }}"
-    - name: https://github.com/agnosticd/ai_quickstarts.git
+    - name: https://github.com/example/ai_quickstarts.git
       type: git
       version: "{{ tag }}"
-    - name: https://github.com/agnosticd/showroom.git
+    - name: https://github.com/example/showroom.git
       type: git
       version: v1.6.8
 
@@ -83,7 +83,7 @@ ai_model_requirements:
       expected_total_users: 100
 
 # --- Application deployment ---
-quickstart_deploy_via_make_repo_url: https://github.com/rhpds/deepfield-multimodal
+quickstart_deploy_via_make_repo_url: https://github.com/deepfield-fleet/deepfield-fleet
 quickstart_deploy_via_make_scm_ref: main
 quickstart_deploy_via_make_directory: deploy
 quickstart_deploy_via_make_params:
@@ -94,7 +94,7 @@ quickstart_deploy_via_make_uninstall_params:
   NAMESPACE: "user-{{ guid }}-deepfield-multimodal"
 
 # --- Showroom ---
-ocp4_workload_showroom_content_url: https://github.com/rhpds/deepfield-multimodal
+ocp4_workload_showroom_content_url: https://github.com/deepfield-fleet/deepfield-fleet
 ocp4_workload_showroom_content_ref: main
 ocp4_workload_showroom_content_dir: docs
 ocp4_workload_showroom_user: "user-{{ guid }}"
@@ -109,7 +109,7 @@ ocp4_workload_showroom_user_data:
   deepfield_url: "https://deepfield-multimodal-user-{{ guid }}-deepfield-multimodal.{{ sandbox_openshift_ingress_domain }}"
 
 # --- Platform ---
-requester_email: "rhdp-{{ guid }}@demo.redhat.com"
+requester_email: "lab-{{ guid }}@example.com"
 catalog_item_name: ai-quickstarts.ai-qs-deepfield-multimodal-tenant.event
 openshift_api_url: "{{ sandbox_openshift_api_url }}"
 openshift_cluster_admin_token: "{{ cluster_admin_agnosticd_sa_token }}"
@@ -148,7 +148,7 @@ __meta__:
       primaryBU: Engineering
     parameters: []
   deployer:
-    scm_url: https://github.com/agnosticd/agnosticd-v2
+    scm_url: https://github.com/example/agnosticd-v2
     scm_ref: main
     execution_environment:
       image: "quay.io/agnosticd/ee-multicloud:chained-2026-02-23"

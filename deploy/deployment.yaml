@@ -41,7 +41,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: app
-          image: quay.io/deepfield-fleet/deepfield-multimodal:latest
+          image: quay.io/deepfield-fleet/deepfield-fleet:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

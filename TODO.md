@@ -13,9 +13,9 @@
 
 - [ ] Add more synthetic scenarios (security incident, capacity exhaustion, model degradation)
 - [ ] Connect real inference adapters (OpenVINO/ONNX) behind microagent extension points
-- [ ] Add labs/showroom content and guided walkthroughs
+- [ ] Add labs/lab portal content and guided walkthroughs
 - [ ] Add replay comparison for baseline/classification improvements
 - [ ] Wire frontend to serve from backend (static files + SPA fallback)
 - [ ] Add PostgreSQL persistence testing with a real DB
 - [ ] Containerize (Containerfile/podman-compose)
-- [ ] Port to rhpds if needed
+- [ ] Port to platform if needed

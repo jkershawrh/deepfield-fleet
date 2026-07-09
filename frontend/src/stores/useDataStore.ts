@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import type { EvidenceArtifact, ClassificationRecord, BaselineProfile, LoopResult, ApiCall } from '../api/client';
+import type {
+  EvidenceArtifact, ClassificationRecord, BaselineProfile, LoopResult, ApiCall,
+  FleetHealthResponse, SLOForecastResponse, BlastRadiusResponse, IntentResponse,
+  CostComparisonResponse, LedgerChainResponse,
+} from '../api/client';
 
 interface TierResult {
   records: ClassificationRecord[];
@@ -42,6 +46,13 @@ interface DemoState {
   inference_mode?: string;
   inference_stats?: { total_calls: number; total_tokens_out: number; avg_latency_ms: number; avg_tokens_per_sec: number; errors: number } | null;
   waiting_for_next?: boolean;
+  // Fleet-specific SSE state
+  fleet_metrics?: Record<string, unknown>;
+  intent_flow?: Record<string, unknown>;
+  slo_gauge?: Record<string, unknown>;
+  replica_events?: Array<{ time: string; replicas: number; trigger: string }>;
+  cost_data?: Record<string, unknown>;
+  ledger_chains?: Array<{ type: string; valid: boolean; entries: number; latest_hash: string }>;
 }
 
 interface DataStore {
@@ -55,6 +66,14 @@ interface DataStore {
   macroResult: TierResult | null;
   apiCalls: ApiCall<unknown>[];
 
+  // Fleet-specific state
+  fleetHealth: FleetHealthResponse | null;
+  sloForecast: SLOForecastResponse | null;
+  blastRadius: BlastRadiusResponse | null;
+  intentResponse: IntentResponse | null;
+  costComparison: CostComparisonResponse | null;
+  ledgerChains: LedgerChainResponse | null;
+
   setDemoState: (state: DemoState) => void;
   setEvidence: (evidence: EvidenceArtifact[]) => void;
   setBaseline: (baseline: BaselineProfile | null) => void;
@@ -64,6 +83,13 @@ interface DataStore {
   setMicroResult: (result: TierResult | null) => void;
   setMacroResult: (result: TierResult | null) => void;
   addApiCall: (call: ApiCall<unknown>) => void;
+
+  setFleetHealth: (health: FleetHealthResponse | null) => void;
+  setSLOForecast: (forecast: SLOForecastResponse | null) => void;
+  setBlastRadius: (radius: BlastRadiusResponse | null) => void;
+  setIntentResponse: (response: IntentResponse | null) => void;
+  setCostComparison: (cost: CostComparisonResponse | null) => void;
+  setLedgerChains: (chains: LedgerChainResponse | null) => void;
 }
 
 export const useDataStore = create<DataStore>((set) => ({
@@ -77,6 +103,13 @@ export const useDataStore = create<DataStore>((set) => ({
   macroResult: null,
   apiCalls: [],
 
+  fleetHealth: null,
+  sloForecast: null,
+  blastRadius: null,
+  intentResponse: null,
+  costComparison: null,
+  ledgerChains: null,
+
   setDemoState: (demoState) => set({ demoState }),
   setEvidence: (evidence) => set({ evidence }),
   setBaseline: (baseline) => set({ baseline }),
@@ -88,6 +121,13 @@ export const useDataStore = create<DataStore>((set) => ({
   setMicroResult: (microResult) => set({ microResult }),
   setMacroResult: (macroResult) => set({ macroResult }),
   addApiCall: (call) => set((state) => ({ apiCalls: [...state.apiCalls, call] })),
+
+  setFleetHealth: (fleetHealth) => set({ fleetHealth }),
+  setSLOForecast: (sloForecast) => set({ sloForecast }),
+  setBlastRadius: (blastRadius) => set({ blastRadius }),
+  setIntentResponse: (intentResponse) => set({ intentResponse }),
+  setCostComparison: (costComparison) => set({ costComparison }),
+  setLedgerChains: (ledgerChains) => set({ ledgerChains }),
 }));
 
 export const resetDataStore = () => useDataStore.setState({
@@ -100,6 +140,12 @@ export const resetDataStore = () => useDataStore.setState({
   microResult: null,
   macroResult: null,
   apiCalls: [],
+  fleetHealth: null,
+  sloForecast: null,
+  blastRadius: null,
+  intentResponse: null,
+  costComparison: null,
+  ledgerChains: null,
 });
 
 export type { DemoState, TierResult };

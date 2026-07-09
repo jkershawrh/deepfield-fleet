@@ -11,13 +11,21 @@ interface FunnelData {
   actions_proposed?: number;
   verifications_created?: number;
   learning_proposals?: number;
+  // Fleet-specific
+  signals?: number;
+  nanoagents?: number;
+  forecasts?: number;
+  intents?: number;
+  actions?: number;
+  ledger_entries?: number;
 }
 
 interface Props {
   funnel: FunnelData;
+  variant?: 'factory' | 'fleet';
 }
 
-const STAGES = [
+const FACTORY_STAGES = [
   { key: 'total_evidence', label: 'Evidence', color: 'var(--rh-teal)' },
   { key: 'nano_processed', label: 'Nano', color: 'var(--rh-blue)' },
   { key: 'micro_processed', label: 'Micro', color: 'var(--rh-green)' },
@@ -26,7 +34,17 @@ const STAGES = [
   { key: 'learning_proposals', label: 'Learning', color: 'var(--rh-red)' },
 ];
 
-export function PipelineFunnel({ funnel }: Props) {
+const FLEET_STAGES = [
+  { key: 'signals', label: 'Signals', color: 'var(--rh-teal)' },
+  { key: 'nanoagents', label: 'Nanoagents', color: 'var(--rh-blue)' },
+  { key: 'forecasts', label: 'Forecast', color: 'var(--rh-green)' },
+  { key: 'intents', label: 'Intents', color: 'var(--rh-purple)' },
+  { key: 'actions', label: 'Actions', color: 'var(--rh-orange)' },
+  { key: 'ledger_entries', label: 'Ledger', color: 'var(--rh-red)' },
+];
+
+export function PipelineFunnel({ funnel, variant = 'factory' }: Props) {
+  const STAGES = variant === 'fleet' ? FLEET_STAGES : FACTORY_STAGES;
   const max = Math.max(1, ...STAGES.map(s => (funnel as Record<string, number>)[s.key] || 0));
 
   return (

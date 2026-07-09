@@ -20,7 +20,7 @@ export function Header() {
         <img src="/logos/intel.png" alt="Intel" style={{ height: 20 }} />
       </div>
       <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Red Hat Display, sans-serif', letterSpacing: -0.5 }}>
-        DeepField<span style={{ color: 'var(--rh-red)' }}> Multimodal</span>
+        fleet-llm-d<span style={{ color: 'var(--rh-red)' }}> Fleet Orchestration</span>
       </span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <motion.div

@@ -7,7 +7,7 @@
 The DeepField Multimodal container image is published to:
 
 ....
-quay.io/deepfield-fleet/deepfield-multimodal:latest
+quay.io/deepfield-fleet/deepfield-fleet:latest
 ....
 
 The image is built using a multi-stage Containerfile:
@@ -26,7 +26,7 @@ To run DeepField Multimodal locally with Podman:
 podman run -d \
   --name deepfield \
   -p 8000:8000 \
-  quay.io/deepfield-fleet/deepfield-multimodal:latest
+  quay.io/deepfield-fleet/deepfield-fleet:latest
 ----
 
 The app will be available at http://localhost:8000.
@@ -42,7 +42,7 @@ podman run -d \
   -e LITELLM_API_KEY=your-api-key \
   -e LITELLM_MODEL_MICRO=granite-3-2-8b-instruct-cpu \
   -e LITELLM_MODEL_MACRO=granite-3-2-8b-instruct-cpu \
-  quay.io/deepfield-fleet/deepfield-multimodal:latest
+  quay.io/deepfield-fleet/deepfield-fleet:latest
 ----
 
 To run with a frontier model for bootstrap:
@@ -57,7 +57,7 @@ podman run -d \
   -e BOOTSTRAP_API_BASE=https://your-bootstrap-proxy:8080 \
   -e BOOTSTRAP_API_KEY=your-bootstrap-key \
   -e BOOTSTRAP_MODEL=qwen3-235b \
-  quay.io/deepfield-fleet/deepfield-multimodal:latest
+  quay.io/deepfield-fleet/deepfield-fleet:latest
 ----
 
 Health check:
@@ -254,7 +254,7 @@ envFrom:
 
 [source,yaml]
 ----
-image: quay.io/deepfield-fleet/deepfield-multimodal:latest
+image: quay.io/deepfield-fleet/deepfield-fleet:latest
 imagePullPolicy: Always
 ----
 
