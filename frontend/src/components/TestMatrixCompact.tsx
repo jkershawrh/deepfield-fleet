@@ -11,7 +11,7 @@ interface TestMatrixCompactProps {
 const CAPABILITIES = [
   'Multi-Cluster Placement', 'Canary Rollout', 'Blue-Green Rollout',
   'Rolling Update', 'Tenant Isolation', 'Quota Enforcement',
-  'KV Cache Transfer', 'ARE Ledger Integrity', 'Auto-Scaling',
+  'KV Cache Transfer', 'Standalone Ledger Integrity', 'Auto-Scaling',
   'SLO Gate Validation', 'Fleet Routing', 'Model Hot-Swap',
 ] as const;
 
@@ -23,14 +23,13 @@ const STATUS_COLORS: Record<CellStatus, string> = {
   fail: '#ee0000',
 };
 
-// Default data: 360 tests, all green — matches actual fleet-llm-d test results
+// Default data is illustrative. Live evidence must be supplied by a caller.
 function buildDefaultData(): MatrixData {
   const data: MatrixData = {};
-  CAPABILITIES.forEach((cap, ri) => {
+  CAPABILITIES.forEach((cap) => {
     data[cap] = {};
-    TEST_TYPES.forEach((tt, ci) => {
-      const score = 88 + Math.floor((ri * 7 + ci * 3) % 12);
-      data[cap][tt] = { status: 'pass', score };
+    TEST_TYPES.forEach((tt) => {
+      data[cap][tt] = { status: 'warn' };
     });
   });
   return data;
@@ -38,7 +37,8 @@ function buildDefaultData(): MatrixData {
 
 export function TestMatrixCompact({ data }: TestMatrixCompactProps) {
   const [hovered, setHovered] = useState<string | null>(null);
-  const matrix = data && Object.keys(data).length > 0 ? data : buildDefaultData();
+  const hasExternalData = Boolean(data && Object.keys(data).length > 0);
+  const matrix = hasExternalData ? data! : buildDefaultData();
 
   const capabilities = Object.keys(matrix);
   const testTypes = capabilities.length > 0 ? Object.keys(matrix[capabilities[0]]) : [];
@@ -55,8 +55,10 @@ export function TestMatrixCompact({ data }: TestMatrixCompactProps) {
   }
   const total = pass + warn + fail;
   const allGreen = warn === 0 && fail === 0;
-  const summary = allGreen
-    ? `${total} Tests — All Green`
+  const summary = !hasExternalData
+    ? `${total} Illustrative Cells, Evidence Required`
+    : allGreen
+    ? `${total} Tests: All Green`
     : `${pass} Pass / ${warn} Warn / ${fail} Fail`;
 
   if (capabilities.length === 0) {

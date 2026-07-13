@@ -1,10 +1,8 @@
 """Fleet-llm-d demo endpoints — live proxy or simulated responses for offline demos."""
 
-import hashlib
 import logging
 import os
 import random
-import time
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -15,8 +13,14 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.domain.event_profile import EventProfile
-from app.domain.fleet_intents import IntentStatus, IntentType
+from app.domain.fleet_intents import (
+    AlertIntent,
+    PreWarmIntent,
+    ScaleIntent,
+    ShedLoadIntent,
+)
 from app.domain.models import ClassificationRecord, EvidenceArtifact
+from app.intents.emitter import IntentEmitter
 from app.macroagents import consequence_scoper
 from app.microagents.slo_forecaster import SLOForecasterAgent
 
@@ -24,12 +28,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/fleet", tags=["fleet-demo"])
 
-EVENT_PROFILES_DIR = Path(__file__).resolve().parents[2] / "config" / "defaults" / "event_profiles"
+EVENT_PROFILES_DIR = (
+    Path(__file__).resolve().parents[2] / "config" / "defaults" / "event_profiles"
+)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _fleet_url() -> str:
     return os.environ.get("FLEET_URL", "")
@@ -51,13 +58,10 @@ def _fleet_headers() -> dict:
     return headers
 
 
-def _fake_hash(seed: str) -> str:
-    return hashlib.sha256(seed.encode()).hexdigest()[:16]
-
-
 # ---------------------------------------------------------------------------
 # Request / Response schemas
 # ---------------------------------------------------------------------------
+
 
 class ForecastResponse(BaseModel):
     current_p95_ms: float
@@ -87,9 +91,11 @@ class EmitIntentRequest(BaseModel):
 
 class EmitIntentResponse(BaseModel):
     intent_id: str
-    status: str  # "executed" | "refused" | "deferred"
+    status: str  # "accepted" | "rejected" | "deferred"
     reason: str
     ledger_entry_id: Optional[str] = None
+    event_ids: list[str] = Field(default_factory=list)
+    execution_verified: bool = False
 
 
 class ChainEntry(BaseModel):
@@ -100,7 +106,10 @@ class ChainEntry(BaseModel):
 
 
 class VerifyChainResponse(BaseModel):
-    chains: list[ChainEntry]
+    chains: list[ChainEntry] = Field(default_factory=list)
+    verified: bool = False
+    reason: str = "No external evidence was supplied"
+    evidence_only: bool = True
 
 
 class EventProfileSummary(BaseModel):
@@ -113,6 +122,7 @@ class EventProfileSummary(BaseModel):
 # ---------------------------------------------------------------------------
 # 1. GET /health
 # ---------------------------------------------------------------------------
+
 
 @router.get("/health")
 async def fleet_health():
@@ -149,9 +159,24 @@ async def fleet_health():
         "fleet_url": "simulated",
         "mode": "simulated",
         "clusters": [
-            {"name": "us-east-1", "status": "ready", "gpu_type": "cpu-only", "nodes": 3},
-            {"name": "us-west-2", "status": "ready", "gpu_type": "cpu-only", "nodes": 2},
-            {"name": "eu-central-1", "status": "ready", "gpu_type": "cpu-only", "nodes": 2},
+            {
+                "name": "us-east-1",
+                "status": "ready",
+                "gpu_type": "cpu-only",
+                "nodes": 3,
+            },
+            {
+                "name": "us-west-2",
+                "status": "ready",
+                "gpu_type": "cpu-only",
+                "nodes": 2,
+            },
+            {
+                "name": "eu-central-1",
+                "status": "ready",
+                "gpu_type": "cpu-only",
+                "nodes": 2,
+            },
         ],
         "models": [
             {"name": "granite-350m", "replicas": 4, "status": "serving"},
@@ -166,6 +191,7 @@ async def fleet_health():
 # ---------------------------------------------------------------------------
 # 2. POST /forecast
 # ---------------------------------------------------------------------------
+
 
 @router.post("/forecast", response_model=ForecastResponse)
 async def fleet_forecast():
@@ -190,7 +216,9 @@ async def fleet_forecast():
         evidence.append(ev)
 
     # Run the SLO forecaster
-    forecaster = SLOForecasterAgent(forecast_horizon_minutes=30, default_slo_target=5000.0)
+    forecaster = SLOForecasterAgent(
+        forecast_horizon_minutes=30, default_slo_target=5000.0
+    )
     records = forecaster.classify(evidence)
 
     if not records:
@@ -214,7 +242,9 @@ async def fleet_forecast():
         status = "safe"
 
     return ForecastResponse(
-        current_p95_ms=round(metrics.get("current_value", evidence[-1].features["value"])),
+        current_p95_ms=round(
+            metrics.get("current_value", evidence[-1].features["value"])
+        ),
         forecast_p95_ms=round(metrics.get("forecast_value", 0)),
         slo_target_ms=round(metrics.get("slo_target", 5000.0)),
         breach_in_minutes=round(metrics.get("minutes_to_breach") or 0, 1) or None,
@@ -226,6 +256,7 @@ async def fleet_forecast():
 # ---------------------------------------------------------------------------
 # 3. POST /blast-radius
 # ---------------------------------------------------------------------------
+
 
 @router.post("/blast-radius", response_model=BlastRadiusResponse)
 async def fleet_blast_radius():
@@ -300,93 +331,77 @@ async def fleet_blast_radius():
 # 4. POST /emit-intent
 # ---------------------------------------------------------------------------
 
+
 @router.post("/emit-intent", response_model=EmitIntentResponse)
 async def fleet_emit_intent(req: EmitIntentRequest):
-    """Emit an intent to fleet-llm-d or simulate policy evaluation."""
-    intent_id = str(uuid4())
-    ledger_entry_id = str(uuid4())
+    """Compatibility adapter that emits advisory events to GCL.
 
-    if _is_fleet_available():
-        try:
-            payload = {
-                "type": req.intent_type,
-                "model": req.model,
-                "target_replicas": req.target_replicas,
-                "confidence": req.confidence,
-                "justification": req.justification,
-                "horizon_seconds": 1800,
-            }
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(
-                    f"{_fleet_url()}/api/v1/intents",
-                    json=payload,
-                    headers=_fleet_headers(),
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    return EmitIntentResponse(
-                        intent_id=data.get("intent_id", intent_id),
-                        status=data.get("status", "executed"),
-                        reason=data.get("reason", "Accepted by fleet controller"),
-                        ledger_entry_id=data.get("ledger_entry_id", ledger_entry_id),
-                    )
-                else:
-                    return EmitIntentResponse(
-                        intent_id=intent_id,
-                        status="refused",
-                        reason=f"Fleet returned HTTP {resp.status_code}: {resp.text[:200]}",
-                        ledger_entry_id=None,
-                    )
-        except Exception as e:
-            logger.warning(f"Failed to emit intent to fleet: {e}")
-            return EmitIntentResponse(
-                intent_id=intent_id,
-                status="refused",
-                reason=f"Fleet unreachable: {e}",
-                ledger_entry_id=None,
-            )
-
-    # Simulated policy evaluation
-    if req.confidence < 0.5:
+    This endpoint never calls fleet-llm-d, evaluates execution authorization,
+    fabricates an immutable-ledger receipt, or claims infrastructure execution.
+    """
+    if req.intent_type == "pre_warm":
+        intent = PreWarmIntent(
+            confidence=req.confidence,
+            horizon_seconds=1800,
+            justification=req.justification,
+            model=req.model,
+            target_replicas=req.target_replicas,
+            reason="Compatibility API recommendation",
+        )
+    elif req.intent_type == "scale":
+        intent = ScaleIntent(
+            confidence=req.confidence,
+            horizon_seconds=1800,
+            justification=req.justification,
+            pool=req.model,
+            current_replicas=0,
+            desired_replicas=req.target_replicas,
+            metric="compatibility_api",
+        )
+    elif req.intent_type == "shed_load":
+        intent = ShedLoadIntent(
+            confidence=req.confidence,
+            horizon_seconds=300,
+            justification=req.justification,
+            model=req.model,
+            max_inflight=max(1, req.target_replicas),
+            duration_seconds=300,
+            reason="Compatibility API recommendation",
+        )
+    elif req.intent_type == "alert":
+        intent = AlertIntent(
+            confidence=req.confidence,
+            horizon_seconds=300,
+            justification=req.justification,
+            severity="warning",
+            message=req.justification,
+            recommended_action="Operator review",
+        )
+    else:
         return EmitIntentResponse(
-            intent_id=intent_id,
-            status="deferred",
-            reason=f"Confidence {req.confidence:.2f} below policy threshold (0.50). "
-                   f"Queued for human review.",
-            ledger_entry_id=ledger_entry_id,
+            intent_id=str(uuid4()),
+            status="rejected",
+            reason=f"Unsupported advisory type: {req.intent_type}",
         )
 
-    if req.target_replicas > 8:
-        return EmitIntentResponse(
-            intent_id=intent_id,
-            status="refused",
-            reason=f"Requested {req.target_replicas} replicas exceeds policy maximum (8). "
-                   f"Submit capacity exception request.",
-            ledger_entry_id=ledger_entry_id,
-        )
-
-    if req.intent_type in ("shed_load", "alert") and req.confidence >= 0.5:
-        # Critical intents with human gate
-        return EmitIntentResponse(
-            intent_id=intent_id,
-            status="deferred",
-            reason=f"Intent type '{req.intent_type}' requires human approval per policy. "
-                   f"Notification sent to fleet operator.",
-            ledger_entry_id=ledger_entry_id,
-        )
-
+    emitter = IntentEmitter()
+    try:
+        result = await emitter.emit(intent)
+    finally:
+        await emitter.close()
     return EmitIntentResponse(
-        intent_id=intent_id,
-        status="executed",
-        reason=f"{req.intent_type.replace('_', '-')} intent executed: {req.model} scaled to "
-               f"{req.target_replicas} replicas (confidence {req.confidence:.2f}).",
-        ledger_entry_id=ledger_entry_id,
+        intent_id=result.intent_id,
+        status=result.status,
+        reason=result.reason,
+        event_ids=result.event_ids,
+        execution_verified=False,
     )
 
 
 # ---------------------------------------------------------------------------
 # 5. GET /cost
 # ---------------------------------------------------------------------------
+
 
 @router.get("/cost")
 async def fleet_cost():
@@ -419,9 +434,10 @@ async def fleet_cost():
 # 6. POST /verify-chain
 # ---------------------------------------------------------------------------
 
+
 @router.post("/verify-chain", response_model=VerifyChainResponse)
 async def fleet_verify_chain():
-    """Simulate or proxy ledger chain verification."""
+    """Return external evidence when available; never fabricate a chain."""
     if _is_fleet_available():
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -430,29 +446,30 @@ async def fleet_verify_chain():
                     headers=_fleet_headers(),
                 )
                 if resp.status_code == 200:
-                    return VerifyChainResponse(**resp.json())
+                    payload = resp.json()
+                    chains = [ChainEntry(**item) for item in payload.get("chains", [])]
+                    verified = bool(chains) and all(item.valid for item in chains)
+                    return VerifyChainResponse(
+                        chains=chains,
+                        verified=verified,
+                        reason=(
+                            "Fleet evidence projection returned chain data; this is "
+                            "not execution authorization"
+                        ),
+                    )
         except Exception as e:
             logger.warning(f"Chain verification proxy failed: {e}")
-
-    # Simulated chain verification
-    chain_types = ["placement", "scaling", "routing", "lifecycle", "tenant"]
-    ts = str(time.time())
-    chains = [
-        ChainEntry(
-            type=ct,
-            valid=True,
-            entries=random.randint(42, 380),
-            latest_hash=_fake_hash(f"{ct}-{ts}"),
-        )
-        for ct in chain_types
-    ]
-
-    return VerifyChainResponse(chains=chains)
+    return VerifyChainResponse(
+        chains=[],
+        verified=False,
+        reason="No external chain evidence is available; no verification is claimed",
+    )
 
 
 # ---------------------------------------------------------------------------
 # 7. GET /event-profiles
 # ---------------------------------------------------------------------------
+
 
 @router.get("/event-profiles")
 async def fleet_event_profiles():
@@ -467,36 +484,40 @@ async def fleet_event_profiles():
                     data = yaml.safe_load(f)
                 if data:
                     profile = EventProfile(**data)
-                    profiles.append({
-                        "name": profile.name,
-                        "description": profile.description,
-                        "expected_users": profile.load_profile.concurrent_users,
-                        "pre_warm_minutes": profile.schedule.pre_warm_minutes,
-                        "models": profile.load_profile.models,
-                        "session_duration_minutes": profile.schedule.session_duration_minutes,
-                        "slo_p95_ms": profile.slo_targets.p95_latency_ms,
-                        "pre_warm_replicas": profile.pre_warm_action.replicas,
-                    })
+                    profiles.append(
+                        {
+                            "name": profile.name,
+                            "description": profile.description,
+                            "expected_users": profile.load_profile.concurrent_users,
+                            "pre_warm_minutes": profile.schedule.pre_warm_minutes,
+                            "models": profile.load_profile.models,
+                            "session_duration_minutes": profile.schedule.session_duration_minutes,
+                            "slo_p95_ms": profile.slo_targets.p95_latency_ms,
+                            "pre_warm_replicas": profile.pre_warm_action.replicas,
+                        }
+                    )
             except Exception as e:
                 logger.warning(f"Failed to load event profile {yaml_file}: {e}")
 
     # Fallback: inline Summit Connect profile if no files found
     if not profiles:
-        profiles.append({
-            "name": "summit-connect",
-            "description": "Red Hat Summit Connect lab session with CPU inference",
-            "expected_users": 50,
-            "pre_warm_minutes": 30,
-            "models": [
-                "granite-350m",
-                "granite-2b-int8",
-                "granite-4.1-3b",
-                "phi3-mini-cpu",
-                "qwen25-3b-cpu",
-            ],
-            "session_duration_minutes": 90,
-            "slo_p95_ms": 5000,
-            "pre_warm_replicas": 4,
-        })
+        profiles.append(
+            {
+                "name": "summit-connect",
+                "description": "Red Hat Summit Connect lab session with CPU inference",
+                "expected_users": 50,
+                "pre_warm_minutes": 30,
+                "models": [
+                    "granite-350m",
+                    "granite-2b-int8",
+                    "granite-4.1-3b",
+                    "phi3-mini-cpu",
+                    "qwen25-3b-cpu",
+                ],
+                "session_duration_minutes": 90,
+                "slo_p95_ms": 5000,
+                "pre_warm_replicas": 4,
+            }
+        )
 
     return {"profiles": profiles}

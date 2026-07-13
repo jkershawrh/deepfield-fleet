@@ -1,12 +1,35 @@
 # DeepField Fleet
 
-**Predictive Intelligence Layer for fleet-llm-d Inference Orchestration**
+**Canonical observation, finding, and forecast producer for the governed fleet ecosystem**
 
-Composable predictive brain that sits above fleet-llm-d (deterministic actuator) and the ARE Immutable Ledger (shared audit spine). Classifies fleet signals, forecasts SLO breaches, emits typed intents, and produces verifiable prediction→action→outcome chains.
+DeepField Fleet classifies fleet signals and publishes strict CloudEvents 1.0 observations, findings, forecasts, and advisory remediation proposals to a configured Governed Cognitive Loop (GCL) sink. It does not authorize or execute fleet changes and does not write directly to an execution-authority or immutable-ledger service.
 
 Forked from [deepfield-multimodal](https://github.com/deepfield-fleet/deepfield-multimodal) — the agentic signal classification engine on Intel Xeon 6.
 
-## Three-Layer Architecture
+## Ecosystem authority boundary
+
+- DeepField Fleet owns observation, finding, forecast, and advisory-remediation event schemas.
+- GCL owns decision synthesis and signed `DecisionPackage` objects.
+- fleet-llm-d owns admission, execution authorization, operation state, and observed actuation; `are-immutable-ledger` owns immutable evidence receipts only.
+- A successful response from `GCL_EVENT_SINK_URL` proves only transport acceptance. Every producer result keeps `execution_verified=false` and carries no ledger receipt.
+- Missing producer scope or an unavailable sink returns `deferred`; it never falls back to direct fleet mutation or simulated success.
+
+Published schemas are available at `GET /api/v1/ecosystem/contracts/schemas`. See [the producer contract guide](docs/ecosystem-contracts.md) for configuration and proof limits.
+
+## Runtime ecosystem
+
+```text
+deepfield-fleet -> governed-cognitive-loop -> fleet-llm-d -> are-immutable-ledger
+ observations        signed proposals          actuation       proof evidence
+```
+
+DeepField publishes only to GCL in the ordinary path. GCL proposes but does not
+execute. Fleet makes and records the execution decision. The ledger proves what
+was recorded and never supplies authority.
+
+## Historical demo architecture
+
+The diagram below describes the original presentation flow. Direct FleetIntent and ledger-write arrows are retained only as historical context; the runtime producer path described above supersedes them.
 
 ```
 deepfield-fleet (this repo)              fleet-llm-d
@@ -19,7 +42,7 @@ deepfield-fleet (this repo)              fleet-llm-d
 │ A/B: toggle on/off       │                       │
 │ Profiles: YAML           │                       ▼
 │ DB: intents, runs        │              ┌──────────────────┐
-└──────────────────────────┘              │  ARE Ledger      │
+└──────────────────────────┘              │ immutable ledger │
          │                                │  predict→act→out │
          └───────────────────────────────▶│                  │
                                           └──────────────────┘
@@ -202,14 +225,15 @@ Requires: `cluster-reader` + `cluster-monitoring-view` ClusterRoles on ServiceAc
 3. **BDD** — Given/When/Then scenario tests for end-to-end flows
 4. **EDD** — Rubric scoring (healthy/warning/failing) across quality dimensions
 
-**288 tests (278 unit + 10 integration), zero failures. 9 EDD rubric dimensions. All green.**
+The current backend suite is **295 passed, 3 skipped**. Synthetic dashboard
+stories are presentation fixtures, not live execution, ledger, or promotion evidence.
 
 ## Fleet-Specific Components
 
 | Component | Purpose | Tests |
 |-----------|---------|-------|
-| **FleetIntent types** | PreWarm, Scale, ShedLoad, Alert — typed recommendations to fleet-llm-d | 8 |
-| **IntentEmitter** | POST intents to fleet-llm-d, record predictions to ARE Ledger | integrated |
+| **FleetIntent types** | Legacy internal recommendation DTOs; not FleetIntent CRDs or grants | 8 |
+| **IntentEmitter** | Converts recommendations into strict advisory CloudEvents for GCL | contract tests |
 | **slo_drift** nanoagent | Detects P95/P99 trending toward SLO threshold | 5 |
 | **capacity_pressure** nanoagent | CPU utilization approaching saturation | 3 |
 | **queue_depth** nanoagent | Inference queue growing beyond capacity | 2 |
@@ -219,9 +243,11 @@ Requires: `cluster-reader` + `cluster-monitoring-view` ClusterRoles on ServiceAc
 | **FleetPredictor** | A/B toggle (predictive vs reactive), event profiles | 7 |
 | **Event profiles** | YAML-driven calendar pre-warming (Summit Connect) | 8 |
 | **Persistence** | fleet_intents, ab_runs, prediction_outcomes tables | 7 |
-| **Integration tests** | End-to-end against live fleet-llm-d on dev-cluster-1 | 10 |
+| **Producer contract tests** | CloudEvent validation, GCL delivery, and fail-honest semantics | local |
 
-## Integration Benchmarks
+## Historical integration benchmarks
+
+The results below predate the governed CloudEvent boundary. They are historical component observations and do not prove the current GCL-to-fleet governed execution chain.
 
 Tested against fleet-llm-d on dev-cluster-1 (Intel Xeon, Red Hat OpenShift 4.19):
 
@@ -266,21 +292,24 @@ deepfield-fleet/
 ## Quick Start
 
 ```bash
-# Run with fleet-llm-d (predictive mode)
-FLEET_URL=http://fleet-controller:8080 \
-FLEET_TOKEN=<token> \
-python3 -m uvicorn app.api.main:app --host 0.0.0.0 --port 8090
+# Publish governed producer events to an exact GCL ingestion URL
+GCL_EVENT_SINK_URL=https://gcl.example/api/v1/events/deepfield \
+DEEPFIELD_TENANT=tenant-a \
+DEEPFIELD_ZONE=us-central-1 \
+DEEPFIELD_CLUSTER=spoke-a \
+DEEPFIELD_NAMESPACE=tenant-a \
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8090
 
 # Run standalone (classification only, no intent emission)
-python3 -m uvicorn app.api.main:app --host 0.0.0.0 --port 8090
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8090
 
 # Run tests
 python3 -m pytest app/tests/ -v
 
-# Run integration tests (requires live fleet-llm-d)
-FLEET_URL=http://localhost:8080 FLEET_TOKEN=<token> python3 -m pytest app/tests/test_integration_fleet.py -v
+# Run producer contract and delivery tests
+python3 -m pytest app/tests/test_ecosystem_contracts.py app/tests/test_ecosystem_emitter.py -v
 ```
 
 ## Powered By
 
-Red Hat OpenShift · Intel Xeon 6 · Intel Gaudi 3 · fleet-llm-d · ARE Immutable Ledger
+Red Hat OpenShift · Intel Xeon 6 · Intel Gaudi 3 · GCL · fleet-llm-d · are-immutable-ledger

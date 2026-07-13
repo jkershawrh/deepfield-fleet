@@ -297,7 +297,8 @@ export default function App() {
           style={{ fontSize: 20, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           deepfield-fleet adds a predictive intelligence layer. SLO forecasting detects breaches
           before they happen. Event profiles pre-warm models before the crowd arrives. Every
-          prediction recorded in the ARE Ledger.
+          recommendation published as advisory evidence for GCL. This presentation does not
+          claim fleet execution or a standalone-ledger receipt.
         </motion.p>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
           style={{ fontSize: 14, color: 'var(--text-disabled)', marginTop: 24 }}>
@@ -533,7 +534,7 @@ export default function App() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
                 {[
                   { value: '53x', label: 'Cost Savings', color: 'var(--rh-red)' },
-                  { value: '360', label: 'Tests Passing', color: 'var(--rh-green)' },
+                  { value: '295', label: 'Backend Tests Passing', color: 'var(--rh-green)' },
                   { value: '5', label: 'CPU Models', color: 'var(--rh-blue)' },
                   { value: '< 5s', label: 'P95 SLO', color: 'var(--rh-orange)' },
                 ].map(s => (
@@ -547,12 +548,12 @@ export default function App() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
                 style={{ padding: 24, background: 'var(--surface-1)', border: '1px solid var(--rh-red)40', borderRadius: 10, textAlign: 'center', marginBottom: 24 }}>
                 <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'Red Hat Display, sans-serif' }}>
-                  Fleet-level inference orchestration. Proven.
+                  Fleet ecosystem architecture. Contract-tested.
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 12, lineHeight: 1.8 }}>
-                  Multi-cluster. Multi-tenant. SLO-gated. Cost-optimized.
-                  CPU inference at $0.60/hr vs $32/hr GPU.
-                  Every decision recorded in the ARE Immutable Ledger.
+                  DeepField produces advisory evidence, GCL synthesizes signed decisions, and
+                  fleet owns authorization and operations. Live multi-cluster actuation and
+                  standalone-ledger proof remain external promotion evidence.
                 </p>
               </motion.div>
 
@@ -571,14 +572,14 @@ export default function App() {
                   <div style={{ fontSize: 10, color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>COMPLIANCE</div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-blue)', fontFamily: 'Red Hat Display, sans-serif' }}>ARE</div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
-                    ARE Immutable Ledger. 5 chains verified. Every placement, scaling, and routing decision cryptographically recorded.
+                    Standalone immutable-ledger integration is proof-only. No chain is shown as verified without a live receipt and entry lookup.
                   </div>
                 </div>
                 <div style={{ padding: 16, background: 'var(--surface-1)', border: '1px solid var(--rh-purple)30', borderRadius: 10 }}>
                   <div style={{ fontSize: 10, color: 'var(--rh-purple)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>INTELLIGENCE</div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--rh-purple)', fontFamily: 'Red Hat Display, sans-serif' }}>Predict</div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>
-                    deepfield-fleet predicts, not reacts. SLO forecasting, event pre-warming, intent-driven scaling. A/B provable in the ledger.
+                    deepfield-fleet produces observations, findings, forecasts, and advisory remediation proposals for GCL evaluation.
                   </div>
                 </div>
               </motion.div>
@@ -592,7 +593,7 @@ export default function App() {
                     { title: 'Edge Inference', color: 'var(--rh-blue)',
                       desc: 'CPU inference at the edge. No GPU required. Low-latency serving on standard infrastructure. Granite models on Intel hardware at every location.' },
                     { title: 'Sovereign Cloud', color: 'var(--rh-green)',
-                      desc: 'Data-sovereign inference within geographic boundaries. No model or data egress. ARE Ledger provides compliance proof for regulators.' },
+                      desc: 'Data-sovereign inference within geographic boundaries. Residency and ledger evidence require live fleet outcomes and independently verified receipts.' },
                     { title: 'Multi-Tenant SaaS', color: 'var(--rh-purple)',
                       desc: 'Per-tenant quotas, priorities, and chargeback. TenantProfile CRD enforces isolation. Fair scheduling across shared GPU/CPU pools.' },
                     { title: 'Event-Driven Pre-Warming', color: 'var(--rh-orange)',
@@ -627,7 +628,7 @@ export default function App() {
                     <br />Fleet-level inference orchestration for the enterprise.
                   </p>
                   <p style={{ fontSize: 12, color: 'var(--text-disabled)', marginTop: 12, fontFamily: 'Red Hat Mono, monospace' }}>
-                    $0.60/hr CPU · 53x cheaper · 360 tests · ARE Ledger compliance
+                    Historical cost fixture · 295 backend tests · external execution proof required
                   </p>
                   <a href="https://github.com/jkershawrh/fleet-llm-d" target="_blank" rel="noopener noreferrer"
                     style={{ display: 'inline-block', marginTop: 16, background: 'var(--rh-red)', border: 'none', color: '#fff', padding: '10px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
@@ -742,7 +743,7 @@ export default function App() {
     predict:  { title: 'The Prediction',   subtitle: 'The SLO forecaster sees latency climbing.',                                  next: 'See the response →' },
     response: { title: 'The Response',     subtitle: 'The system responds before the breach.',                                     next: 'The burst arrives →' },
     burst:    { title: 'The Burst',        subtitle: '200 users arrive. Does the fleet survive?',                                  next: 'See the proof →' },
-    proof:    { title: 'The Proof',        subtitle: 'Everything survived. The ledger recorded it all.',                           next: 'See the learning →' },
+    proof:    { title: 'Evidence Boundary', subtitle: 'Synthetic walkthrough; live fleet and ledger proof remain external.',       next: 'See the learning →' },
     learning: { title: 'The Learning',     subtitle: 'The fleet gets smarter for next time.',                                      next: '' },
   };
   const currentAct = manualActs[actIndex] || manualActs[0];
@@ -905,17 +906,17 @@ export default function App() {
             {currentAct === 'response' && (
               <div>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
-                  The system responds before the breach. PreWarmIntent: scale granite-3.3-8b-instruct
-                  to 4 replicas. fleet-llm-d evaluates the intent against policy. Confidence: 87%.
-                  Replicas within limits. Executed.
+                  DeepField responds before the breach with a forecast and an advisory pre-warm
+                  proposal for granite-3.3-8b-instruct. GCL transport acceptance is not policy
+                  authorization or fleet execution. Confidence: 87%.
                 </p>
-                <StepCard num={5} title="Emit PreWarm Intent" status={intentStatus} onRun={doIntent} buttonLabel="Emit intent">
+                <StepCard num={5} title="Publish Governed Recommendation" status={intentStatus} onRun={doIntent} buttonLabel="Publish events">
                   {intentResponse && (
                     <div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-                        <MetricCard label="Status" value={intentResponse.status} color={intentResponse.status === 'executed' ? 'var(--rh-green)' : intentResponse.status === 'refused' ? 'var(--rh-red)' : 'var(--rh-orange)'} />
-                        <MetricCard label="Intent ID" value={intentResponse.intent_id.slice(0, 8)} color="var(--rh-blue)" />
-                        <MetricCard label="Ledger" value={intentResponse.ledger_entry_id ? 'Recorded' : 'Pending'} color="var(--rh-purple)" />
+                        <MetricCard label="Delivery" value={intentResponse.status} color={intentResponse.status === 'accepted' ? 'var(--rh-blue)' : intentResponse.status === 'rejected' ? 'var(--rh-red)' : 'var(--rh-orange)'} />
+                        <MetricCard label="Correlation" value={intentResponse.intent_id.slice(0, 8)} color="var(--rh-blue)" />
+                        <MetricCard label="Execution" value={intentResponse.execution_verified ? 'Verified' : 'Unverified'} color="var(--rh-orange)" />
                       </div>
                       <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                         <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>REASON</div>
@@ -929,9 +930,9 @@ export default function App() {
                     stages={[
                       { label: 'SLO Forecast', status: sloForecast ? 'done' : 'idle' },
                       { label: 'Blast Radius', status: blastRadius ? 'done' : 'idle' },
-                      { label: 'Policy Check', status: intentResponse ? 'done' : intentStatus === 'running' ? 'active' : 'idle' },
-                      { label: 'Execute', status: intentResponse ? (intentResponse.status === 'executed' ? 'done' : 'error') : 'idle' },
-                      { label: 'Ledger Write', status: intentResponse?.ledger_entry_id ? 'done' : 'idle' },
+                      { label: 'Publish CloudEvents', status: intentResponse ? 'done' : intentStatus === 'running' ? 'active' : 'idle' },
+                      { label: 'GCL Delivery', status: intentResponse ? (intentResponse.status === 'accepted' ? 'done' : 'error') : 'idle' },
+                      { label: 'Execution (external)', status: 'idle' },
                     ]}
                     intentType="pre_warm"
                     model="granite-3.3-8b-instruct"
@@ -969,18 +970,18 @@ export default function App() {
             {currentAct === 'proof' && (
               <div>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
-                  P95 held under SLO. Zero cascading failures. Every scaling decision, every intent,
-                  every load shed event recorded in the ARE Ledger. 360 tests confirm it works.
+                  This synthetic scenario illustrates an intended outcome. It does not prove a
+                  fleet operation, a measured SLO, or a verified immutable-ledger receipt.
                 </p>
                 <TestMatrixCompact />
-                <StepCard num={6} title="Verify Ledger Chains" status={ledgerStatus} onRun={doLedger} buttonLabel="Verify chains">
+                <StepCard num={6} title="Check External Ledger Evidence" status={ledgerStatus} onRun={doLedger} buttonLabel="Check evidence">
                   {ledgerChains && <LedgerChainView chains={ledgerChains.chains} />}
                 </StepCard>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 16 }}>
-                  <MetricCard label="P95 Latency" value="< 5s" color="var(--rh-green)" detail="Under SLO" />
-                  <MetricCard label="Tests" value="360" color="var(--rh-blue)" detail="All passing" />
-                  <MetricCard label="Cascading Failures" value="0" color="var(--rh-green)" detail="Load shed worked" />
-                  <MetricCard label="Ledger Entries" value="5 chains" color="var(--rh-purple)" detail="Verified" />
+                  <MetricCard label="P95 Fixture" value="< 5s" color="var(--rh-orange)" detail="Not live evidence" />
+                  <MetricCard label="Backend Tests" value="295" color="var(--rh-blue)" detail="3 skipped" />
+                  <MetricCard label="Failure Fixture" value="0" color="var(--rh-orange)" detail="Not live evidence" />
+                  <MetricCard label="Ledger Evidence" value="0 live chains" color="var(--rh-orange)" detail="External evidence required" />
                 </div>
               </div>
             )}
@@ -1013,7 +1014,8 @@ export default function App() {
                   <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
                     The event profile records the delta: predicted 4 replicas, needed 5. Pre-warm
                     window was 30 minutes &mdash; sufficient. Next Summit Connect event will pre-warm to
-                    5 replicas. Continuous improvement, recorded in the ledger.
+                    5 replicas. This is an advisory learning fixture; policy and authority cannot
+                    be promoted automatically from it.
                   </p>
                 </motion.div>
 

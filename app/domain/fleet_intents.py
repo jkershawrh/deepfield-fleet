@@ -1,10 +1,10 @@
-"""Fleet intent types for the predictive brain -> fleet-llm-d contract.
+"""Legacy internal recommendation types used by the predictive pipeline.
 
-These are the typed recommendations that the predictive brain emits.
-fleet-llm-d consumes them, evaluates against policy, and executes or refuses.
+Outbound recommendations are converted to DeepField-owned advisory CloudEvents.
+These models are not FleetIntent CRDs, execution grants, or actuation results.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Literal, Optional
 from uuid import UUID, uuid4
@@ -36,7 +36,7 @@ class FleetIntent(BaseModel):
     horizon_seconds: int = Field(ge=0, description="How far ahead this predicts")
     justification: str
     state_snapshot: dict = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: IntentStatus = IntentStatus.PROPOSED
     response_reason: Optional[str] = None
 
@@ -73,7 +73,7 @@ class AlertIntent(FleetIntent):
 
 
 class IntentResponse(BaseModel):
-    """Response from fleet-llm-d after evaluating an intent."""
+    """Legacy compatibility response retained for stored historical runs."""
     intent_id: UUID
     status: IntentStatus
     reason: str = ""

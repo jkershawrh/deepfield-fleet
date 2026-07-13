@@ -34,17 +34,26 @@ const NODES_RAW: { id: string; data: ArchNodeData }[] = [
     id: 'deepfield-fleet',
     data: {
       label: 'deepfield-fleet',
-      subtitle: 'Predictive Brain',
-      description: 'SLO Forecast • Event Pre-Warm • Intent Emission',
+      subtitle: 'Advisory Producer',
+      description: 'Observations • Findings • Forecasts',
       color: 'var(--rh-purple)',
+    },
+  },
+  {
+    id: 'governed-cognitive-loop',
+    data: {
+      label: 'governed-cognitive-loop',
+      subtitle: 'Decision Synthesis',
+      description: 'Candidates • Falsification • Signed DecisionPackage',
+      color: 'var(--rh-red)',
     },
   },
   {
     id: 'fleet-controller',
     data: {
       label: 'fleet-controller',
-      subtitle: 'Go Control Plane',
-      description: '31 Endpoints • 7 CRDs • Policy Engine',
+      subtitle: 'Fleet Control Plane',
+      description: 'Admission • Authorization • Durable Operations',
       color: 'var(--rh-blue)',
     },
   },
@@ -76,21 +85,22 @@ const NODES_RAW: { id: string; data: ArchNodeData }[] = [
     },
   },
   {
-    id: 'are-ledger',
+    id: 'immutable-ledger',
     data: {
-      label: 'are-ledger',
-      subtitle: 'ARE Ledger',
-      description: 'Immutable Audit Trail • Chain Verification',
+      label: 'are-immutable-ledger',
+      subtitle: 'Standalone Proof Service',
+      description: 'Evidence Receipts • Chain Verification • No Grants',
       color: 'var(--rh-red)',
     },
   },
 ];
 
 const EDGES_RAW: { source: string; target: string; label: string }[] = [
-  { source: 'deepfield-fleet', target: 'fleet-controller', label: 'Intents' },
+  { source: 'deepfield-fleet', target: 'governed-cognitive-loop', label: 'Advisory CloudEvents' },
+  { source: 'governed-cognitive-loop', target: 'fleet-controller', label: 'Signed DecisionPackages' },
   { source: 'fleet-controller', target: 'fleet-gateway', label: 'Routing Policies' },
   { source: 'fleet-controller', target: 'inference-proxy', label: 'Backend Config' },
-  { source: 'fleet-controller', target: 'are-ledger', label: 'Decisions' },
+  { source: 'fleet-controller', target: 'immutable-ledger', label: 'Evidence Receipts' },
   { source: 'inference-proxy', target: 'ovms', label: 'Chat Completions' },
   { source: 'fleet-gateway', target: 'inference-proxy', label: 'Cross-Cluster Traffic' },
 ];
