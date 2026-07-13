@@ -1,4 +1,4 @@
-"""Kubernetes API connector — reads pod status, events, and node health.
+"""Kubernetes API connector: reads pod status, events, and node health.
 
 READ-ONLY. Watch/Get only. Never apply/delete/patch/create.
 Uses service account token when running in-cluster.

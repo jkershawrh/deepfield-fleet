@@ -1,4 +1,4 @@
-"""Macroagent: consequence scoper — assesses blast radius of predicted SLO breaches."""
+"""Macroagent: consequence scoper. Assesses blast radius of predicted SLO breaches."""
 
 from typing import Optional
 

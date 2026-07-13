@@ -1,4 +1,4 @@
-"""Config generator — creates YAML configs from semantic analysis."""
+"""Config generator: creates YAML configs from semantic analysis."""
 
 import logging
 from dataclasses import asdict

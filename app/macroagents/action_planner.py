@@ -20,13 +20,13 @@ class ActionPlannerAgent:
 
         if has_critical:
             action = "notify"
-            rationale = "Critical severity detected — notify immediately"
+            rationale = "Critical severity detected, notify immediately"
         elif has_high:
             action = "notify"
-            rationale = "High severity detected — notify for review"
+            rationale = "High severity detected, notify for review"
         else:
             action = "observe"
-            rationale = "No urgent action required — continue monitoring"
+            rationale = "No urgent action required, continue monitoring"
 
         return [ClassificationRecord(
             target_type="action",

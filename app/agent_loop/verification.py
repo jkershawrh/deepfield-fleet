@@ -1,4 +1,4 @@
-"""Verification service — compare post-action observations to expected outcomes."""
+"""Verification service: compare post-action observations to expected outcomes."""
 
 from datetime import datetime, timezone
 from typing import Optional

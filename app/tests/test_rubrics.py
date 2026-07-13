@@ -26,7 +26,7 @@ FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "multimodal" / 
 
 
 # ---------------------------------------------------------------------------
-# M1: Contract compliance — GREEN
+# M1: Contract compliance: GREEN
 # ---------------------------------------------------------------------------
 
 class TestM1ContractCompliance:
@@ -60,7 +60,7 @@ class TestM1ContractCompliance:
 
 
 # ---------------------------------------------------------------------------
-# M1: Fixture scenarios — GREEN
+# M1: Fixture scenarios: GREEN
 # ---------------------------------------------------------------------------
 
 class TestM1FixtureScenarios:
@@ -95,7 +95,7 @@ class TestM1FixtureScenarios:
 
 
 # ---------------------------------------------------------------------------
-# M1: DB graceful degradation — GREEN
+# M1: DB graceful degradation: GREEN
 # ---------------------------------------------------------------------------
 
 class TestM1DBDegradation:
@@ -118,7 +118,7 @@ class TestM1DBDegradation:
 
 
 # ---------------------------------------------------------------------------
-# M1: Evidence normalization — RED (expected, M2 target)
+# M1: Evidence normalization: RED (expected, M2 target)
 # ---------------------------------------------------------------------------
 
 class TestM1EvidenceNormalization:
@@ -128,7 +128,7 @@ class TestM1EvidenceNormalization:
 
 
 # ---------------------------------------------------------------------------
-# M1: Classification accuracy — RED (expected, M3 target)
+# M1: Classification accuracy: RED (expected, M3 target)
 # ---------------------------------------------------------------------------
 
 class TestM1ClassificationAccuracy:
@@ -138,7 +138,7 @@ class TestM1ClassificationAccuracy:
 
 
 # ---------------------------------------------------------------------------
-# M1: Cascade efficiency — RED (expected, M3 target)
+# M1: Cascade efficiency: RED (expected, M3 target)
 # ---------------------------------------------------------------------------
 
 class TestM1CascadeEfficiency:
@@ -148,7 +148,7 @@ class TestM1CascadeEfficiency:
 
 
 # ---------------------------------------------------------------------------
-# M1: Agent coverage — RED (expected, M3 target)
+# M1: Agent coverage: RED (expected, M3 target)
 # ---------------------------------------------------------------------------
 
 class TestM1AgentCoverage:
@@ -158,7 +158,7 @@ class TestM1AgentCoverage:
 
 
 # ---------------------------------------------------------------------------
-# M1: Full pipeline evaluation — overall failing (expected)
+# M1: Full pipeline evaluation: overall failing (expected)
 # ---------------------------------------------------------------------------
 
 class TestM1FullEvaluation:
@@ -203,12 +203,12 @@ class TestM1FullEvaluation:
 
 
 # ---------------------------------------------------------------------------
-# M3: Full rubric matrix — ALL GREEN
+# M3: Full rubric matrix: ALL GREEN
 # ---------------------------------------------------------------------------
 
 class TestM3FullEvaluation:
     def test_m3_has_safety_red(self):
-        """At M3: 8 green, 1 red (safety — not yet implemented)."""
+        """At M3: 8 green, 1 red (safety, not yet implemented)."""
         result = evaluate_pipeline(
             models_importable=True, all_literals_enforced=True,
             confidence_ranges_enforced=True, serialization_roundtrips=True,

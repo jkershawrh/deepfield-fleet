@@ -1,4 +1,4 @@
-"""Evidence normalizer — converts signals and raw artifacts into EvidenceArtifact."""
+"""Evidence normalizer: converts signals and raw artifacts into EvidenceArtifact."""
 
 import csv
 from datetime import datetime, timezone

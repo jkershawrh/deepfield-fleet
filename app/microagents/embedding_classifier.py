@@ -15,7 +15,7 @@ class EmbeddingClusterClassifierAgent(BaseMicroagent):
                 agent_tier="micro", agent_name=self.name,
                 taxonomy="incident_family", class_name="unclassified",
                 severity="info", confidence=0.3,
-                rationale="Placeholder — embedding classifier not yet connected",
+                rationale="Placeholder: embedding classifier not yet connected",
                 evidence_ids=[ev.evidence_id],
                 metrics={"model": "placeholder", "runtime": "cpu"},
             ))

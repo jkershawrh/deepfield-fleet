@@ -1,9 +1,9 @@
-"""Config loader — reads YAML configs with fallback to defaults, then hardcoded.
+"""Config loader: reads YAML configs with fallback to defaults, then hardcoded.
 
 Looks for configs in this order:
-1. config/{path}          — user/bootstrap-generated config
-2. config/defaults/{path} — built-in defaults
-3. Hardcoded fallback     — original values (always works, no files needed)
+1. config/{path}          - user/bootstrap-generated config
+2. config/defaults/{path} - built-in defaults
+3. Hardcoded fallback     - original values (always works, no files needed)
 """
 
 import logging

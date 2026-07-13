@@ -1,4 +1,4 @@
-"""Scale generator — multiplies the fixture scenario across N factory lines."""
+"""Scale generator: multiplies the fixture scenario across N factory lines."""
 
 import math
 import random

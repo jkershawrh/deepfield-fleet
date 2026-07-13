@@ -79,7 +79,7 @@ def evaluate_event(
             horizon_seconds=int(minutes_until * 60),
             justification=f"Event '{profile.name}' starts in {minutes_until:.0f} min.",
             severity="info",
-            message=f"Event '{profile.name}' approaching — pre-warm will begin in {minutes_until - profile.schedule.pre_warm_minutes:.0f} min",
+            message=f"Event '{profile.name}' approaching, pre-warm will begin in {minutes_until - profile.schedule.pre_warm_minutes:.0f} min",
             recommended_action="Verify backend health",
         ))
 

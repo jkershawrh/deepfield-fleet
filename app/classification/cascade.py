@@ -1,4 +1,4 @@
-"""Cascade escalation logic — determines what moves from nano to micro to macro."""
+"""Cascade escalation logic: determines what moves from nano to micro to macro."""
 
 from app.domain.models import ClassificationRecord, EvidenceArtifact
 

@@ -1,4 +1,4 @@
-"""Demo runner — walks through the full DeepField Multimodal story.
+"""Demo runner: walks through the full DeepField Multimodal story.
 
 Usage:
     python -m app.demo
@@ -27,7 +27,7 @@ def _step(n: int, text: str):
 
 
 def run_demo():
-    _header("DeepField Multimodal — End-to-End Demo")
+    _header("DeepField Multimodal: End-to-End Demo")
     print("  Scenario: Factory Line Bearing Failure")
     print("  Loop: Signals -> Decide -> Act -> Verify -> Learn\n")
 

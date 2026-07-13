@@ -1,4 +1,4 @@
-"""Pre-built profiles — load YAML profile configs for common use cases."""
+"""Pre-built profiles: load YAML profile configs for common use cases."""
 
 import logging
 from pathlib import Path

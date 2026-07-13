@@ -1,5 +1,5 @@
 /**
- * Frontend smoke tests — verify demo readiness.
+ * Frontend smoke tests: verify demo readiness.
  *
  * Tests that the app renders correctly, slides work, walkthrough
  * produces real data, and the lab flow functions end-to-end.
@@ -48,21 +48,21 @@ const BASELINE_RESPONSE = {
 };
 
 const NANO_RESPONSE = {
-  tier: 'nano', count: 14, elapsed_ms: 5, agents: ['baseline_distance', 'metric_drift'], decision_type: 'deterministic', runtime: 'CPU — no inference',
+  tier: 'nano', count: 14, elapsed_ms: 5, agents: ['baseline_distance', 'metric_drift'], decision_type: 'deterministic', runtime: 'CPU, no inference',
   records: [
     { classification_id: 'c1', target_type: 'evidence', agent_tier: 'nano', agent_name: 'metric_drift', taxonomy: 'operational_state', class_name: 'degraded', severity: 'high', confidence: 0.85, rationale: 'slope=0.08, z=3.5', evidence_ids: ['e1'], metrics: {} },
   ],
 };
 
 const MICRO_RESPONSE = {
-  tier: 'micro', count: 4, elapsed_ms: 12, escalated_from_nano: 6, agents: ['text_classifier'], decision_type: 'rule-backed', runtime: 'CPU — rules only',
+  tier: 'micro', count: 4, elapsed_ms: 12, escalated_from_nano: 6, agents: ['text_classifier'], decision_type: 'rule-backed', runtime: 'CPU, rules only',
   records: [
     { classification_id: 'c2', target_type: 'evidence', agent_tier: 'micro', agent_name: 'text_classifier', taxonomy: 'incident_family', class_name: 'quality', severity: 'high', confidence: 0.7, rationale: 'Rule match: bearing', evidence_ids: ['e2'], metrics: {} },
   ],
 };
 
 const MACRO_RESPONSE = {
-  tier: 'macro', count: 5, elapsed_ms: 8, agents: ['incident_timeline', 'root_cause_hypothesis'], decision_type: 'template-based', runtime: 'CPU — templates only',
+  tier: 'macro', count: 5, elapsed_ms: 8, agents: ['incident_timeline', 'root_cause_hypothesis'], decision_type: 'template-based', runtime: 'CPU, templates only',
   records: [
     { classification_id: 'c3', target_type: 'incident', agent_tier: 'macro', agent_name: 'root_cause_hypothesis', taxonomy: 'incident_family', class_name: 'quality', severity: 'high', confidence: 0.7, rationale: 'Root cause: bearing failure', evidence_ids: ['e1', 'e2'], metrics: {} },
   ],
@@ -145,8 +145,8 @@ afterEach(() => {
 describe('Presentation Slides', () => {
   it('renders the title slide with Red Hat x Intel', async () => {
     render(<App />);
-    expect(screen.getByText('fleet-llm-d')).toBeInTheDocument();
-    expect(screen.getByText('Battle-Ready Inference at Fleet Scale')).toBeInTheDocument();
+    expect(screen.getByText('Governed AI Inference Fleet Management')).toBeInTheDocument();
+    expect(screen.getByText('Observe. Govern. Act. Prove.')).toBeInTheDocument();
     expect(screen.getByAltText('Red Hat')).toBeInTheDocument();
     expect(screen.getByAltText('Intel')).toBeInTheDocument();
   });

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type Mode = 'slides' | 'manual' | 'auto' | 'lab' | 'dashboard';
+type Mode = 'slides' | 'manual' | 'auto' | 'lab' | 'dashboard' | 'governance';
 type StepStatus = 'idle' | 'running' | 'done';
 
 interface DemoStore {

@@ -1,4 +1,4 @@
-"""Microagent: text classification — rule-backed with optional LLM inference."""
+"""Microagent: text classification, rule-backed with optional LLM inference."""
 
 import json
 import re
@@ -68,7 +68,7 @@ class TextClassifierAgent(BaseMicroagent):
                 family = fallback.class_name
                 severity = fallback.severity
         elif result and result.error:
-            rationale = f"LLM error: {result.error[:100]} — falling back to rules"
+            rationale = f"LLM error: {result.error[:100]}, falling back to rules"
             fallback = self._classify_with_rules(ev, text)
             family = fallback.class_name
             severity = fallback.severity

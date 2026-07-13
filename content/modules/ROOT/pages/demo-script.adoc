@@ -55,7 +55,7 @@ GPU inference: $32/hr. Scarce. Single-cluster. Static scaling.
 
 deepfield-fleet: predictive intelligence.
 
-*Say*: "On top of the actuator, we have deepfield-fleet -- a predictive intelligence layer. SLO forecasting via linear regression. Event-driven pre-warming from YAML profiles. Intent-driven scaling. A/B provable with ledger receipts."
+*Say*: "Alongside fleet-llm-d, deepfield-fleet provides the advisory observation layer. SLO forecasting via linear regression. Event-driven pre-warming from YAML profiles. It publishes advisory CloudEvents to the Governed Cognitive Loop, which classifies constraints, falsifies the proposed action, and emits signed DecisionPackages for fleet-llm-d to execute."
 
 === Slide 5: The Proof (~30s)
 
@@ -117,11 +117,11 @@ deepfield-fleet: predictive intelligence.
 
 *Click* "Emit PreWarm Intent" -> shows intent response.
 
-*Shows*: IntentFlow -- Predict -> Emit -> Evaluate -> Execute.
+*Shows*: IntentFlow -- Predict -> Publish CloudEvent -> GCL Evaluate -> DecisionPackage -> Execute.
 
-*Say*: "The predictive brain emits a PreWarmIntent. Scale granite-4.1-3b to 4 replicas before the event starts. fleet-llm-d evaluates the intent against policy -- confidence above threshold, replicas within limits -- and executes."
+*Say*: "The predictive brain publishes an advisory CloudEvent: pre-warm granite-4.1-3b to 4 replicas before the event starts. The Governed Cognitive Loop receives the event, classifies constraints, predicts the horizon, runs 7 deterministic falsification checks, and emits a signed DecisionPackage to fleet-llm-d for execution."
 
-*Key point*: Show the intent_id and ledger_entry_id in the response.
+*Key point*: Show the advisory event flowing through GCL before reaching fleet-llm-d.
 
 === Act 7: The Proof (~2 min)
 
@@ -129,7 +129,7 @@ deepfield-fleet: predictive intelligence.
 
 *Shows*: TestMatrixCompact (360 tests green), LedgerChainView (5 chains valid).
 
-*Say*: "360 tests across 12 suites. All green. Every placement, scaling, routing, lifecycle, and tenant decision recorded in the ARE Ledger. Chains verified. Proof receipts portable."
+*Say*: "360 illustrative tests across 12 suites. All green. In this demo, every placement, scaling, routing, lifecycle, and tenant decision is recorded in the ARE Ledger. Chains verified."
 
 === Act 8: The Return (~1 min)
 

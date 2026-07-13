@@ -1,4 +1,4 @@
-"""Agent loop API routes — actions, verifications, learning proposals."""
+"""Agent loop API routes: actions, verifications, learning proposals."""
 
 from typing import Optional
 from uuid import UUID

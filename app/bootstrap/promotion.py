@@ -1,4 +1,4 @@
-"""Agent promotion engine — rules earn their tier through empirical validation.
+"""Agent promotion engine: rules earn their tier through empirical validation.
 
 Ground truth is baseline-derived: evidence within normal ranges = normal,
 evidence outside ranges = abnormal. No human labeling required.

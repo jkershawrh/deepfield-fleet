@@ -1,4 +1,4 @@
-"""Microagent registry — discovers and manages instances by modality."""
+"""Microagent registry: discovers and manages instances by modality."""
 
 from app.microagents.base import BaseMicroagent
 

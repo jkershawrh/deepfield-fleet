@@ -1,4 +1,4 @@
-"""Scenario loader — reads synthetic fixture scenarios for the lab."""
+"""Scenario loader: reads synthetic fixture scenarios for the lab."""
 
 import logging
 from pathlib import Path

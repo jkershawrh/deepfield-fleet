@@ -1,4 +1,4 @@
-"""Evidence storage — in-memory with optional DB persistence."""
+"""Evidence storage: in-memory with optional DB persistence."""
 
 from typing import Optional
 from uuid import UUID

@@ -93,9 +93,9 @@ export function ComparisonTable({ before, after, label }: { before: Record<strin
               fontSize: 12, background: changed ? 'var(--rh-orange-dim)' : undefined,
             }}>
               <span style={{ flex: 1, color: 'var(--text-dim)', fontFamily: 'Red Hat Mono, monospace' }}>{key}</span>
-              <span style={{ width: 100, textAlign: 'right', color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{b !== undefined ? String(b) : '—'}</span>
+              <span style={{ width: 100, textAlign: 'right', color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>{b !== undefined ? String(b) : '--'}</span>
               <span style={{ width: 20, textAlign: 'center', color: changed ? 'var(--rh-orange)' : 'var(--text-disabled)' }}>{changed ? '→' : '='}</span>
-              <span style={{ width: 100, textAlign: 'right', color: changed ? 'var(--rh-orange)' : 'var(--text-secondary)', fontFamily: 'Red Hat Mono, monospace' }}>{a !== undefined ? String(a) : '—'}</span>
+              <span style={{ width: 100, textAlign: 'right', color: changed ? 'var(--rh-orange)' : 'var(--text-secondary)', fontFamily: 'Red Hat Mono, monospace' }}>{a !== undefined ? String(a) : '--'}</span>
             </div>
           );
         })}

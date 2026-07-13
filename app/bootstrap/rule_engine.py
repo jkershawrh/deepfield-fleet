@@ -1,4 +1,4 @@
-"""Rule engine — executes nanoagent rules from YAML config.
+"""Rule engine: executes nanoagent rules from YAML config.
 
 Each rule config defines:
   name: rule_name

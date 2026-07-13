@@ -1,4 +1,4 @@
-"""Semantic classifier — LLM analyzes raw samples and proposes configuration."""
+"""Semantic classifier: LLM analyzes raw samples and proposes configuration."""
 
 import json
 import logging
@@ -69,7 +69,7 @@ def analyze_samples(samples: list[dict], hints: str = "") -> SourceAnalysis:
 
     if result is None:
         return SourceAnalysis(
-            error="No LLM available — set LITELLM_API_BASE to enable semantic analysis",
+            error="No LLM available. Set LITELLM_API_BASE to enable semantic analysis",
             raw_samples=display_samples,
         )
 

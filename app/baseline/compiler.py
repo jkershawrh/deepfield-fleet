@@ -1,4 +1,4 @@
-"""Baseline compiler — builds BaselineProfile from historical evidence."""
+"""Baseline compiler: builds BaselineProfile from historical evidence."""
 
 import math
 from collections import defaultdict

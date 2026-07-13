@@ -1,4 +1,4 @@
-"""Classification taxonomies — loads from YAML config, falls back to hardcoded."""
+"""Classification taxonomies: loads from YAML config, falls back to hardcoded."""
 
 import logging
 from typing import Optional

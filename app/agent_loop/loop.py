@@ -1,4 +1,4 @@
-"""Agent loop orchestrator — Signals → Decide → Act → Verify → Learn."""
+"""Agent loop orchestrator: Signals, Decide, Act, Verify, Learn."""
 
 from typing import Optional
 

@@ -33,8 +33,10 @@ const RECENT_EVENTS = [
 ];
 
 const MOCK_CLUSTERS = [
-  { name: 'dev-cluster-1', region: 'us-east', status: 'healthy', hardware: 'Intel Xeon 6767P', cores: 256, amx: true },
-  { name: 'prod-cluster-1', region: 'us-east', status: 'healthy', hardware: 'Intel Xeon 6', cores: 128, amx: true },
+  { name: 'oberon-cpu-pool', region: 'us-east', status: 'healthy', hardware: 'Intel Xeon 6 (AMX, INT8)', nodes: 8, accelerators: 64, type: 'cpu' as const },
+  { name: 'oberon-gpu-pool', region: 'us-east', status: 'healthy', hardware: 'NVIDIA H100 80GB', nodes: 2, accelerators: 8, type: 'gpu' as const },
+  { name: 'eu-sovereign-cpu', region: 'eu-central', status: 'healthy', hardware: 'Intel Xeon 6 (AMX, INT8)', nodes: 4, accelerators: 32, type: 'cpu' as const },
+  { name: 'ap-gpu-burst', region: 'ap-southeast', status: 'degraded', hardware: 'NVIDIA A100 40GB', nodes: 1, accelerators: 4, type: 'gpu' as const },
 ];
 
 const MOCK_MODELS = [
@@ -77,7 +79,7 @@ function OverviewPage({ health }: { health: FleetHealthResponse | null }) {
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-        <MetricCard label="Clusters" value={health?.clusters?.length ?? 2} color="var(--rh-blue)" />
+        <MetricCard label="Clusters" value={health?.clusters?.length ?? 4} color="var(--rh-blue)" />
         <MetricCard label="Models" value={health?.models?.length ?? 5} color="var(--rh-teal)" />
         <MetricCard label="Backend Tests" value="295" color="var(--rh-green)" detail="3 skipped" />
         <MetricCard label="Cost Fixture" value="53x" color="var(--rh-orange)" detail="Historical" />
@@ -115,7 +117,7 @@ function ClustersPage() {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            {['Name', 'Region', 'Status', 'Hardware', 'CPU Cores', 'AMX'].map(h => (
+            {['Name', 'Region', 'Status', 'Type', 'Hardware', 'Nodes', 'Accelerators'].map(h => (
               <th key={h} style={tableHeaderStyle}>{h}</th>
             ))}
           </tr>
@@ -131,13 +133,19 @@ function ClustersPage() {
                   {c.status}
                 </span>
               </td>
-              <td style={tableCellStyle}>{c.hardware}</td>
-              <td style={{ ...tableCellStyle, fontFamily: 'Red Hat Mono, monospace' }}>{c.cores}</td>
               <td style={tableCellStyle}>
-                <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, background: 'var(--rh-blue)20', color: 'var(--rh-blue)', fontWeight: 600 }}>
-                  {c.amx ? 'Enabled' : 'Disabled'}
+                <span style={{
+                  padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                  fontFamily: 'Red Hat Mono, monospace',
+                  background: c.type === 'gpu' ? 'var(--rh-purple)20' : 'var(--rh-blue)20',
+                  color: c.type === 'gpu' ? 'var(--rh-purple)' : 'var(--rh-blue)',
+                }}>
+                  {c.type.toUpperCase()}
                 </span>
               </td>
+              <td style={{ ...tableCellStyle, fontSize: 12 }}>{c.hardware}</td>
+              <td style={{ ...tableCellStyle, fontFamily: 'Red Hat Mono, monospace' }}>{c.nodes}</td>
+              <td style={{ ...tableCellStyle, fontFamily: 'Red Hat Mono, monospace' }}>{c.accelerators}</td>
             </tr>
           ))}
         </tbody>
@@ -340,6 +348,27 @@ export function FleetDashboard({ onExit }: FleetDashboardProps) {
       <Header />
       <div style={{ padding: '8px 16px', background: '#3b2f00', color: '#ffcc17', fontSize: 12, textAlign: 'center' }}>
         Synthetic presentation fixtures. No live fleet execution, promotion, or ledger verification is asserted.
+      </div>
+      <div style={{
+        padding: '6px 16px', background: '#111418', fontSize: 11, textAlign: 'center',
+        fontFamily: 'Red Hat Mono, monospace', color: 'var(--text-disabled)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16,
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <span style={{ color: 'var(--text-dim)', fontWeight: 600, letterSpacing: 1, fontSize: 10 }}>ECOSYSTEM</span>
+        {[
+          { label: 'deepfield', role: 'advisory', color: 'var(--rh-blue)' },
+          { label: 'GCL', role: 'governance', color: 'var(--rh-purple)' },
+          { label: 'fleet-llm-d', role: 'operations', color: 'var(--rh-red)' },
+          { label: 'ARE Ledger', role: 'proof', color: 'var(--rh-teal)' },
+        ].map((sys, i) => (
+          <span key={sys.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            {i > 0 && <span style={{ color: 'var(--border)', marginRight: 5 }}>|</span>}
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: `${sys.color}40`, flexShrink: 0 }} />
+            <span style={{ color: sys.color, fontWeight: 600 }}>{sys.label}</span>
+            <span style={{ color: 'var(--text-disabled)' }}>({sys.role})</span>
+          </span>
+        ))}
       </div>
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar */}

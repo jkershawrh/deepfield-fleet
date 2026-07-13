@@ -1,4 +1,4 @@
-"""BDD scenario tests — Given/When/Then for end-to-end flows."""
+"""BDD scenario tests: Given/When/Then for end-to-end flows."""
 
 from pathlib import Path
 
@@ -211,7 +211,7 @@ class TestScenarioNormalEvidence:
 
 
 # ---------------------------------------------------------------------------
-# M4 Scenario: Full agent loop — Decide → Act → Verify → Learn
+# M4 Scenario: Full agent loop: Decide, Act, Verify, Learn
 # ---------------------------------------------------------------------------
 
 class TestScenarioFullAgentLoop:

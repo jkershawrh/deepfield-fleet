@@ -1,4 +1,4 @@
-"""Server-Sent Events — pushes demo state to frontend every 500ms."""
+"""Server-Sent Events: pushes demo state to frontend every 500ms."""
 
 import asyncio
 import json

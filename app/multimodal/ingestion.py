@@ -1,4 +1,4 @@
-"""Ingestion coordinator — orchestrates normalizer and feature extractors."""
+"""Ingestion coordinator: orchestrates normalizer and feature extractors."""
 
 from pathlib import Path
 from typing import Union

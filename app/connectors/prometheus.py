@@ -1,4 +1,4 @@
-"""Prometheus connector — queries metrics from OpenShift monitoring stack.
+"""Prometheus connector: queries metrics from OpenShift monitoring stack.
 
 Supports in-cluster Thanos (https://thanos-querier.openshift-monitoring.svc:9091)
 or external Prometheus endpoints. Uses service account token when available.

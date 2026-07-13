@@ -43,7 +43,7 @@ _Key phrase_: *"53x cheaper. On the hardware you already own."*
 === Slide 4: The Brain (45s)
 
 [quote]
-On top of the actuator sits deepfield-fleet -- the predictive intelligence layer. Four fleet nanoagents monitor SLO drift, capacity pressure, queue depth, and event calendars. A microagent runs linear regression on P95 latency to forecast breaches. A macroagent calculates blast radius -- affected models times users times severity. When the score crosses the threshold, the system emits a typed intent to fleet-llm-d: pre-warm, scale, shed load, or alert. And fleet-llm-d evaluates the intent against policy before executing. Confidence gates. Replica limits. Human approval for critical actions.
+Alongside fleet-llm-d, deepfield-fleet provides the advisory observation layer. Four fleet nanoagents monitor SLO drift, capacity pressure, queue depth, and event calendars. A microagent runs linear regression on P95 latency to forecast breaches. A macroagent calculates blast radius: affected models times users times severity. When the score crosses the threshold, deepfield-fleet publishes an advisory CloudEvent to the Governed Cognitive Loop. GCL classifies constraints, predicts the horizon, falsifies the proposed action with seven deterministic checks, and only then emits a signed DecisionPackage to fleet-llm-d. Confidence gates. Replica limits. Human approval for critical actions.
 
 _Key phrase_: *"Predict, don't react."*
 
@@ -114,7 +114,7 @@ _Point to the SLO gauge -- show current vs forecast needles._
 _Click "Emit PreWarm Intent"._
 
 [quote]
-The predictive brain emits a PreWarmIntent to fleet-llm-d. Scale granite-4.1-3b to four replicas. Confidence zero-point-eight-five. fleet-llm-d evaluates the intent against policy. Confidence above threshold -- check. Replicas within limit -- check. Status: executed. And look -- a ledger entry ID. That decision is now in the ARE Ledger, tamper-proof, chain-verified.
+The predictive brain publishes an advisory CloudEvent: scale granite-4.1-3b to four replicas. Confidence zero-point-eight-five. The advisory evidence enters GCL's cognitive loop. It classifies constraints, predicts the horizon, falsifies the proposed action with 7 deterministic checks, and only then emits a signed DecisionPackage to fleet-llm-d. fleet-llm-d executes the package. Status: executed. That decision chain, from advisory event through governance to execution, is recorded in the ARE Ledger, tamper-proof, chain-verified.
 
 _Point to the intent flow: Predict -> Emit -> Evaluate -> Execute._
 
