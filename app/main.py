@@ -1,4 +1,4 @@
-"""DeepField Multimodal — FastAPI application."""
+"""DeepField Multimodal: FastAPI application."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="DeepField Fleet — Governed Fleet Signal Intelligence",
+    title="DeepField Fleet: Governed Fleet Signal Intelligence",
     description=(
         "Canonical DeepField observation, finding, and forecast producer; "
         "consequential recommendations are advisory CloudEvents for GCL"

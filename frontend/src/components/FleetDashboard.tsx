@@ -322,7 +322,7 @@ export function FleetDashboard({ onExit }: FleetDashboardProps) {
   useEffect(() => {
     api.fleetHealth()
       .then(call => setHealth(call.response.data))
-      .catch(() => { /* offline — use mock data via defaults */ });
+      .catch(() => { /* offline: use mock data via defaults */ });
   }, []);
 
   const PAGE_TITLES: Record<string, string> = {
@@ -339,7 +339,7 @@ export function FleetDashboard({ onExit }: FleetDashboardProps) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <Header />
       <div style={{ padding: '8px 16px', background: '#3b2f00', color: '#ffcc17', fontSize: 12, textAlign: 'center' }}>
-        Synthetic presentation fixtures — no live fleet execution, promotion, or ledger verification is asserted.
+        Synthetic presentation fixtures. No live fleet execution, promotion, or ledger verification is asserted.
       </div>
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar */}

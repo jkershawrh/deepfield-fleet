@@ -17,7 +17,7 @@ describe('evidence surfaces', () => {
   it('marks the default capability matrix as illustrative', () => {
     render(<TestMatrixCompact />);
 
-    expect(screen.getByText(/Illustrative Cells — Evidence Required/)).toBeInTheDocument();
+    expect(screen.getByText(/Illustrative Cells, Evidence Required/)).toBeInTheDocument();
     expect(screen.queryByText(/All Green/)).not.toBeInTheDocument();
   });
 });

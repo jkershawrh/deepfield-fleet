@@ -56,9 +56,9 @@ export function TestMatrixCompact({ data }: TestMatrixCompactProps) {
   const total = pass + warn + fail;
   const allGreen = warn === 0 && fail === 0;
   const summary = !hasExternalData
-    ? `${total} Illustrative Cells — Evidence Required`
+    ? `${total} Illustrative Cells, Evidence Required`
     : allGreen
-    ? `${total} Tests — All Green`
+    ? `${total} Tests: All Green`
     : `${pass} Pass / ${warn} Warn / ${fail} Fail`;
 
   if (capabilities.length === 0) {

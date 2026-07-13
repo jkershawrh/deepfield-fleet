@@ -6,6 +6,8 @@ claim a DecisionPackage, execution authorization, fleet execution, or an
 immutable-ledger receipt.
 """
 
+from __future__ import annotations
+
 import os
 from datetime import datetime, timedelta, timezone
 
