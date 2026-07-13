@@ -164,6 +164,25 @@ export interface EventProfileResponse {
   }>;
 }
 
+const GCL_BASE = (import.meta as any).env?.VITE_GCL_API_URL || '/gcl/api/v1';
+
+export const gclApi = {
+  seedScenario: (scenario: string, seed: number) =>
+    fetch(`${GCL_BASE}/scenario/seed`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({scenario, seed}) }).then(r => r.json()),
+  getStep: (index: number) =>
+    fetch(`${GCL_BASE}/scenario/step/${index}`).then(r => r.json()),
+  runCycle: (signals: any[]) =>
+    fetch(`${GCL_BASE}/cycle`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({signals}) }).then(r => r.json()),
+  getCycle: (id: string) =>
+    fetch(`${GCL_BASE}/cycles/${id}`).then(r => r.json()),
+  getCycles: () =>
+    fetch(`${GCL_BASE}/cycles`).then(r => r.json()),
+  getCycleChain: (id: string) =>
+    fetch(`${GCL_BASE}/cycles/${id}/chain`).then(r => r.json()),
+  reset: () =>
+    fetch(`${GCL_BASE}/reset`, { method: 'POST' }).then(r => r.json()),
+};
+
 export const api = {
   health: () => request<{ status: string }>('GET', '/health'),
 

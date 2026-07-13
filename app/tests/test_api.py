@@ -1,4 +1,4 @@
-"""API endpoint tests — FastAPI test client, no DB required."""
+"""API endpoint tests: FastAPI test client, no DB required."""
 
 from uuid import uuid4
 

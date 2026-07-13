@@ -1,4 +1,4 @@
-"""Agent registry — maps tier+name to handler callables."""
+"""Agent registry: maps tier+name to handler callables."""
 
 _registry: dict[str, dict[str, object]] = {"nano": {}, "micro": {}, "macro": {}}
 

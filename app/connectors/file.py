@@ -1,4 +1,4 @@
-"""File connector — reads CSV, JSON, or log files."""
+"""File connector: reads CSV, JSON, or log files."""
 
 import csv
 import json

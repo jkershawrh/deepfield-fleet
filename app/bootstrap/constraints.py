@@ -1,6 +1,6 @@
 """Evidence-based constraint evaluation.
 
-Constraints require accumulated evidence before triggering — not a single
+Constraints require accumulated evidence before triggering, not a single
 event, but a pattern of evidence building a case.
 """
 

@@ -1,6 +1,6 @@
 """TDD tests for baseline compiler.
 
-Written RED first — these must fail before implementation exists.
+Written RED first, these must fail before implementation exists.
 """
 
 from pathlib import Path

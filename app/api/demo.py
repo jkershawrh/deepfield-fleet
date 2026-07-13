@@ -29,11 +29,11 @@ _demo_stop = threading.Event()
 _demo_pause = threading.Event()
 _demo_pause.set()  # starts unpaused (set = not paused)
 
-# Flow descriptions per step — the technical story
+# Flow descriptions per step: the technical story
 FLOW_DESCRIPTIONS = {
     "cost": (
         "GPU inference costs $32/hr per instance. Intel Xeon CPU inference via llm-d "
-        "runs at $0.60/hr — a 53x cost reduction. The fleet controller monitors both "
+        "runs at $0.60/hr. A 53x cost reduction. The fleet controller monitors both "
         "cost curves and routes traffic to the cheapest tier that meets SLO targets."
     ),
     "event": (
@@ -71,7 +71,7 @@ FLOW_DESCRIPTIONS = {
     ),
     "scale_10": (
         "Twenty concurrent users across five models. The SLO forecaster processes latency evidence "
-        "in real time. Nanoagent-level filtering compresses the signal — only actionable deviations "
+        "in real time. Nanoagent-level filtering compresses the signal, and only actionable deviations "
         "reach the forecaster. All classification on CPU."
     ),
     "scale_50": (
@@ -80,13 +80,13 @@ FLOW_DESCRIPTIONS = {
         "and cost constraints. Scale events are ledger-recorded."
     ),
     "stress": (
-        "Two hundred concurrent users saturate capacity. Load shedding activates — a ShedLoadIntent "
+        "Two hundred concurrent users saturate capacity. Load shedding activates. A ShedLoadIntent "
         "caps inflight requests per model. 503 responses are absorbed gracefully. The system "
         "degrades predictably rather than failing catastrophically."
     ),
     "recovery": (
         "Load drops below capacity. P95 latency returns to SLO targets within minutes. The fleet "
-        "controller captures learning — updated event profiles, refined SLO thresholds, improved "
+        "controller captures learning: updated event profiles, refined SLO thresholds, improved "
         "pre-warm timing. Each incident makes the fleet smarter."
     ),
     "claim": (
@@ -104,8 +104,8 @@ DEMO_STEPS = [
     {"id": "blast_radius",   "title": "The Blast Radius",            "subtitle": "200 users x 5 models. Severity: critical.",                       "duration": 12},
     {"id": "intent",         "title": "The Intent",                  "subtitle": "Synthetic lifecycle illustration; no execution.",                 "duration": 12},
     {"id": "proof",          "title": "The Proof",                   "subtitle": "Illustrative rows; live receipts required.",                       "duration": 10},
-    {"id": "scale_10",       "title": "Scale — 10x Load",           "subtitle": "20 concurrent users across 5 models.",                            "duration": 12},
-    {"id": "scale_50",       "title": "Scale — 50x Load",           "subtitle": "100 users. HPA scales 1 to 4 replicas.",                          "duration": 12},
+    {"id": "scale_10",       "title": "Scale: 10x Load",           "subtitle": "20 concurrent users across 5 models.",                            "duration": 12},
+    {"id": "scale_50",       "title": "Scale: 50x Load",           "subtitle": "100 users. HPA scales 1 to 4 replicas.",                          "duration": 12},
     {"id": "stress",         "title": "Stress Test",                 "subtitle": "200 users. Load shedding activates. 503s absorbed.",              "duration": 15},
     {"id": "recovery",       "title": "Recovery",                    "subtitle": "Load drops. Metrics stabilize. Learning captured.",                "duration": 10},
     {"id": "claim",          "title": "Scenario Boundary",           "subtitle": "Synthetic presentation only; not promotion evidence.",             "duration": 8},
@@ -211,7 +211,7 @@ def _run_demo(speed: float):
     fleet_metrics = {"gpu_per_hour": 32.00, "cpu_per_hour": 0.60, "savings_factor": 53}
     _wait(DEMO_STEPS[0]["duration"], speed, 0, _extras(
         narrative="GPU inference costs $32/hr per instance. Intel Xeon CPU inference via "
-                  "llm-d runs at $0.60/hr. That is a 53x cost reduction — the foundation "
+                  "llm-d runs at $0.60/hr. That is a 53x cost reduction. The foundation "
                   "of the fleet-llm-d value proposition.",
         fleet_metrics=fleet_metrics, cost_data=fleet_metrics,
     ))
@@ -264,7 +264,7 @@ def _run_demo(speed: float):
                           "replicas": 1, "status": "running"} for i, m in enumerate(models)]
     _wait(DEMO_STEPS[2]["duration"], speed, 2, _extras(
         narrative=f"{len(clusters)} clusters active. {len(models)} models deployed. "
-                  f"Fleet health: all green. CPU inference on Intel Xeon — no GPU required.",
+                  f"Fleet health: all green. CPU inference on Intel Xeon, no GPU required.",
         fleet_clusters=clusters, model_deployments=model_deployments,
     ))
     if _demo_stop.is_set(): return
@@ -445,7 +445,7 @@ def _run_demo(speed: float):
     if _demo_stop.is_set(): return
 
     # === PART 2: SCALE RUN (steps 8-12) ===
-    # Step 8: Scale — 10x Load (20 users)
+    # Step 8: Scale: 10x Load (20 users)
     scale_ev_10 = [EvidenceArtifact(
         source="fleet-metrics", modality="metric", artifact_type="latency_p95",
         features={"value": 900 + 80 * i, "timestamp_offset_minutes": i,
@@ -467,7 +467,7 @@ def _run_demo(speed: float):
 
     _wait(DEMO_STEPS[8]["duration"], speed, 8, _extras(
         narrative=f"20 users across 5 models. {len(sr_10)} SLO forecasts generated. "
-                  f"System healthy — all latencies within SLO targets.",
+                  f"System healthy, all latencies within SLO targets.",
         funnel=s10_funnel,
         scale_metrics={"users": 20, "models": 5, "evidence": 20,
                        "classifications": len(sr_10), "replicas": 1},
@@ -478,7 +478,7 @@ def _run_demo(speed: float):
         funnel=s10_funnel))
     if _demo_stop.is_set(): return
 
-    # Step 9: Scale — 50x Load (100 users, HPA scaling)
+    # Step 9: Scale: 50x Load (100 users, HPA scaling)
     scale_ev_50 = [EvidenceArtifact(
         source="fleet-metrics", modality="metric", artifact_type="latency_p95",
         features={"value": 1200 + 35 * i, "timestamp_offset_minutes": i,
@@ -584,7 +584,7 @@ def _run_demo(speed: float):
 
     _wait(DEMO_STEPS[11]["duration"], speed, 11, _extras(
         narrative="Load drops. P95 latency returns to baseline within 8 minutes. "
-                  "3 learning proposals generated — each incident makes the fleet smarter.",
+                  "3 learning proposals generated. Each incident makes the fleet smarter.",
         scale_metrics={"users": 10, "models": 5, "replicas": 4,
                        "p95_current": 450, "status": "stabilized"},
         learning_proposals=learning,
@@ -686,7 +686,7 @@ async def get_infrastructure():
 
     nano_agents = [
         {"name": "baseline_distance", "type": "deterministic", "runtime": "CPU", "description": "Compares feature values to baseline thresholds, flags drift beyond normal ranges"},
-        {"name": "metric_drift", "type": "deterministic", "runtime": "CPU", "description": "Slope and z-score checks — detects gradual trends in metric time series"},
+        {"name": "metric_drift", "type": "deterministic", "runtime": "CPU", "description": "Slope and z-score checks, detects gradual trends in metric time series"},
         {"name": "log_pattern", "type": "deterministic", "runtime": "CPU", "description": "Regex pattern matching for ERROR/WARN/CRIT in log evidence"},
         {"name": "document_heuristic", "type": "deterministic", "runtime": "CPU", "description": "Keyword analysis for actionable terms in documents and notes"},
         {"name": "image_metadata", "type": "deterministic", "runtime": "CPU", "description": "Defect score evaluation from image inspection labels"},
@@ -694,18 +694,18 @@ async def get_infrastructure():
         {"name": "evidence_gate", "type": "deterministic", "runtime": "CPU", "description": "Decides ignore/retain/escalate for each evidence piece based on modality and severity"},
     ]
     micro_agents = [
-        {"name": "text_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Pattern matching against known incident families — infrastructure, quality, security, capacity"},
+        {"name": "text_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Pattern matching against known incident families: infrastructure, quality, security, capacity"},
         {"name": "document_classifier", "type": "rule-backed", "runtime": "CPU (Xeon-optimized)", "description": "Document type and sensitivity classification by keyword analysis"},
         {"name": "image_classifier", "type": "fixture-backed / optional ONNX", "runtime": "CPU (Xeon-optimized)", "description": "Defect classification is fixture-backed by default, with optional OpenVINO/ONNX CPU adapters when configured"},
         {"name": "audio_classifier", "type": "fixture-backed / optional ONNX", "runtime": "CPU (Xeon-optimized)", "description": "Anomaly classification is fixture-backed by default, with optional OpenVINO/ONNX CPU adapters when configured"},
-        {"name": "embedding_classifier", "type": "placeholder", "runtime": "CPU", "description": "Placeholder for embedding/clustering — extension point for vector inference"},
+        {"name": "embedding_classifier", "type": "placeholder", "runtime": "CPU", "description": "Placeholder for embedding/clustering, extension point for vector inference"},
     ]
     macro_agents = [
         {"name": "incident_timeline", "type": "template-based", "runtime": "CPU", "description": "Sequences evidence by timestamp, overlays classifications to build incident narrative"},
         {"name": "root_cause_hypothesis", "type": "template-based", "runtime": "CPU", "description": "Counts classification families across modalities to identify most likely root cause"},
-        {"name": "action_planner", "type": "template-based", "runtime": "CPU", "description": "Proposes safe actions (notify, observe, ticket) — never destructive without human approval"},
+        {"name": "action_planner", "type": "template-based", "runtime": "CPU", "description": "Proposes safe actions (notify, observe, ticket), never destructive without human approval"},
         {"name": "verification_planner", "type": "template-based", "runtime": "CPU", "description": "Builds verification plan to check if post-action metrics return to baseline"},
-        {"name": "learning_proposal", "type": "template-based", "runtime": "CPU", "description": "Proposes threshold/rule updates based on high-confidence findings — never auto-applied"},
+        {"name": "learning_proposal", "type": "template-based", "runtime": "CPU", "description": "Proposes threshold/rule updates based on high-confidence findings, never auto-applied"},
     ]
 
     return {
@@ -722,7 +722,7 @@ async def get_infrastructure():
             "model_micro": inference_config["model_micro"],
             "model_macro": inference_config["model_macro"],
             "mode": "LLM inference via LiteLLM" if inference_config["available"] else "Rule-backed (no LLM configured)",
-            "nano_tier": "Deterministic rules — always CPU, no inference",
+            "nano_tier": "Deterministic rules, always CPU, no inference",
             "micro_tier": f"{'LLM: ' + inference_config['model_micro'] if inference_config['available'] else 'Rule-backed classifiers'} (CPU)",
             "macro_tier": f"{'LLM: ' + inference_config['model_macro'] if inference_config['available'] else 'Template-based reasoning'} (CPU)",
             "stats": inference_stats.to_dict(),
@@ -736,13 +736,13 @@ async def get_infrastructure():
         },
         "pipeline": {
             "flow": "Signals → Evidence → Baseline → Nano → Micro → Macro → Act → Verify → Learn",
-            "compression": "Nanoagents filter most evidence before micro/macro tiers — no inference cost for filtered signals",
+            "compression": "Nanoagents filter most evidence before micro/macro tiers, no inference cost for filtered signals",
             "safety": "Only non-destructive actions proposed. Destructive ops require human approval. Learning never auto-applied.",
         },
         "framework": {
             "backend": "FastAPI + Pydantic v2",
             "frontend": "React 19 + motion/react",
-            "database": "PostgreSQL (optional — graceful degradation without DB)",
+            "database": "PostgreSQL (optional, graceful degradation without DB)",
             "container": "Podman / OCI-compatible",
         },
     }
@@ -795,7 +795,7 @@ async def run_nano_only():
         "elapsed_ms": elapsed,
         "agents": list({r.agent_name for r in records}),
         "decision_type": "deterministic",
-        "runtime": "CPU — no inference",
+        "runtime": "CPU, no inference",
     }
 
 
@@ -831,7 +831,7 @@ async def run_micro_only():
         "escalated_from_nano": len(escalated),
         "agents": list({r.agent_name for r in records}),
         "decision_type": "LLM inference" if is_inference_available() else "rule-backed",
-        "runtime": "LLM via LiteLLM" if is_inference_available() else "CPU — rules only",
+        "runtime": "LLM via LiteLLM" if is_inference_available() else "CPU, rules only",
     }
 
 
@@ -875,7 +875,7 @@ async def run_macro_only():
         "elapsed_ms": elapsed,
         "agents": list({r.agent_name for r in records}),
         "decision_type": "LLM reasoning" if is_inference_available() else "template-based",
-        "runtime": "LLM via LiteLLM" if is_inference_available() else "CPU — templates only",
+        "runtime": "LLM via LiteLLM" if is_inference_available() else "CPU, templates only",
     }
 
 

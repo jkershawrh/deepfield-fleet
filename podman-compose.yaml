@@ -17,6 +17,15 @@ services:
       - DEEPFIELD_NAMESPACE=${DEEPFIELD_NAMESPACE:-}
     restart: unless-stopped
 
+  gcl:
+    image: quay.io/rh-ee-jkershaw/gcl-demo:latest
+    ports:
+      - "8001:8000"
+    environment:
+      GCL_RUNTIME_MODE: standalone-test
+      GCL_FORCE_DETERMINISTIC: "1"
+      GCL_LEDGER_SKIP: "1"
+
   # Optional: uncomment to add PostgreSQL persistence
   # db:
   #   image: postgres:16-alpine

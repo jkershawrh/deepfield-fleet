@@ -1,6 +1,6 @@
 """Async database connection with graceful degradation.
 
-Works identically without a database — all queries return empty results.
+Works identically without a database; all queries return empty results.
 When DATABASE_URL is set, connects to PostgreSQL and runs migrations.
 """
 
@@ -38,7 +38,7 @@ async def init_db():
     global _pool
     url = os.getenv("DATABASE_URL")
     if not url:
-        logger.info("DATABASE_URL not set — running without persistence")
+        logger.info("DATABASE_URL not set, running without persistence")
         return
 
     try:

@@ -1,4 +1,4 @@
-"""Action manager — propose, approve, execute, reject safe actions."""
+"""Action manager: propose, approve, execute, reject safe actions."""
 
 from datetime import datetime, timezone
 from typing import Optional

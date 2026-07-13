@@ -1,10 +1,10 @@
-"""Inference client — OpenAI-compatible calls to LiteLLM or local models.
+"""Inference client: OpenAI-compatible calls to LiteLLM or local models.
 
 Configured via environment variables:
-  LITELLM_API_BASE  — OpenAI-compatible endpoint URL
-  LITELLM_API_KEY   — API key for the LiteLLM proxy
-  LITELLM_MODEL_MICRO — model name for micro tier (default: granite-3-2-8b-instruct-cpu)
-  LITELLM_MODEL_MACRO — model name for macro tier (default: granite-3-2-8b-instruct-cpu)
+  LITELLM_API_BASE     OpenAI-compatible endpoint URL
+  LITELLM_API_KEY      API key for the LiteLLM proxy
+  LITELLM_MODEL_MICRO  model name for micro tier (default: granite-3-2-8b-instruct-cpu)
+  LITELLM_MODEL_MACRO  model name for macro tier (default: granite-3-2-8b-instruct-cpu)
 
 When LITELLM_API_BASE is not set, returns None (agents fall back to rule-based).
 """

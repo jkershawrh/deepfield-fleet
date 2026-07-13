@@ -99,7 +99,7 @@ You should see 7 CRDs:
 
 == Module 2: Serve a Model on CPU (10 min)
 
-Your sandbox includes a pre-deployed **synthetic-maas** emulator with 19 models — the same API contract as production MaaS, zero GPU required. fleet-llm-d routes inference through it.
+Your sandbox includes a pre-deployed **synthetic-maas** emulator with 19 models, the same API contract as production MaaS, zero GPU required. fleet-llm-d routes inference through it.
 
 === 2.1 Create a FleetInferencePool
 
@@ -339,7 +339,7 @@ The walkthrough tells the story of predictive fleet orchestration:
 | PreWarmIntent emitted and evaluated against policy
 
 | *Act 7: The Proof*
-| 360 tests green, 5 ledger chains verified
+| 360 illustrative tests green, 5 ledger chains verified (demo context)
 
 | *Act 8: The Return*
 | Replica timeline 1->2->4, event profile updated
@@ -393,9 +393,11 @@ curl -X POST {fleet_url}/api/v1/intents \
   }' | jq .
 ----
 
-=== 4.5 Verify Ledger Chains
+NOTE: In production, intents flow through the Governed Cognitive Loop (GCL) as signed DecisionPackages. GCL classifies constraints, falsifies the proposed action, and only then emits a signed package to fleet-llm-d. The direct API shown here is for operator tooling and lab exercises.
 
-Confirm that all decisions are recorded in the ARE Ledger:
+=== 4.5 Verify Ledger Chains (Illustrative)
+
+Confirm that the demo's illustrative decisions are recorded in the ARE Ledger:
 
 [source,bash,role=execute]
 ----
@@ -403,7 +405,7 @@ curl -s {fleet_url}/api/v1/verify/chains \
   -H "Authorization: Bearer {fleet_token}" | jq .
 ----
 
-You should see 5 chains verified: placement, scaling, routing, lifecycle, tenant.
+You should see 5 chains verified (illustrative for this demo): placement, scaling, routing, lifecycle, tenant.
 
 === Checkpoint
 
@@ -428,7 +430,7 @@ Log in with `{user}` / `{password}`.
 
 === 5.2 View the Fleet Overview Dashboard
 
-Navigate to *Dashboards -> Fleet Overview*. The synthetic-maas emulator produces realistic vLLM Prometheus metrics — the dashboards show real-looking data:
+Navigate to *Dashboards -> Fleet Overview*. The synthetic-maas emulator produces realistic vLLM Prometheus metrics. The dashboards show real-looking data:
 
 * *Cluster Health* -- status of all registered clusters
 * *Model Serving Metrics* -- request rate, latency P50/P95/P99, error rate per model (from synthetic-maas vLLM metrics)
@@ -507,7 +509,7 @@ You have completed the fleet-llm-d hands-on lab. You have:
 . *Served* a Granite model on CPU via FleetInferencePool
 . *Configured* multi-tenant governance with quotas and rate limits
 . *Observed* predictive scaling with SLO forecasting and intent emission
-. *Proved* every decision is recorded in the ARE Immutable Ledger
+. *Illustrated* the evidence recording flow in the ARE Immutable Ledger
 
 The key takeaway: *fleet-llm-d makes inference governable, affordable, and predictable* -- 53x cost savings on CPU, predictive scaling before spikes hit, multi-tenant fairness, and an immutable audit trail for every decision.
 

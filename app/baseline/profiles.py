@@ -1,4 +1,4 @@
-"""Baseline profile store — in-memory with optional DB persistence."""
+"""Baseline profile store: in-memory with optional DB persistence."""
 
 from typing import Optional
 from uuid import UUID

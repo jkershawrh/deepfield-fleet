@@ -16,6 +16,7 @@ import { ReplicaTimeline } from './components/ReplicaTimeline';
 import { LedgerChainView } from './components/LedgerChainView';
 import { TestMatrixCompact } from './components/TestMatrixCompact';
 import { FleetDashboard } from './components/FleetDashboard';
+import GovernanceDeepDive from './components/GovernanceDeepDive';
 import { api } from './api/client';
 import type { ApiCall } from './api/client';
 import { useDemoStore } from './stores/useDemoStore';
@@ -23,7 +24,7 @@ import { useDataStore } from './stores/useDataStore';
 import type { DemoState } from './stores/useDataStore';
 
 /*
- * fleet-llm-d — Battle-Ready Inference at Fleet Scale
+ * fleet-llm-d: Battle-Ready Inference at Fleet Scale
  *
  * Hero's Journey through the platform:
  * - Slides: 7 slides introducing the problem and solution
@@ -174,12 +175,12 @@ export default function App() {
           <img src="/logos/intel.png" alt="Intel" style={{ height: 28 }} />
         </motion.div>
         <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }}
-          style={{ fontSize: 56, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.1, margin: '24px 0 0', maxWidth: 700 }}>
-          fleet-llm-d
+          style={{ fontSize: 44, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', lineHeight: 1.1, margin: '24px 0 0', maxWidth: 700 }}>
+          Governed AI Inference Fleet Management
         </motion.h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
           style={{ fontSize: 22, color: 'var(--text-dim)', marginTop: 24 }}>
-          Battle-Ready Inference at Fleet Scale
+          Observe. Govern. Act. Prove.
         </motion.p>
       </div>
     ),
@@ -256,7 +257,7 @@ export default function App() {
           ].map((item, i) => (
             <div key={i} style={{ fontSize: 22, lineHeight: 1.4 }}>
               <strong style={{ color: 'var(--text-primary)' }}>{item.bold}</strong>
-              <span style={{ color: 'var(--text-dim)' }}> &mdash; {item.desc}</span>
+              <span style={{ color: 'var(--text-dim)' }}> - {item.desc}</span>
             </div>
           ))}
         </motion.div>
@@ -280,29 +281,49 @@ export default function App() {
             <motion.div key={scenario.industry} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.15 }}
               style={{ padding: 20, background: 'var(--surface-1)', border: `1px solid ${scenario.color}40`, borderLeft: `4px solid ${scenario.color}`, borderRadius: '0 10px 10px 0' }}>
               <span style={{ fontSize: 22, fontWeight: 800, color: scenario.color }}>{scenario.industry}</span>
-              <span style={{ fontSize: 20, color: 'var(--text-dim)', fontStyle: 'italic' }}>{' '}&mdash; {scenario.desc}</span>
+              <span style={{ fontSize: 20, color: 'var(--text-dim)', fontStyle: 'italic' }}>{' '}- {scenario.desc}</span>
             </motion.div>
           ))}
         </div>
       </div>
     ),
-    // 5: The Intelligence Layer
+    // 5: The Ecosystem
     () => (
-      <div style={{ textAlign: 'center', maxWidth: 700 }}>
+      <div style={{ textAlign: 'center', maxWidth: 800 }}>
         <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 48, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', margin: '0 0 24px' }}>
-          Predict. Don&apos;t react.
+          style={{ fontSize: 42, fontWeight: 800, fontFamily: 'Red Hat Display, sans-serif', margin: '0 0 32px' }}>
+          The Ecosystem: Four Systems, One Pipeline
         </motion.h2>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-          style={{ fontSize: 20, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
-          deepfield-fleet adds a predictive intelligence layer. SLO forecasting detects breaches
-          before they happen. Event profiles pre-warm models before the crowd arrives. Every
-          recommendation published as advisory evidence for GCL. This presentation does not
-          claim fleet execution or a standalone-ledger receipt.
-        </motion.p>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
-          style={{ fontSize: 14, color: 'var(--text-disabled)', marginTop: 24 }}>
-          Optional. fleet-llm-d works without it. But it&apos;s better with it.
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, flexWrap: 'wrap' }}>
+          {[
+            { name: 'deepfield-fleet', verb: 'Observe', color: 'var(--rh-blue)', desc: 'Predictive intelligence. SLO forecasting, event profiles, advisory evidence.' },
+            { name: 'GCL', verb: 'Govern', color: 'var(--rh-purple)', desc: 'Constraint classification, falsification gate, signed DecisionPackages.' },
+            { name: 'fleet-llm-d', verb: 'Act', color: 'var(--rh-red)', desc: 'Authorization, admission, multi-cluster actuation, load shedding.' },
+            { name: 'ARE Ledger', verb: 'Prove', color: 'var(--rh-teal)', desc: 'Immutable receipts. Every committed action cryptographically anchored.' },
+          ].map((sys, i) => (
+            <div key={sys.name} style={{ display: 'flex', alignItems: 'center' }}>
+              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.15 }}
+                style={{ padding: '16px 20px', background: 'var(--surface-1)', border: `1px solid ${sys.color}40`, borderRadius: 10, textAlign: 'center', width: 160 }}>
+                <div style={{ fontSize: 10, color: sys.color, fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>
+                  {sys.verb.toUpperCase()}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Red Hat Display, sans-serif', marginBottom: 6 }}>
+                  {sys.name}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                  {sys.desc}
+                </div>
+              </motion.div>
+              {i < 3 && (
+                <span style={{ fontSize: 18, color: 'var(--text-disabled)', margin: '0 6px', fontWeight: 300 }}>&rarr;</span>
+              )}
+            </div>
+          ))}
+        </motion.div>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
+          style={{ fontSize: 13, color: 'var(--text-disabled)', marginTop: 28, fontFamily: 'Red Hat Mono, monospace' }}>
+          Each system owns one concern. No system bypasses its neighbors.
         </motion.p>
       </div>
     ),
@@ -375,6 +396,12 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  /* ───────────────────────── GOVERNANCE MODE ───────────────────────── */
+
+  if (mode === 'governance') {
+    return <GovernanceDeepDive onExit={() => setMode('manual')} />;
   }
 
   /* ───────────────────────── DASHBOARD MODE ───────────────────────── */
@@ -460,16 +487,16 @@ export default function App() {
 
           {demoState.inference_mode && (
             <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginBottom: 8, fontFamily: 'Red Hat Mono, monospace', textAlign: 'center' }}>
-              Inference mode: {demoState.inference_mode === 'llm' ? 'Live LLM via LiteLLM' : 'Simulated (rule-backed) — set LITELLM_API_BASE for live inference'}
+              Inference mode: {demoState.inference_mode === 'llm' ? 'Live LLM via LiteLLM' : 'Simulated (rule-backed). Set LITELLM_API_BASE for live inference'}
             </div>
           )}
 
           {demoState.scale_metrics && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-              <MetricCard label="Clusters" value={String((demoState.scale_metrics as Record<string, unknown>).clusters || '—')} color="var(--rh-blue)" />
-              <MetricCard label="Models" value={String((demoState.scale_metrics as Record<string, unknown>).models || '—')} color="var(--rh-teal)" />
-              <MetricCard label="Replicas" value={String((demoState.scale_metrics as Record<string, unknown>).replicas || '—')} color="var(--rh-green)" />
-              <MetricCard label="Latency" value={`${(demoState.scale_metrics as Record<string, unknown>).elapsed_ms || '—'}ms`} color="var(--rh-orange)" />
+              <MetricCard label="Clusters" value={String((demoState.scale_metrics as Record<string, unknown>).clusters || '--')} color="var(--rh-blue)" />
+              <MetricCard label="Models" value={String((demoState.scale_metrics as Record<string, unknown>).models || '--')} color="var(--rh-teal)" />
+              <MetricCard label="Replicas" value={String((demoState.scale_metrics as Record<string, unknown>).replicas || '--')} color="var(--rh-green)" />
+              <MetricCard label="Latency" value={`${(demoState.scale_metrics as Record<string, unknown>).elapsed_ms || '--'}ms`} color="var(--rh-orange)" />
             </div>
           )}
 
@@ -481,7 +508,7 @@ export default function App() {
             </div>
           ) : null}
 
-          {/* Fleet Pipeline Flow — live animated prediction→action→outcome→learn */}
+          {/* Fleet Pipeline Flow: live animated prediction, action, outcome, learn */}
           <FleetPipelineFlow
             stepId={demoState.step_id}
             sloGauge={demoState.slo_gauge}
@@ -494,7 +521,7 @@ export default function App() {
             costData={demoState.cost_data}
           />
 
-          {/* Contextual detail panels — fade in at relevant steps */}
+          {/* Contextual detail panels: fade in at relevant steps */}
           <AnimatePresence>
             {demoState.cost_data && (
               <motion.div key="cost" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -522,7 +549,7 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* The Claim — fleet metrics + use cases */}
+          {/* The Claim: fleet metrics + use cases */}
           {isComplete && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
@@ -650,7 +677,7 @@ export default function App() {
             ← Exit
           </button>
           <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
-            {isRunning || isPaused ? `Step ${(demoState.current_step || 0) + 1} / ${demoState.total_steps || 13}${isPaused ? ' — PAUSED' : ''}` : demoState.status}
+            {isRunning || isPaused ? `Step ${(demoState.current_step || 0) + 1} / ${demoState.total_steps || 13}${isPaused ? ' - PAUSED' : ''}` : demoState.status}
           </span>
           {isComplete && (
             <button onClick={startAuto}
@@ -741,8 +768,8 @@ export default function App() {
     event:    { title: 'The Event',        subtitle: 'The burst is coming. Load the event profile.',                               next: 'See the fleet →' },
     fleet:    { title: 'The Fleet',        subtitle: 'How fleet-llm-d manages routing, scaling, and governance.',                  next: 'See the prediction →' },
     predict:  { title: 'The Prediction',   subtitle: 'The SLO forecaster sees latency climbing.',                                  next: 'See the response →' },
-    response: { title: 'The Response',     subtitle: 'The system responds before the breach.',                                     next: 'The burst arrives →' },
-    burst:    { title: 'The Burst',        subtitle: '200 users arrive. Does the fleet survive?',                                  next: 'See the proof →' },
+    response: { title: 'The Governance Gate', subtitle: 'Advisory evidence enters the Governed Cognitive Loop.',                      next: 'See the actuation →' },
+    burst:    { title: 'The Actuation',    subtitle: 'fleet-llm-d admits, authorizes, and executes.',                              next: 'See the proof →' },
     proof:    { title: 'Evidence Boundary', subtitle: 'Synthetic walkthrough; live fleet and ledger proof remain external.',       next: 'See the learning →' },
     learning: { title: 'The Learning',     subtitle: 'The fleet gets smarter for next time.',                                      next: '' },
   };
@@ -857,7 +884,7 @@ export default function App() {
               <div>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
                   The SLO forecaster sees latency climbing. At the current rate, P95 will breach
-                  the 5-second SLO in 22 minutes. 200 users across 5 models &mdash; severity score: critical.
+                  the 5-second SLO in 22 minutes. 200 users across 5 models. Severity score: critical.
                 </p>
                 <StepCard num={3} title="Run SLO Forecast" status={forecastStatus} onRun={doForecast} buttonLabel="Run forecast">
                   {sloForecast && (
@@ -899,18 +926,60 @@ export default function App() {
                     )}
                   </StepCard>
                 )}
+                {/* Ecosystem context callout */}
+                <div style={{
+                  marginTop: 16, padding: '12px 16px', background: 'var(--rh-blue)08',
+                  border: '1px solid var(--rh-blue)30', borderLeft: '3px solid var(--rh-blue)',
+                  borderRadius: '0 8px 8px 0', fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.7,
+                }}>
+                  <span style={{ fontSize: 10, color: 'var(--rh-blue)', fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, letterSpacing: 1 }}>
+                    ECOSYSTEM BOUNDARY
+                  </span>
+                  <br />
+                  Advisory evidence published as CloudEvents to the Governed Cognitive Loop. deepfield-fleet
+                  observes and forecasts. It never executes.
+                </div>
               </div>
             )}
 
-            {/* Act 4: The Response */}
+            {/* Act 4: The Governance Gate */}
             {currentAct === 'response' && (
               <div>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
-                  DeepField responds before the breach with a forecast and an advisory pre-warm
-                  proposal for granite-3.3-8b-instruct. GCL transport acceptance is not policy
-                  authorization or fleet execution. Confidence: 87%.
+                  Advisory evidence enters the Governed Cognitive Loop. Constraints classified.
+                  Falsification gate applied. A signed DecisionPackage is emitted to fleet-llm-d.
                 </p>
-                <StepCard num={5} title="Publish Governed Recommendation" status={intentStatus} onRun={doIntent} buttonLabel="Publish events">
+
+                {/* Governance flow visualization */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, flexWrap: 'wrap', margin: '20px 0' }}>
+                  {[
+                    { label: 'Advisory CloudEvent', detail: 'from deepfield-fleet', color: 'var(--rh-blue)', status: sloForecast ? 'done' : 'idle' },
+                    { label: 'Classify Constraints', detail: 'GCL constraint engine', color: 'var(--rh-purple)', status: blastRadius ? 'done' : 'idle' },
+                    { label: 'Falsification Gate', detail: '7 deterministic checks', color: 'var(--rh-orange)', status: intentStatus === 'running' ? 'active' : intentResponse ? 'done' : 'idle' },
+                    { label: 'Signed DecisionPackage', detail: 'cryptographic commitment', color: 'var(--rh-teal)', status: intentResponse ? 'done' : 'idle' },
+                    { label: 'fleet-llm-d Admission', detail: 'authorization + execution', color: 'var(--rh-red)', status: 'idle' },
+                  ].map((stage, i) => (
+                    <div key={stage.label} style={{ display: 'flex', alignItems: 'center' }}>
+                      <div style={{
+                        padding: '10px 14px', background: 'var(--surface-1)',
+                        border: `1px solid ${stage.status === 'done' ? stage.color : 'var(--border)'}`,
+                        borderRadius: 8, textAlign: 'center', minWidth: 120, opacity: stage.status === 'idle' ? 0.6 : 1,
+                      }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: stage.status === 'done' ? stage.color : 'var(--text-secondary)', marginBottom: 2 }}>
+                          {stage.label}
+                        </div>
+                        <div style={{ fontSize: 9, color: 'var(--text-disabled)', fontFamily: 'Red Hat Mono, monospace' }}>
+                          {stage.detail}
+                        </div>
+                      </div>
+                      {i < 4 && (
+                        <span style={{ fontSize: 14, color: 'var(--text-disabled)', margin: '0 4px' }}>&rarr;</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <StepCard num={5} title="Emit DecisionPackage" status={intentStatus} onRun={doIntent} buttonLabel="Run governance gate">
                   {intentResponse && (
                     <div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -919,42 +988,59 @@ export default function App() {
                         <MetricCard label="Execution" value={intentResponse.execution_verified ? 'Verified' : 'Unverified'} color="var(--rh-orange)" />
                       </div>
                       <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                        <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>REASON</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>DECISION REASON</div>
                         {intentResponse.reason}
                       </div>
                     </div>
                   )}
                 </StepCard>
+
                 <div style={{ marginTop: 16 }}>
                   <IntentFlow
                     stages={[
                       { label: 'SLO Forecast', status: sloForecast ? 'done' : 'idle' },
                       { label: 'Blast Radius', status: blastRadius ? 'done' : 'idle' },
-                      { label: 'Publish CloudEvents', status: intentResponse ? 'done' : intentStatus === 'running' ? 'active' : 'idle' },
-                      { label: 'GCL Delivery', status: intentResponse ? (intentResponse.status === 'accepted' ? 'done' : 'error') : 'idle' },
-                      { label: 'Execution (external)', status: 'idle' },
+                      { label: 'Falsification Gate', status: intentResponse ? 'done' : intentStatus === 'running' ? 'active' : 'idle' },
+                      { label: 'DecisionPackage Signed', status: intentResponse ? (intentResponse.status === 'accepted' ? 'done' : 'error') : 'idle' },
+                      { label: 'fleet-llm-d Admission', status: 'idle' },
                     ]}
                     intentType="pre_warm"
                     model="granite-3.3-8b-instruct"
                     confidence={0.87}
                   />
                 </div>
+
+                <button
+                  onClick={() => setMode('governance')}
+                  style={{
+                    marginTop: 16, background: 'none', border: '1px solid var(--rh-purple)',
+                    color: 'var(--rh-purple)', padding: '8px 20px', borderRadius: 6, fontSize: 13,
+                    fontWeight: 600, cursor: 'pointer', display: 'block', width: '100%',
+                  }}>
+                  Governance Deep Dive
+                </button>
               </div>
             )}
 
-            {/* Act 5: The Burst */}
+            {/* Act 5: The Actuation */}
             {currentAct === 'burst' && (
               <div>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: 16 }}>
-                  The event starts. 200 concurrent users. The pre-warmed fleet absorbs the initial
-                  load. As traffic exceeds capacity, load shedding returns 503 with Retry-After &mdash; no
-                  cascading failures. HPA scales remaining models.
+                  fleet-llm-d admits the DecisionPackage, checks authorization, and executes. Pre-warm
+                  replicas scale. Load shedding activates under burst.
                 </p>
+                <div style={{ padding: 12, background: 'var(--surface-1)', border: '1px solid var(--rh-red)30', borderRadius: 8, marginBottom: 16, fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.7 }}>
+                  <span style={{ color: 'var(--rh-red)', fontWeight: 700, fontSize: 10, fontFamily: 'Red Hat Mono, monospace', letterSpacing: 1 }}>AUTHORIZATION BOUNDARY</span>
+                  <br />
+                  fleet-llm-d owns the authorization decision. GCL produces a signed DecisionPackage,
+                  but fleet-llm-d independently verifies the signature, checks policy, and decides
+                  whether to execute. The governance layer advises; the fleet layer authorizes.
+                </div>
                 <ReplicaTimeline events={[
                   { time: 'T-30m', replicas: 1, trigger: 'Baseline' },
                   { time: 'T-22m', replicas: 2, trigger: 'SLO forecast' },
-                  { time: 'T-10m', replicas: 3, trigger: 'Pre-warm intent' },
-                  { time: 'T-0', replicas: 4, trigger: 'Event start — pre-warmed' },
+                  { time: 'T-10m', replicas: 3, trigger: 'DecisionPackage admitted' },
+                  { time: 'T-0', replicas: 4, trigger: 'Event start, pre-warmed' },
                   { time: 'T+5m', replicas: 4, trigger: 'Load shedding active' },
                   { time: 'T+15m', replicas: 5, trigger: 'HPA scale-up' },
                 ]} maxReplicas={5} />
@@ -1013,7 +1099,7 @@ export default function App() {
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Event Profile Update</div>
                   <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
                     The event profile records the delta: predicted 4 replicas, needed 5. Pre-warm
-                    window was 30 minutes &mdash; sufficient. Next Summit Connect event will pre-warm to
+                    window was 30 minutes, sufficient. Next Summit Connect event will pre-warm to
                     5 replicas. This is an advisory learning fixture; policy and authority cannot
                     be promoted automatically from it.
                   </p>

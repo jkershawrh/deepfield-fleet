@@ -37,7 +37,7 @@ class TestSLOForecaster:
         assert records[0].metrics["forecast_value"] > 5000
 
     def test_predicts_safe(self):
-        # Flat at 1000, SLO is 5000 — safe
+        # Flat at 1000, SLO is 5000: safe
         evidence = self._make_ramp_evidence(1000, 0, 30, slo_target=5000)
         forecaster = SLOForecasterAgent(forecast_horizon_minutes=30)
         records = forecaster.classify(evidence)
@@ -47,7 +47,7 @@ class TestSLOForecaster:
         assert records[0].severity == "info"
 
     def test_predicts_approaching(self):
-        # Ramp from 2000 at 35ms/min over 30 samples — forecast ~4065 (81% of 5000)
+        # Ramp from 2000 at 35ms/min over 30 samples, forecast ~4065 (81% of 5000)
         evidence = self._make_ramp_evidence(2000, 35, 30, slo_target=5000)
         forecaster = SLOForecasterAgent(forecast_horizon_minutes=30)
         records = forecaster.classify(evidence)
@@ -57,14 +57,14 @@ class TestSLOForecaster:
         assert records[0].severity == "medium"
 
     def test_not_enough_data(self):
-        # Only 2 data points — not enough to forecast
+        # Only 2 data points: not enough to forecast
         evidence = self._make_ramp_evidence(1000, 10, 2, slo_target=5000)
         forecaster = SLOForecasterAgent(forecast_horizon_minutes=30)
         records = forecaster.classify(evidence)
         assert len(records) == 0
 
     def test_minutes_to_breach(self):
-        # Steep ramp — breach should be soon
+        # Steep ramp: breach should be soon
         evidence = self._make_ramp_evidence(4000, 100, 10, slo_target=5000)
         forecaster = SLOForecasterAgent(forecast_horizon_minutes=30)
         records = forecaster.classify(evidence)
@@ -74,7 +74,7 @@ class TestSLOForecaster:
         assert records[0].severity == "critical"  # breach in <10 min
 
     def test_declining_trend_safe(self):
-        # Declining from 4000 to 3000 — getting better, not worse
+        # Declining from 4000 to 3000, getting better, not worse
         evidence = self._make_ramp_evidence(4000, -33, 30, slo_target=5000)
         forecaster = SLOForecasterAgent(forecast_horizon_minutes=30)
         records = forecaster.classify(evidence)
@@ -82,7 +82,7 @@ class TestSLOForecaster:
         assert records[0].class_name == "slo_forecast_safe"
 
     def test_linear_regression_accuracy(self):
-        # Perfect linear data — R² should be ~1.0
+        # Perfect linear data: R² should be ~1.0
         evidence = self._make_ramp_evidence(1000, 10, 20, slo_target=5000)
         forecaster = SLOForecasterAgent()
         records = forecaster.classify(evidence)
@@ -100,7 +100,7 @@ class TestSLOForecaster:
 
     def test_custom_horizon(self):
         evidence = self._make_ramp_evidence(3000, 50, 30, slo_target=5000)
-        # 10-min horizon: 4500 + 50*10 = 5000 — right at threshold
+        # 10-min horizon: 4500 + 50*10 = 5000, right at threshold
         forecaster = SLOForecasterAgent(forecast_horizon_minutes=10)
         records = forecaster.classify(evidence)
         assert len(records) == 1

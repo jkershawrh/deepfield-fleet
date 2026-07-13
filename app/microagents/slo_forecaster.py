@@ -1,4 +1,4 @@
-"""Microagent: SLO forecaster — predicts SLO breach using linear regression on latency metrics."""
+"""Microagent: SLO forecaster, predicts SLO breach using linear regression on latency metrics."""
 
 import math
 from typing import Optional

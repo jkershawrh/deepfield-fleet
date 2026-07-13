@@ -1,4 +1,4 @@
-"""Nanoagent pipeline — runs nanoagents from config, falls back to hardcoded list."""
+"""Nanoagent pipeline: runs nanoagents from config, falls back to hardcoded list."""
 
 import importlib
 import logging

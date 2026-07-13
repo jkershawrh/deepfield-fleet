@@ -1,6 +1,6 @@
 """TDD tests for multimodal normalizer and feature extractors.
 
-Written RED first — these must fail before implementation exists.
+Written RED first, these must fail before implementation exists.
 """
 
 from datetime import datetime, timezone

@@ -68,7 +68,7 @@ function getDetail(id: string, state: NodeState, p: FleetPipelineFlowProps): str
     case 'classify': return a?.length ? `${a.length} agents classified` : IDLE_DETAILS[id];
     case 'predict': return s?.current_p95 ? `P95: ${s.current_p95}→${s.forecast_p95 ?? '?'}ms${s.minutes_to_breach != null ? ` | Breach ${s.minutes_to_breach}min` : ''}` : IDLE_DETAILS[id];
     case 'decide': return b?.affected_users ? `${b.affected_users} users × ${b.affected_models ?? '?'} models | Score: ${b.severity_score ?? '?'}` : IDLE_DETAILS[id];
-    case 'act': return i?.intent_type ? `${i.intent_type} — ${i.status ?? 'pending'}` : IDLE_DETAILS[id];
+    case 'act': return i?.intent_type ? `${i.intent_type}: ${i.status ?? 'pending'}` : IDLE_DETAILS[id];
     case 'verify': { const v = l?.filter(c => c.valid !== false).length ?? 0; return l?.length ? `${v} chains verified` : IDLE_DETAILS[id]; }
     case 'learn': return lp?.length ? `${lp.length} proposals` : IDLE_DETAILS[id];
     default: return '';

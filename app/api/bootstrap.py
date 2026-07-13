@@ -1,4 +1,4 @@
-"""Bootstrap API — connect, analyze, approve, deploy."""
+"""Bootstrap API: connect, analyze, approve, deploy."""
 
 import logging
 from dataclasses import asdict
@@ -168,7 +168,7 @@ async def connect_source(req: ConnectRequest):
 async def analyze_source(req: AnalyzeRequest = AnalyzeRequest()):
     global _analysis, _state
     if not _samples:
-        raise HTTPException(400, "No samples — connect to a source first")
+        raise HTTPException(400, "No samples. Connect to a source first")
 
     _state["status"] = "analyzing"
 
@@ -249,9 +249,9 @@ async def approve_config(req: ApproveRequest = ApproveRequest()):
 @router.post("/test")
 async def test_pipeline():
     if not _samples:
-        raise HTTPException(400, "No samples — connect first")
+        raise HTTPException(400, "No samples. Connect first")
     if _analysis is None:
-        raise HTTPException(400, "No analysis — analyze first")
+        raise HTTPException(400, "No analysis. Analyze first")
 
     from app.multimodal.normalizer import normalize_raw
     from app.baseline.compiler import BaselineCompiler
@@ -283,9 +283,9 @@ async def test_pipeline():
 @router.post("/validate")
 async def validate_agents():
     if not _samples:
-        raise HTTPException(400, "No samples — connect first")
+        raise HTTPException(400, "No samples. Connect first")
     if _analysis is None:
-        raise HTTPException(400, "No analysis — analyze first")
+        raise HTTPException(400, "No analysis. Analyze first")
 
     from app.bootstrap.promotion import run_validation_round, get_rubric_matrix
     from app.bootstrap.rule_engine import RuleBasedNanoagent

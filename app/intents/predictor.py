@@ -71,7 +71,7 @@ class FleetPredictor:
 
         # Step 2: Check event profiles
         for profile in self.event_profiles:
-            # Event start time would come from a scheduler — for now, check features
+            # Event start time would come from a scheduler; for now, check features
             for ev in evidence:
                 if ev.modality == "event" and ev.features.get("event_start"):
                     event_start = datetime.fromisoformat(ev.features["event_start"])

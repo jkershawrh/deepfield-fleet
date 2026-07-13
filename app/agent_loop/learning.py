@@ -1,4 +1,4 @@
-"""Learning service — propose, accept, reject learning proposals. Never silent apply."""
+"""Learning service: propose, accept, reject learning proposals. Never silent apply."""
 
 from datetime import datetime, timezone
 from typing import Optional

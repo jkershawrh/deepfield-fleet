@@ -1,4 +1,4 @@
-"""EDD Evaluator — scores multimodal pipeline quality against rubrics.
+"""EDD Evaluator: scores multimodal pipeline quality against rubrics.
 
 Each rubric produces a score: healthy, warning, or failing.
 The red/green matrix tracks which dimensions are passing at each milestone.

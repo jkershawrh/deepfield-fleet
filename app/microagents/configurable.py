@@ -1,4 +1,4 @@
-"""Configurable microagent — LLM-backed classifier from bootstrap-generated prompt."""
+"""Configurable microagent: LLM-backed classifier from bootstrap-generated prompt."""
 
 import json
 
@@ -71,7 +71,7 @@ class ConfigurableMicroagent(BaseMicroagent):
             agent_tier="micro", agent_name=self.name,
             taxonomy=self.taxonomy, class_name="unclassified",
             severity="info", confidence=0.3,
-            rationale="No LLM available — configurable agent requires inference endpoint",
+            rationale="No LLM available, configurable agent requires inference endpoint",
             evidence_ids=[ev.evidence_id],
             metrics={"model": "none", "runtime": "fallback"},
         )

@@ -208,7 +208,7 @@ export function BootstrapLab({ onExit }: { onExit: () => void }) {
 
                 {connectType === 'scenario' && (
                   <div>
-                    <FlowDescription text="Each scenario contains realistic synthetic data for a specific domain. The system will load the data, analyze it, and build classification agents — just like it would with your real signals." alwaysOpen />
+                    <FlowDescription text="Each scenario contains realistic synthetic data for a specific domain. The system will load the data, analyze it, and build classification agents, just like it would with your real signals." alwaysOpen />
                     {scenarios.length === 0 && (
                       <button onClick={loadScenarios} style={{ background: 'var(--rh-blue)', border: 'none', color: '#fff', padding: '8px 20px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                         Load Scenarios
@@ -391,13 +391,13 @@ export function BootstrapLab({ onExit }: { onExit: () => void }) {
                   <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>What's next</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                     <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)' }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>Try another scenario</strong> — each domain generates different agents with different rules and taxonomies
+                      <strong style={{ color: 'var(--text-primary)' }}>Try another scenario</strong>: each domain generates different agents with different rules and taxonomies
                     </div>
                     <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)' }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>Connect your own Prometheus</strong> — same flow, real signals, 20 minutes to first classification
+                      <strong style={{ color: 'var(--text-primary)' }}>Connect your own Prometheus</strong>: same flow, real signals, 20 minutes to first classification
                     </div>
                     <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)' }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>Run more validation rounds</strong> — agents accumulate samples and earn higher tiers over time
+                      <strong style={{ color: 'var(--text-primary)' }}>Run more validation rounds</strong>: agents accumulate samples and earn higher tiers over time
                     </div>
                   </div>
 

@@ -1,4 +1,4 @@
-"""Classification engine — orchestrates the nano->micro->macro cascade."""
+"""Classification engine: orchestrates the nano->micro->macro cascade."""
 
 from typing import Optional
 

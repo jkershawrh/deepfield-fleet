@@ -1,4 +1,4 @@
-"""Fleet-llm-d demo endpoints — live proxy or simulated responses for offline demos."""
+"""Fleet-llm-d demo endpoints: live proxy or simulated responses for offline demos."""
 
 import logging
 import os
@@ -311,7 +311,7 @@ async def fleet_blast_radius():
             severity_score=120.0,
             requires_human_gate=True,
             severity="critical",
-            rationale="Blast radius assessment unavailable — no critical classifications matched.",
+            rationale="Blast radius assessment unavailable. No critical classifications matched.",
         )
 
     result = results[0]

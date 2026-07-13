@@ -1,4 +1,4 @@
-"""Macroagent: generates root-cause hypotheses — template-based with optional LLM."""
+"""Macroagent: generates root-cause hypotheses, template-based with optional LLM."""
 
 import json
 from collections import Counter
