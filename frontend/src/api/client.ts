@@ -129,9 +129,11 @@ export interface IntentEmitRequest {
 
 export interface IntentResponse {
   intent_id: string;
-  status: 'executed' | 'refused' | 'deferred';
+  status: 'accepted' | 'rejected' | 'deferred';
   reason: string;
   ledger_entry_id?: string;
+  event_ids: string[];
+  execution_verified: false;
 }
 
 export interface CostComparisonResponse {
@@ -148,6 +150,9 @@ export interface LedgerChainResponse {
     entries: number;
     latest_hash: string;
   }>;
+  verified: boolean;
+  reason: string;
+  evidence_only: true;
 }
 
 export interface EventProfileResponse {

@@ -24,12 +24,12 @@ const NAV_ITEMS = [
 ] as const;
 
 const RECENT_EVENTS = [
-  { text: 'PreWarm intent executed', color: 'var(--rh-green)', time: '2m ago' },
-  { text: 'SLO forecast: safe', color: 'var(--rh-blue)', time: '5m ago' },
-  { text: 'Cluster dev-cluster-1 registered', color: 'var(--rh-teal)', time: '12m ago' },
-  { text: 'Canary rollout promoted to 100%', color: 'var(--rh-purple)', time: '18m ago' },
-  { text: 'Ledger chain verified: placement', color: 'var(--rh-orange)', time: '24m ago' },
-  { text: 'Tenant acme-corp quota updated', color: 'var(--rh-blue)', time: '31m ago' },
+  { text: 'Advisory pre-warm fixture prepared', color: 'var(--rh-orange)', time: 'synthetic' },
+  { text: 'SLO forecast fixture: safe', color: 'var(--rh-blue)', time: 'synthetic' },
+  { text: 'Cluster registration fixture loaded', color: 'var(--rh-teal)', time: 'synthetic' },
+  { text: 'No fleet execution evidence attached', color: 'var(--rh-orange)', time: 'required' },
+  { text: 'No ledger chain verified', color: 'var(--rh-orange)', time: 'required' },
+  { text: 'Tenant fixture loaded', color: 'var(--rh-blue)', time: 'synthetic' },
 ];
 
 const MOCK_CLUSTERS = [
@@ -79,8 +79,8 @@ function OverviewPage({ health }: { health: FleetHealthResponse | null }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         <MetricCard label="Clusters" value={health?.clusters?.length ?? 2} color="var(--rh-blue)" />
         <MetricCard label="Models" value={health?.models?.length ?? 5} color="var(--rh-teal)" />
-        <MetricCard label="Tests" value="360" color="var(--rh-green)" />
-        <MetricCard label="Cost Savings" value="53x" color="var(--rh-red)" />
+        <MetricCard label="Backend Tests" value="295" color="var(--rh-green)" detail="3 skipped" />
+        <MetricCard label="Cost Fixture" value="53x" color="var(--rh-orange)" detail="Historical" />
       </div>
       {health && (
         <div style={{ marginBottom: 24, padding: 14, background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 10 }}>
@@ -331,13 +331,16 @@ export function FleetDashboard({ onExit }: FleetDashboardProps) {
     models: 'Model Inventory',
     tenants: 'Tenant Profiles',
     rollouts: 'Rollout Management',
-    compliance: 'ARE Ledger Compliance',
+    compliance: 'External Ledger Evidence',
     matrix: 'Test Matrix & Rubric',
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <Header />
+      <div style={{ padding: '8px 16px', background: '#3b2f00', color: '#ffcc17', fontSize: 12, textAlign: 'center' }}>
+        Synthetic presentation fixtures — no live fleet execution, promotion, or ledger verification is asserted.
+      </div>
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar */}
         <nav style={{

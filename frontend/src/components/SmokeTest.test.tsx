@@ -145,9 +145,10 @@ afterEach(() => {
 describe('Presentation Slides', () => {
   it('renders the title slide with Red Hat x Intel', async () => {
     render(<App />);
-    expect(screen.getByText('DeepField')).toBeInTheDocument();
-    expect(screen.getByText('Multimodal')).toBeInTheDocument();
-    expect(screen.getByText('Agentic Signal Classification Engine')).toBeInTheDocument();
+    expect(screen.getByText('fleet-llm-d')).toBeInTheDocument();
+    expect(screen.getByText('Battle-Ready Inference at Fleet Scale')).toBeInTheDocument();
+    expect(screen.getByAltText('Red Hat')).toBeInTheDocument();
+    expect(screen.getByAltText('Intel')).toBeInTheDocument();
   });
 
   it('advances slides on click', async () => {
@@ -155,42 +156,40 @@ describe('Presentation Slides', () => {
     // Click to advance from slide 1
     fireEvent.click(screen.getByText('Next →'));
     await waitFor(() => {
-      expect(screen.getByText(/signals per hour/i)).toBeInTheDocument();
+      expect(screen.getByText(/10x per year/i)).toBeInTheDocument();
     });
   });
 
-  it('shows the 98% slide', async () => {
+  it('shows the llm-d foundation slide', async () => {
     render(<App />);
-    // Advance to slide 4 (98%)
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('Next →'));
+    }
+    await waitFor(() => {
+      expect(screen.getByText(/Open-source inference gateway for Kubernetes/)).toBeInTheDocument();
+      expect(screen.getByText(/KV cache affinity/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows the fleet governance slide', async () => {
+    render(<App />);
     for (let i = 0; i < 3; i++) {
       fireEvent.click(screen.getByText('Next →'));
     }
     await waitFor(() => {
-      expect(screen.getByText('98%')).toBeInTheDocument();
-      expect(screen.getByText(/classified on CPU/)).toBeInTheDocument();
+      expect(screen.getByText('Multi-cluster placement')).toBeInTheDocument();
+      expect(screen.getByText('Multi-tenant governance')).toBeInTheDocument();
+      expect(screen.getByText('SLO-gated rollouts')).toBeInTheDocument();
     });
   });
 
-  it('shows three tiers slide', async () => {
-    render(<App />);
-    for (let i = 0; i < 4; i++) {
-      fireEvent.click(screen.getByText('Next →'));
-    }
-    await waitFor(() => {
-      expect(screen.getByText('Nanoagents')).toBeInTheDocument();
-      expect(screen.getByText('Microagents')).toBeInTheDocument();
-      expect(screen.getByText('Macroagents')).toBeInTheDocument();
-    });
-  });
-
-  it('shows Next button on final slide to enter walkthrough', async () => {
+  it('shows the demo button on the final slide', async () => {
     render(<App />);
     for (let i = 0; i < 6; i++) {
       fireEvent.click(screen.getByText('Next →'));
     }
     await waitFor(() => {
-      expect(screen.getByText("Let's see it work.")).toBeInTheDocument();
-      expect(screen.getByText('Next')).toBeInTheDocument();
+      expect(screen.getByText('Start the Demo →')).toBeInTheDocument();
     });
   });
 });
@@ -201,23 +200,23 @@ describe('Manual Walkthrough', () => {
     for (let i = 0; i < 6; i++) {
       fireEvent.click(screen.getByText('Next →'));
     }
-    await waitFor(() => screen.getByText('Next'));
-    fireEvent.click(screen.getByText('Next'));
+    await waitFor(() => screen.getByText('Start the Demo →'));
+    fireEvent.click(screen.getByText('Start the Demo →'));
     return screen;
   }
 
   it('enters walkthrough from slides', async () => {
     await enterWalkthrough();
     await waitFor(() => {
-      expect(screen.getByText('Normal Operations')).toBeInTheDocument();
+      expect(screen.getByText('The Baseline')).toBeInTheDocument();
     });
   });
 
   it('shows baseline metrics on first act', async () => {
     await enterWalkthrough();
     await waitFor(() => {
-      expect(screen.getByText('0.22')).toBeInTheDocument();
-      expect(screen.getByText('38.2°C')).toBeInTheDocument();
+      expect(screen.getByText('800ms')).toBeInTheDocument();
+      expect(screen.getByText('Queue Depth')).toBeInTheDocument();
     });
   });
 });

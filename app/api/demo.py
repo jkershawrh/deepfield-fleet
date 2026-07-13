@@ -1,4 +1,4 @@
-"""Auto-orchestrated demo — fleet-llm-d inference orchestration story with live streaming."""
+"""Synthetic fleet presentation story; never runtime or promotion evidence."""
 
 import importlib
 import threading
@@ -19,6 +19,7 @@ from app.multimodal.normalizer import normalize_fixture
 from app.multimodal.scale_generator import generate_scaled_evidence
 
 router = APIRouter(prefix="/api/v1/demo", tags=["demo"])
+DEMO_EVIDENCE_STATE = "synthetic-presentation-only"
 
 FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "multimodal" / "factory-line-bearing-failure"
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
@@ -61,14 +62,12 @@ FLOW_DESCRIPTIONS = {
         "determines whether human approval is required before action."
     ),
     "intent": (
-        "Intents are the bridge between prediction and action. A PreWarmIntent carries confidence, "
-        "horizon, justification, target model, and desired replicas. The intent lifecycle flows "
-        "through predict, emit, evaluate, execute — with human gates at each transition."
+        "This synthetic storyline illustrates the proposed intent lifecycle. It does not submit "
+        "a FleetIntent, authorize execution, or observe an infrastructure change."
     ),
     "proof": (
-        "Every decision is chained in the ARE Immutable Ledger — evidence, classification, intent, "
-        "execution, outcome. The chain is cryptographically verifiable. 360 tests validate the "
-        "pipeline end-to-end before any production deployment."
+        "This presentation renders illustrative ledger rows only. Live immutable-ledger receipts "
+        "and cross-repository execution evidence must be collected separately."
     ),
     "scale_10": (
         "Twenty concurrent users across five models. The SLO forecaster processes latency evidence "
@@ -91,9 +90,8 @@ FLOW_DESCRIPTIONS = {
         "pre-warm timing. Each incident makes the fleet smarter."
     ),
     "claim": (
-        "53x cheaper than GPU inference. Predictive scaling, not reactive. Every decision — "
-        "from forecast to intent to execution — recorded in the ARE Ledger. Five models, "
-        "four replicas, 200 users, zero unplanned outages."
+        "Synthetic scenario complete. Cost, scale, execution, and ledger outcomes shown here are "
+        "illustrative and cannot support a maturity or production-readiness claim."
     ),
 }
 
@@ -104,13 +102,13 @@ DEMO_STEPS = [
     {"id": "platform",       "title": "The Platform",                "subtitle": "7 CRDs define the fleet's desired state.",                        "duration": 12},
     {"id": "forecast",       "title": "The Brain Predicts",          "subtitle": "SLO forecaster: P95 will breach in 22 minutes.",                  "duration": 15},
     {"id": "blast_radius",   "title": "The Blast Radius",            "subtitle": "200 users x 5 models. Severity: critical.",                       "duration": 12},
-    {"id": "intent",         "title": "The Intent",                  "subtitle": "PreWarmIntent emitted. fleet-llm-d executes.",                    "duration": 12},
-    {"id": "proof",          "title": "The Proof",                   "subtitle": "360 tests green. ARE Ledger chains verified.",                     "duration": 10},
+    {"id": "intent",         "title": "The Intent",                  "subtitle": "Synthetic lifecycle illustration; no execution.",                 "duration": 12},
+    {"id": "proof",          "title": "The Proof",                   "subtitle": "Illustrative rows; live receipts required.",                       "duration": 10},
     {"id": "scale_10",       "title": "Scale — 10x Load",           "subtitle": "20 concurrent users across 5 models.",                            "duration": 12},
     {"id": "scale_50",       "title": "Scale — 50x Load",           "subtitle": "100 users. HPA scales 1 to 4 replicas.",                          "duration": 12},
     {"id": "stress",         "title": "Stress Test",                 "subtitle": "200 users. Load shedding activates. 503s absorbed.",              "duration": 15},
     {"id": "recovery",       "title": "Recovery",                    "subtitle": "Load drops. Metrics stabilize. Learning captured.",                "duration": 10},
-    {"id": "claim",          "title": "The Claim",                   "subtitle": "53x cheaper. Predictive, not reactive. Every decision in the ledger.", "duration": 8},
+    {"id": "claim",          "title": "Scenario Boundary",           "subtitle": "Synthetic presentation only; not promotion evidence.",             "duration": 8},
 ]
 
 NANO_MODULES = [
@@ -206,7 +204,7 @@ def _run_demo(speed: float):
                     "intents_emitted": 0, "intents_executed": 0}
     def _extras(**kw):
         return {"funnel": funnel, "agent_events": agent_events[-25:],
-                "cumulative": cumulative, **kw}
+                "cumulative": cumulative, "evidence_state": DEMO_EVIDENCE_STATE, **kw}
 
     # === PART 1: FLEET WALKTHROUGH (steps 0-7) ===
     # Step 0: The Cost of Inference
@@ -387,7 +385,7 @@ def _run_demo(speed: float):
         reason="Summit Connect pre-warming",
     )
 
-    intent_phases = ["predict", "emit", "evaluate", "execute"]
+    intent_phases = ["predict", "emit", "evaluate", "illustrate"]
     for phase_idx, phase in enumerate(intent_phases):
         if _demo_stop.is_set(): return
         progress = ((phase_idx + 1) / len(intent_phases)) * 100
@@ -414,36 +412,35 @@ def _run_demo(speed: float):
         _pause_sleep(max(0.5, DEMO_STEPS[6]["duration"] / len(intent_phases) / speed))
 
     cumulative["intents_emitted"] += 1
-    funnel.update({"intents_emitted": funnel["intents_emitted"] + 1,
-                   "intents_executed": funnel["intents_executed"] + 1})
+    funnel.update({"intents_emitted": funnel["intents_emitted"] + 1})
     if _demo_stop.is_set(): return
     _auto_pause_between_steps(6, _extras(
-        narrative=f"PreWarmIntent executed: {intent.model} scaled to {intent.target_replicas} replicas.",
+        narrative=f"Synthetic PreWarmIntent illustration for {intent.model}; no replicas were changed.",
         intent_flow={"intent_type": "PreWarmIntent", "model": intent.model,
-                     "target_replicas": intent.target_replicas, "status": "executed",
-                     "current_phase": "execute", "phases": intent_phases,
+                     "target_replicas": intent.target_replicas, "status": "simulated",
+                     "current_phase": "illustrate", "phases": intent_phases,
                      "stages": [{"name": p, "status": "complete"} for p in intent_phases]}))
     if _demo_stop.is_set(): return
 
     # Step 7: The Proof
     ledger_chains = [
-        {"chain": "evidence-ingestion", "entries": 30, "status": "valid", "hash_verified": True},
-        {"chain": "slo-forecast", "entries": len(forecast_records), "status": "valid", "hash_verified": True},
-        {"chain": "blast-radius", "entries": len(scoped), "status": "valid", "hash_verified": True},
-        {"chain": "intent-lifecycle", "entries": 4, "status": "valid", "hash_verified": True},
-        {"chain": "execution-audit", "entries": 1, "status": "valid", "hash_verified": True},
+        {"chain": "evidence-ingestion", "entries": 30, "status": "illustrative", "hash_verified": False},
+        {"chain": "slo-forecast", "entries": len(forecast_records), "status": "illustrative", "hash_verified": False},
+        {"chain": "blast-radius", "entries": len(scoped), "status": "illustrative", "hash_verified": False},
+        {"chain": "intent-lifecycle", "entries": 4, "status": "illustrative", "hash_verified": False},
+        {"chain": "execution-audit", "entries": 1, "status": "illustrative", "hash_verified": False},
     ]
-    test_matrix = {"unit": 142, "bdd": 48, "contract": 35, "e2e": 22,
-                   "integration": 113, "total": 360, "passing": 360}
+    test_matrix = {"unit": 0, "bdd": 0, "contract": 0, "e2e": 0,
+                   "integration": 0, "total": 0, "passing": 0,
+                   "evidence_state": DEMO_EVIDENCE_STATE}
 
     _wait(DEMO_STEPS[7]["duration"], speed, 7, _extras(
-        narrative=f"{test_matrix['total']} tests green. {len(ledger_chains)} ARE Ledger chains verified. "
-                  f"Every decision — evidence, forecast, intent, execution — cryptographically chained.",
+        narrative="Illustrative ledger rows only; no live receipt or chain verification was performed.",
         ledger_chains=ledger_chains, test_matrix=test_matrix,
     ))
     if _demo_stop.is_set(): return
     _auto_pause_between_steps(7, _extras(
-        narrative="Proof complete. All chains valid. Ready to scale.",
+        narrative="Synthetic proof step complete. Live external evidence remains required.",
         ledger_chains=ledger_chains, test_matrix=test_matrix))
     if _demo_stop.is_set(): return
 
@@ -556,8 +553,8 @@ def _run_demo(speed: float):
                   f"{n_503} 503s absorbed gracefully. System degrades predictably.",
         funnel=stress_funnel,
         intent_flow={"intent_type": "ShedLoadIntent", "model": shed_intent.model,
-                     "max_inflight": shed_intent.max_inflight, "status": "executed",
-                     "current_phase": "execute"},
+                     "max_inflight": shed_intent.max_inflight, "status": "simulated",
+                     "current_phase": "illustrate"},
         scale_metrics={"users": 200, "models": 5, "evidence": 200,
                        "classifications": len(sr_200), "replicas": 4, "http_503": n_503},
     ))
@@ -608,18 +605,19 @@ def _run_demo(speed: float):
         "step_progress": 100,
         "total_steps": len(DEMO_STEPS),
         "flow_description": FLOW_DESCRIPTIONS["claim"],
-        "narrative": "53x cheaper. Predictive, not reactive. Every decision in the ledger.",
+        "narrative": "Synthetic scenario complete; live cost, execution, and ledger evidence remains required.",
+        "evidence_state": DEMO_EVIDENCE_STATE,
         "cumulative": cumulative,
         "claim": {
-            "cost_reduction": "53x",
+            "cost_reduction": "illustrative 53x",
             "models_served": 5,
             "peak_users": 200,
             "replicas_scaled": 4,
             "total_evidence": cumulative["total_evidence"],
             "total_classifications": cumulative["total_classifications"],
             "intents_emitted": cumulative["intents_emitted"],
-            "tests_passing": 360,
-            "ledger_chains": 5,
+            "tests_passing": 0,
+            "ledger_chains": 0,
             "http_503_absorbed": n_503,
             "learning_proposals": len(learning),
             "clusters": 2,

@@ -1,10 +1,15 @@
 """Tests for FleetPredictor A/B toggle and event-driven intents."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from app.domain.event_profile import EventProfile, LoadProfile, EventSchedule, PreWarmAction
-from app.domain.fleet_intents import PreWarmIntent, ScaleIntent, IntentType
+from app.domain.event_profile import (
+    EventProfile,
+    LoadProfile,
+    EventSchedule,
+    PreWarmAction,
+)
+from app.domain.fleet_intents import PreWarmIntent, ScaleIntent
 from app.domain.models import EvidenceArtifact
 from app.intents.predictor import FleetPredictor
 
@@ -34,12 +39,17 @@ class TestFleetPredictor:
         event_start = datetime(2026, 7, 10, 10, 0)
         now = datetime(2026, 7, 10, 9, 40)  # 20 min before
 
-        evidence = [EvidenceArtifact(
-            source="calendar",
-            modality="event",
-            artifact_type="calendar_event",
-            features={"event_start": event_start.isoformat(), "event_start_minutes": 20},
-        )]
+        evidence = [
+            EvidenceArtifact(
+                source="calendar",
+                modality="event",
+                artifact_type="calendar_event",
+                features={
+                    "event_start": event_start.isoformat(),
+                    "event_start_minutes": 20,
+                },
+            )
+        ]
 
         intents = await p.process_signals(evidence, now=now)
         pre_warms = [i for i in intents if isinstance(i, PreWarmIntent)]
@@ -53,12 +63,17 @@ class TestFleetPredictor:
         event_start = datetime(2026, 7, 10, 10, 0)
         now = datetime(2026, 7, 10, 9, 40)
 
-        evidence = [EvidenceArtifact(
-            source="calendar",
-            modality="event",
-            artifact_type="calendar_event",
-            features={"event_start": event_start.isoformat(), "event_start_minutes": 20},
-        )]
+        evidence = [
+            EvidenceArtifact(
+                source="calendar",
+                modality="event",
+                artifact_type="calendar_event",
+                features={
+                    "event_start": event_start.isoformat(),
+                    "event_start_minutes": 20,
+                },
+            )
+        ]
 
         intents = await p.process_signals(evidence, now=now)
         # Intents are computed (returned) but not emitted (no emitter configured)
@@ -75,12 +90,18 @@ class TestFleetPredictor:
         # Create ramping latency evidence
         evidence = []
         for i in range(30):
-            evidence.append(EvidenceArtifact(
-                source="fleet-metrics",
-                modality="metric",
-                artifact_type="latency_p95",
-                features={"value": 3000 + 50 * i, "timestamp_offset_minutes": i, "slo_target": 5000},
-            ))
+            evidence.append(
+                EvidenceArtifact(
+                    source="fleet-metrics",
+                    modality="metric",
+                    artifact_type="latency_p95",
+                    features={
+                        "value": 3000 + 50 * i,
+                        "timestamp_offset_minutes": i,
+                        "slo_target": 5000,
+                    },
+                )
+            )
 
         intents = await p.process_signals(evidence)
         scale_intents = [i for i in intents if isinstance(i, ScaleIntent)]
@@ -91,17 +112,51 @@ class TestFleetPredictor:
     async def test_no_intents_on_healthy_signals(self):
         p = FleetPredictor(enabled=True)
 
-        evidence = [EvidenceArtifact(
-            source="fleet-metrics",
-            modality="metric",
-            artifact_type="cpu_utilization",
-            features={"utilization": 0.3},
-        )]
+        evidence = [
+            EvidenceArtifact(
+                source="fleet-metrics",
+                modality="metric",
+                artifact_type="cpu_utilization",
+                features={"utilization": 0.3},
+            )
+        ]
 
         intents = await p.process_signals(evidence)
         # Healthy signals should not produce scale/pre-warm intents
-        scale_or_warm = [i for i in intents if isinstance(i, (ScaleIntent, PreWarmIntent))]
+        scale_or_warm = [
+            i for i in intents if isinstance(i, (ScaleIntent, PreWarmIntent))
+        ]
         assert len(scale_or_warm) == 0
+
+    @pytest.mark.asyncio
+    async def test_configured_emitter_receives_source_evidence(self):
+        class CapturingEmitter:
+            def __init__(self):
+                self.calls = []
+
+            async def emit(self, intent, *, evidence):
+                self.calls.append((intent, evidence))
+
+        emitter = CapturingEmitter()
+        p = FleetPredictor(
+            emitter=emitter,
+            enabled=True,
+            event_profiles=self._make_predictor().event_profiles,
+        )
+        event_start = datetime(2026, 7, 10, 10, 0)
+        evidence = [
+            EvidenceArtifact(
+                source="calendar",
+                modality="event",
+                artifact_type="calendar_event",
+                features={"event_start": event_start.isoformat()},
+            )
+        ]
+
+        await p.process_signals(evidence, now=datetime(2026, 7, 10, 9, 40))
+
+        assert emitter.calls
+        assert emitter.calls[0][1] is evidence
 
     def test_stats_tracking(self):
         p = self._make_predictor()
@@ -116,5 +171,6 @@ class TestFleetPredictor:
 class TestLedgerChainVerifier:
     def test_verifier_creation(self):
         from app.intents.ledger_verifier import LedgerChainVerifier
+
         v = LedgerChainVerifier(ledger_url="http://localhost:28099")
         assert v.ledger_url == "http://localhost:28099"

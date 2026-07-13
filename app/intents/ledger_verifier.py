@@ -1,16 +1,15 @@
-"""Verifies the prediction → action → outcome chain in the ARE Ledger."""
+"""Legacy read-only projection check for prediction/action/outcome evidence.
+
+This helper does not record events and its result is never authorization.
+"""
 
 import httpx
 import logging
-from typing import Optional
-
 logger = logging.getLogger(__name__)
 
 
 class LedgerChainVerifier:
-    """Verifies that the ARE Ledger contains the full causal chain:
-    prediction → action → outcome.
-    """
+    """Queries a compatibility evidence projection for a complete chain."""
 
     def __init__(self, ledger_url: str):
         self.ledger_url = ledger_url.rstrip("/")
@@ -48,14 +47,17 @@ class LedgerChainVerifier:
             has_prediction = chain["prediction"] is not None
             has_action = chain["action"] is not None
 
+            has_outcome = chain["outcome"] is not None
             return {
-                "valid": has_prediction and has_action,
+                "valid": has_prediction and has_action and has_outcome,
                 "correlation_id": correlation_id,
                 "chain": chain,
                 "entries_found": len(entries),
                 "has_prediction": has_prediction,
                 "has_action": has_action,
-                "has_outcome": chain["outcome"] is not None,
+                "has_outcome": has_outcome,
+                "evidence_only": True,
+                "authorizes_execution": False,
             }
         except Exception as e:
             return {"valid": False, "error": str(e)}

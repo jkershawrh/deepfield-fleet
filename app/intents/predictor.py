@@ -1,7 +1,8 @@
 """Predictive brain orchestrator with A/B toggle.
 
-When ON: runs fleet nanoagents + SLO forecaster, emits intents to fleet-llm-d.
-When OFF: passthrough, no intents emitted (reactive-only mode via fleet-llm-d HPA).
+When ON: runs fleet nanoagents + SLO forecaster and publishes advisory
+CloudEvents to GCL when an emitter is configured. When OFF: passthrough, no
+events are emitted.
 """
 
 import logging
@@ -20,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 class FleetPredictor:
-    """Composable predictive brain that sits above fleet-llm-d.
+    """Composable predictive brain that supplies evidence to GCL.
 
     Toggle on/off for A/B comparison:
-    - ON: classifies fleet signals, forecasts SLOs, emits intents
+    - ON: classifies fleet signals, forecasts SLOs, emits advisory events
     - OFF: no predictions, fleet-llm-d runs reactive-only
     """
 
@@ -56,7 +57,8 @@ class FleetPredictor:
     ) -> list[FleetIntent]:
         """Process fleet signals and optionally emit intents.
 
-        Returns list of intents (emitted if enabled, computed but not emitted if disabled).
+        Returns internal recommendations. If enabled, their outbound form is a
+        strict DeepField CloudEvent sent to GCL, not a fleet execution request.
         """
         if now is None:
             now = datetime.utcnow()
@@ -99,7 +101,7 @@ class FleetPredictor:
         # Step 4: Emit if enabled
         if self.enabled and self.emitter:
             for intent in intents:
-                await self.emitter.emit(intent)
+                await self.emitter.emit(intent, evidence=evidence)
 
         self._intents_emitted.extend(intents)
 
