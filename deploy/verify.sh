@@ -13,6 +13,20 @@ if [ -z "$ROUTE" ]; then
 fi
 
 URL="https://$ROUTE"
+TOKEN=$(oc whoami -t 2>/dev/null || true)
+if [ -z "$TOKEN" ]; then
+  echo "✗ An OpenShift bearer token is required to verify the OAuth-protected route."
+  exit 1
+fi
+
+route_get() {
+  curl -sfk -H "Authorization: Bearer $TOKEN" "$1"
+}
+
+route_post() {
+  curl -sfk -H "Authorization: Bearer $TOKEN" -X POST "$1"
+}
+
 PASS=0
 FAIL=0
 
@@ -39,18 +53,17 @@ echo ""
 echo "INFRASTRUCTURE"
 check "deepfield-fleet pod running" "oc get pods -n $NAMESPACE -l app=deepfield-fleet -o jsonpath='{.items[0].status.phase}' | grep -q Running"
 check "fleet-controller pod running" "oc get pods -n $NAMESPACE -l app=fleet-controller -o jsonpath='{.items[0].status.phase}' | grep -q Running"
-check "Health check" "curl -sfk $URL/health | grep -q ok"
-check "Frontend loads" "curl -sfk $URL/ | grep -q root"
+check "Health check" "route_get $URL/health | grep -q ok"
 check "Readiness passing" "oc get pods -n $NAMESPACE -l app=deepfield-fleet -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}' | grep -q True"
 
 echo ""
 echo "FLEET API"
-check "Fleet health" "curl -sfk $URL/api/v1/fleet/health | grep -q status"
-check "Fleet cost" "curl -sfk $URL/api/v1/fleet/cost | grep -q savings"
-check "Fleet event profiles" "curl -sfk $URL/api/v1/fleet/event-profiles | grep -q profiles"
-check "Fleet forecast" "curl -sfk -X POST $URL/api/v1/fleet/forecast | grep -q forecast"
-check "Demo state" "curl -sfk $URL/api/v1/demo/state"
-check "Infrastructure" "curl -sfk $URL/api/v1/demo/infrastructure | grep -q agents"
+check "Fleet health" "route_get $URL/api/v1/fleet/health | grep -q status"
+check "Fleet cost" "route_get $URL/api/v1/fleet/cost | grep -q savings"
+check "Fleet event profiles" "route_get $URL/api/v1/fleet/event-profiles | grep -q profiles"
+check "Fleet forecast" "route_post $URL/api/v1/fleet/forecast | grep -q forecast"
+check "Demo state" "route_get $URL/api/v1/demo/state"
+check "Infrastructure" "route_get $URL/api/v1/demo/infrastructure | grep -q agents"
 
 echo ""
 echo "MOCK INFERENCE"

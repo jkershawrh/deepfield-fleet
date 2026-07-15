@@ -2,9 +2,9 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: deepfield-reader
-  namespace: deepfield-multimodal
+  namespace: deepfield-fleet
   annotations:
-    serviceaccounts.openshift.io/oauth-redirectreference.primary: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"deepfield-multimodal"}}'
+    serviceaccounts.openshift.io/oauth-redirectreference.primary: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"deepfield-fleet"}}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -13,7 +13,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: deepfield-reader
-    namespace: deepfield-multimodal
+    namespace: deepfield-fleet
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -22,19 +22,19 @@ roleRef:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deepfield-multimodal
-  namespace: deepfield-multimodal
+  name: deepfield-fleet
+  namespace: deepfield-fleet
   labels:
-    app: deepfield-multimodal
+    app: deepfield-fleet
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: deepfield-multimodal
+      app: deepfield-fleet
   template:
     metadata:
       labels:
-        app: deepfield-multimodal
+        app: deepfield-fleet
     spec:
       serviceAccountName: deepfield-reader
       securityContext:
@@ -88,7 +88,7 @@ spec:
             - -https-address=
             - -email-domain=*
             - -upstream=http://localhost:8000/
-            - -client-id=deepfield-multimodal-oauth
+            - -client-id=deepfield-fleet-oauth
             - -client-secret-file=/etc/proxy/secrets/client-secret
             - -cookie-secret-file=/etc/proxy/secrets/session_secret
             - -openshift-service-account=deepfield-reader
@@ -135,15 +135,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: deepfield-multimodal
-  namespace: deepfield-multimodal
+  name: deepfield-fleet
+  namespace: deepfield-fleet
   labels:
-    app: deepfield-multimodal
+    app: deepfield-fleet
   annotations:
-    service.alpha.openshift.io/serving-cert-secret-name: deepfield-multimodal-tls
+    service.alpha.openshift.io/serving-cert-secret-name: deepfield-fleet-tls
 spec:
   selector:
-    app: deepfield-multimodal
+    app: deepfield-fleet
   ports:
     - name: oauth-proxy
       port: 8080
@@ -153,12 +153,12 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: deepfield-multimodal
-  namespace: deepfield-multimodal
+  name: deepfield-fleet
+  namespace: deepfield-fleet
 spec:
   to:
     kind: Service
-    name: deepfield-multimodal
+    name: deepfield-fleet
   port:
     targetPort: oauth-proxy
   tls:
