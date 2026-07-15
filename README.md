@@ -310,6 +310,19 @@ python3 -m pytest app/tests/ -v
 python3 -m pytest app/tests/test_ecosystem_contracts.py app/tests/test_ecosystem_emitter.py -v
 ```
 
+For an OpenShift install, provide the same DeepField admission token configured
+on GCL plus an explicit producer scope. The installer fails before deployment
+when any required scope is missing:
+
+```bash
+make -C deploy install \
+  NAMESPACE=fleet-llm-d \
+  GCL_EVENT_SINK_TOKEN="$DEEPFIELD_EVENT_TOKEN" \
+  DEEPFIELD_TENANT=tenant-a \
+  DEEPFIELD_ZONE=us-central-1 \
+  DEEPFIELD_CLUSTER=spoke-a
+```
+
 ## Powered By
 
 Red Hat OpenShift · Intel Xeon 6 · Intel Gaudi 3 · GCL · fleet-llm-d · are-immutable-ledger
