@@ -1,14 +1,16 @@
 """DeepField Multimodal: FastAPI application."""
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.auth import require_api_token
 from app.db import close_db, init_db
 
 logging.basicConfig(level=logging.INFO)
@@ -34,12 +36,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Starlette echoes the caller's own Origin back when allow_origins=["*"] is
+# combined with allow_credentials=True, rather than sending a literal "*".
+# That let any site on the internet make credentialed cross-origin requests
+# and read the responses. Origins are now named explicitly, and credentials
+# stay off because the API authenticates with a bearer token, not a cookie.
+_DEFAULT_CORS_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
+
+
+def _cors_origins() -> list[str]:
+    configured = os.environ.get("DEEPFIELD_CORS_ORIGINS", _DEFAULT_CORS_ORIGINS)
+    return [origin.strip() for origin in configured.split(",") if origin.strip()]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins(),
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -53,18 +68,18 @@ from app.api.bootstrap import router as bootstrap_router
 from app.api.benchmark import router as benchmark_router
 from app.api.ecosystem import router as ecosystem_router
 
-app.include_router(multimodal_router)
-app.include_router(baseline_router)
-app.include_router(classification_router)
-app.include_router(agent_loop_router)
-app.include_router(demo_router)
-app.include_router(sse_router)
-app.include_router(bootstrap_router)
-app.include_router(benchmark_router)
-app.include_router(ecosystem_router)
+app.include_router(multimodal_router, dependencies=[Depends(require_api_token)])
+app.include_router(baseline_router, dependencies=[Depends(require_api_token)])
+app.include_router(classification_router, dependencies=[Depends(require_api_token)])
+app.include_router(agent_loop_router, dependencies=[Depends(require_api_token)])
+app.include_router(demo_router, dependencies=[Depends(require_api_token)])
+app.include_router(sse_router, dependencies=[Depends(require_api_token)])
+app.include_router(bootstrap_router, dependencies=[Depends(require_api_token)])
+app.include_router(benchmark_router, dependencies=[Depends(require_api_token)])
+app.include_router(ecosystem_router, dependencies=[Depends(require_api_token)])
 
 from app.api.fleet_demo import router as fleet_demo_router
-app.include_router(fleet_demo_router)
+app.include_router(fleet_demo_router, dependencies=[Depends(require_api_token)])
 
 
 @app.get("/health")

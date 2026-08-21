@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Backend — run from repo root
 pip install -e ".[dev]"
-python3 -m pytest app/tests/ -v          # 217 tests
+python3 -m pytest app/tests/ -v          # 307 tests
 python3 -m pytest app/tests/test_contracts.py  # single test file
 uvicorn app.main:app --reload            # dev server on :8000
 python3 -m app.demo                      # CLI demo (no server needed)
@@ -107,3 +107,6 @@ The app is a presentation-first demo: 7 click-through slides → 6-act manual wa
 | `BOOTSTRAP_API_KEY` | Bootstrap model auth | (falls back to LITELLM_API_KEY) |
 | `BOOTSTRAP_MODEL` | Bootstrap model name | `claude-sonnet-4-6` |
 | `DATABASE_URL` | PostgreSQL connection | (none — in-memory mode) |
+| `DEEPFIELD_API_TOKEN` | Bearer token required on every `/api/**` route | (none) |
+| `DEEPFIELD_RUNTIME_MODE` | `production` refuses to serve unauthenticated | `development` |
+| `DEEPFIELD_CORS_ORIGINS` | Comma-separated browser origins allowed to call the API | `http://localhost:3000,http://127.0.0.1:3000` |
