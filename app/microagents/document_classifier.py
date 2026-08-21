@@ -32,7 +32,7 @@ class DocumentClassifierAgent(BaseMicroagent):
                 agent_tier="micro", agent_name=self.name,
                 taxonomy="incident_family", class_name=family,
                 severity=severity, confidence=confidence,
-                rationale=f"Document keyword analysis",
+                rationale="Document keyword analysis",
                 evidence_ids=[ev.evidence_id],
                 metrics={"model": "rule_backed", "runtime": "cpu"},
             ))

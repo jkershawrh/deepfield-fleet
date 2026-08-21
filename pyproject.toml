@@ -22,6 +22,7 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "httpx>=0.27",
+    "ruff>=0.5.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -30,3 +31,27 @@ include = ["app*"]
 [tool.pytest.ini_options]
 testpaths = ["app/tests"]
 asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "UP"]
+ignore = [
+    "E501",   # line-too-long — existing codebase style
+    "E701",   # multiple-statements-on-one-line — existing pattern
+    "E402",   # module-import-not-at-top — existing pattern
+    "E741",   # ambiguous-variable-name
+    "F401",   # unused-import — 35 existing violations, separate cleanup
+    "F841",   # unused-variable
+    "UP007",  # non-pep604-annotation-union — existing Optional[] style
+    "UP017",  # datetime-timezone-utc — existing datetime.utcnow() pattern
+    "UP035",  # deprecated-import — typing imports
+    "UP037",  # quoted-annotation — forward refs
+    "UP045",  # non-pep604-annotation-optional — Optional[] style
+    "UP042",  # replace-str-enum
+]
+
+[tool.ruff.lint.per-file-ignores]
+"app/tests/**" = ["F401", "F841"]
